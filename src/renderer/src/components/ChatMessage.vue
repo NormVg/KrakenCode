@@ -5,6 +5,7 @@ import 'markstream-vue/index.css'
 const props = defineProps<{
   role: 'user' | 'agent'
   content: string
+  isStreaming?: boolean
 }>()
 </script>
 
@@ -32,7 +33,13 @@ const props = defineProps<{
     <div class="message-content">
       <div class="message-sender">{{ role === 'agent' ? 'Eve' : 'You' }}</div>
       <div class="markdown-body">
-        <MarkdownRender mode="chat" :content="props.content" :final="true" :is-dark="true" />
+        <MarkdownRender 
+          mode="chat" 
+          :content="props.content" 
+          :final="!props.isStreaming" 
+          :is-dark="true" 
+          :code-block-props="{ theme: { dark: 'vitesse-dark', light: 'vitesse-light' } }"
+        />
       </div>
     </div>
   </div>
@@ -42,17 +49,12 @@ const props = defineProps<{
 .message {
   display: flex;
   gap: 16px;
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 24px;
   animation: fadeIn 0.3s ease-out;
 }
 
 .message:last-child {
-  border-bottom: none;
-}
-
-.message.agent {
-  background-color: rgba(0, 0, 0, 0.15);
+  padding-bottom: 0;
 }
 
 .avatar {
@@ -66,9 +68,9 @@ const props = defineProps<{
 }
 
 .agent-avatar {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
-  color: white;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
 }
 
 .user-avatar {

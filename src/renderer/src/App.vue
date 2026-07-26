@@ -1,20 +1,53 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, nextTick, watch, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
+import SettingsModal from './components/SettingsModal.vue'
 import './assets/main.css'
 
-// Configuration State
-const provider = ref('ollama-local')
-const model = ref('gemma4:31b-cloud')
-const apiKey = ref('')
-const isSetup = ref(false)
-const setupError = ref('')
-const isSidebarOpen = ref(true)
+// Configuration State via Pinia
+const configStore = useConfigStore()
+const { isSetup, provider, model } = storeToRefs(configStore)
+const isSettingsOpen = ref(!isSetup.value)
+
+// Ensure Settings opens if we somehow lose setup state
+watch(isSetup, (newVal) => {
+  if (!newVal) isSettingsOpen.value = true
+})
 
 // Chat State
 const prompt = ref('')
 const isLoading = ref(false)
-const messages = ref<{role: 'user' | 'agent', content: string}[]>([])
+
+interface ChatMsg {
+  id?: string;
+  role: 'user' | 'agent';
+  content: string;
+  isStreaming?: boolean;
+}
+const messages = ref<ChatMsg[]>([])
+
+// Auto-initialize if possible
+onMounted(async () => {
+  if (!isSetup.value) {
+    try {
+      await configStore.initializeAgent()
+    } catch (e) {
+      console.error("Auto-init failed", e)
+    }
+  }
+})
+
+// Default greeting when setup completes for the first time
+watch(isSetup, (newVal) => {
+  if (newVal && messages.value.length === 0) {
+    messages.value.push({ 
+      role: 'agent', 
+      content: `Hello! I am your AI agent running on \`${provider.value}\` with \`${model.value}\`. How can I help you code today?` 
+    })
+  }
+})
 
 // DOM Ref for auto-scroll
 const chatHistoryRef = ref<HTMLElement | null>(null)
@@ -26,44 +59,38 @@ const scrollToBottom = async () => {
   }
 }
 
-const handleSetup = async () => {
-  setupError.value = ''
-  const result = await window.api.setModel({
-    provider: provider.value,
-    model: model.value,
-    apiKey: apiKey.value
-  })
-  
-  if (result.success) {
-    isSetup.value = true
-    isSidebarOpen.value = false // Collapse sidebar on success to focus on chat
-    if (messages.value.length === 0) {
-      messages.value.push({ role: 'agent', content: `Hello! I am your AI agent running on \`${provider.value}\` with \`${model.value}\`. How can I help you code today?` })
-    }
-  } else {
-    setupError.value = result.error || 'Failed to setup model'
-  }
-}
-
 const handleChat = async () => {
   const text = prompt.value.trim()
-  if (!text || isLoading.value) return
+  if (!text || isLoading.value || !isSetup.value) return
   
   messages.value.push({ role: 'user', content: text })
   prompt.value = ''
   scrollToBottom()
   
   isLoading.value = true
+  const msgId = Date.now().toString()
+  const agentMsg = { id: msgId, role: 'agent', content: '', isStreaming: true } as ChatMsg
+  messages.value.push(agentMsg)
   
-  try {
-    const res = await window.api.chat(text)
-    messages.value.push({ role: 'agent', content: res })
-  } catch (err: any) {
-    messages.value.push({ role: 'agent', content: `**Error:** ${err.message || String(err)}` })
-  } finally {
-    isLoading.value = false
+  window.api.onChatChunk(msgId, (chunk) => {
+    agentMsg.content += chunk
     scrollToBottom()
-  }
+  })
+
+  window.api.onChatEnd(msgId, () => {
+    agentMsg.isStreaming = false
+    isLoading.value = false
+    window.api.removeChatListeners(msgId)
+  })
+
+  window.api.onChatError(msgId, (err) => {
+    agentMsg.content += `\n**Error:** ${err}`
+    agentMsg.isStreaming = false
+    isLoading.value = false
+    window.api.removeChatListeners(msgId)
+  })
+
+  window.api.streamChat(msgId, text)
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
@@ -72,131 +99,87 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleChat()
   }
 }
-
-onMounted(() => {
-  // Check if we can auto-setup (optional, depending on default config)
-})
 </script>
 
 <template>
   <div class="layout">
     <!-- Sidebar -->
-    <aside :class="['sidebar', { 'open': isSidebarOpen }]">
+    <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="logo-container">
-          <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v20"></path>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span class="logo-text">Kraken AI</span>
-        </div>
-        <button class="icon-btn close-sidebar-btn" @click="isSidebarOpen = false" v-if="isSetup">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
+        <span class="logo-text">Kraken</span>
       </div>
-
+      
       <div class="sidebar-content">
-        <h3 class="section-title">Configuration</h3>
-        
-        <div class="form-group">
-          <label>Provider</label>
-          <div class="input-wrapper">
-            <select v-model="provider">
-              <option value="ollama-local">Ollama (Local)</option>
-              <option value="ollama-cloud">Ollama (Cloud)</option>
-            </select>
-          </div>
+        <div class="history-section">
+          <div class="history-title">Recent</div>
+          <div class="history-item active">New Conversation</div>
         </div>
-        
-        <div class="form-group">
-          <label>Model</label>
-          <div class="input-wrapper">
-            <select v-model="model">
-              <option value="gemma4:31b-cloud">gemma4:31b-cloud</option>
-              <option value="llama3">llama3</option>
-              <option value="mistral">mistral</option>
-              <option value="phi3">phi3</option>
-              <option value="gemma">gemma</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-group" v-if="provider === 'ollama-cloud'">
-          <label>API Key</label>
-          <div class="input-wrapper">
-            <input v-model="apiKey" type="password" placeholder="Enter Ollama Cloud API Key" />
-          </div>
-        </div>
-        
-        <button class="primary-btn" @click="handleSetup">
-          {{ isSetup ? 'Update Configuration' : 'Initialize Agent' }}
+      </div>
+      
+      <div class="sidebar-footer">
+        <button class="icon-btn settings-btn" @click="isSettingsOpen = true" title="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
         </button>
-        <div v-if="setupError" class="error-msg">{{ setupError }}</div>
       </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Topbar -->
-      <header class="topbar">
-        <button class="icon-btn" @click="isSidebarOpen = !isSidebarOpen">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        </button>
-        <div class="connection-status">
-          <span :class="['status-dot', isSetup ? 'connected' : 'disconnected']"></span>
-          {{ isSetup ? `${provider} / ${model}` : 'Not Connected' }}
-        </div>
-      </header>
+      
+      <!-- Settings Modal via component -->
+      <SettingsModal 
+        v-if="isSettingsOpen" 
+        @close="isSettingsOpen = false" 
+      />
 
       <!-- Chat History -->
       <div class="chat-history" ref="chatHistoryRef">
-        <div v-if="!isSetup" class="welcome-screen">
-          <div class="glow-orb"></div>
-          <h2>Welcome to Kraken</h2>
-          <p>Initialize the agent in the sidebar to start coding.</p>
-        </div>
-        <template v-else>
-          <ChatMessage 
-            v-for="(msg, index) in messages" 
-            :key="index" 
-            :role="msg.role" 
-            :content="msg.content" 
-          />
-          <div v-if="isLoading" class="message agent loading-indicator">
-            <div class="message-avatar">
-              <div class="avatar agent-avatar pulse">...</div>
-            </div>
-            <div class="message-content">
-              <div class="message-sender">Eve</div>
+        <div class="chat-container">
+          <div v-if="!isSetup" class="welcome-screen">
+            <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
+            <p>Please configure the agent to start.</p>
+          </div>
+          <template v-else>
+            <ChatMessage 
+              v-for="(msg, index) in messages" 
+              :key="msg.id || index" 
+              :role="msg.role" 
+              :content="msg.content"
+              :is-streaming="msg.isStreaming"
+            />
+            <div v-if="isLoading" class="message agent loading-indicator">
               <div class="typing-dots">
                 <span>.</span><span>.</span><span>.</span>
               </div>
             </div>
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
 
       <!-- Input Area -->
-      <div class="input-container" :class="{ 'disabled': !isSetup }">
-        <div class="input-wrapper glass">
+      <div class="input-container">
+        <div class="input-pill">
           <textarea 
             v-model="prompt" 
-            placeholder="Ask Kraken to write code, debug, or explain..."
+            placeholder="Ask anything, @ to mention, / for actions"
             rows="1"
             @keydown="handleKeydown"
             :disabled="!isSetup || isLoading"
           ></textarea>
           <button class="send-btn" @click="handleChat" :disabled="!isSetup || !prompt.trim() || isLoading">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           </button>
         </div>
-        <div class="input-hint">Press <span>Enter</span> to send, <span>Shift + Enter</span> for new line</div>
       </div>
     </main>
   </div>
 </template>
 
 <style scoped>
+/* Keeping only the necessary styles, removing old modal styles */
 .layout {
   display: flex;
   height: 100vh;
@@ -206,131 +189,72 @@ onMounted(() => {
 
 /* Sidebar */
 .sidebar {
-  width: 280px;
+  width: 250px;
   background-color: var(--bg-panel);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
 }
 
-.sidebar:not(.open) {
-  margin-left: -280px;
-}
-
 .sidebar-header {
-  height: 60px;
+  height: 48px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.logo-text {
+  font-weight: 600;
+  font-size: 0.9em;
   color: var(--text-main);
-  font-weight: 700;
-  font-size: 1.1em;
-}
-
-.logo-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--accent);
+  letter-spacing: 0.5px;
 }
 
 .sidebar-content {
-  padding: 20px;
   flex: 1;
+  padding: 16px 8px;
   overflow-y: auto;
 }
 
-.section-title {
-  font-size: 0.8em;
+.history-section {
+  margin-bottom: 24px;
+}
+
+.history-title {
+  font-size: 0.75em;
   text-transform: uppercase;
-  letter-spacing: 1px;
   color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.85em;
+  padding: 0 8px;
   margin-bottom: 8px;
-  color: var(--text-muted);
 }
 
-.input-wrapper input,
-.input-wrapper select {
-  width: 100%;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 0.9em;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.input-wrapper input:focus,
-.input-wrapper select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.primary-btn {
-  width: 100%;
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
-}
-
-.primary-btn:hover {
-  background-color: var(--accent-hover);
-}
-
-.primary-btn:active {
-  transform: scale(0.98);
-}
-
-.error-msg {
-  color: #ef4444;
+.history-item {
   font-size: 0.85em;
-  margin-top: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 8px;
-  border-radius: 4px;
+  padding: 6px 8px;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Main Content */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.history-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
 }
 
-.topbar {
-  height: 60px;
+.history-item.active {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-color);
-  gap: 16px;
 }
 
 .icon-btn {
@@ -338,37 +262,26 @@ onMounted(() => {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 
 .icon-btn:hover {
-  background-color: var(--bg-input);
+  background-color: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
 }
 
-.connection-status {
-  font-size: 0.85em;
-  color: var(--text-muted);
+/* Main Content */
+.main-content {
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ef4444;
-}
-
-.status-dot.connected {
-  background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
 }
 
 /* Chat History */
@@ -376,55 +289,75 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-container {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 40px 20px 120px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .welcome-screen {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  text-align: center;
+  font-size: 0.9em;
+  gap: 24px;
 }
 
-.glow-orb {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  opacity: 0.3;
-  animation: pulse 4s infinite ease-in-out;
-  margin-bottom: 20px;
+.welcome-banner {
+  max-width: 400px;
+  width: 100%;
+  opacity: 0.4;
+  filter: grayscale(100%);
+  transition: opacity 0.3s;
+}
+
+.welcome-banner:hover {
+  opacity: 0.8;
 }
 
 /* Input Area */
 .input-container {
-  padding: 20px;
-  background: linear-gradient(to top, var(--bg-dark) 50%, transparent);
-}
-
-.input-container.disabled {
-  opacity: 0.5;
-}
-
-.input-wrapper.glass {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
   display: flex;
-  background: rgba(35, 39, 54, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  justify-content: center;
+  background: linear-gradient(to top, var(--bg-dark) 60%, transparent);
+  pointer-events: none;
+}
+
+.input-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  background-color: var(--bg-panel);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-radius: 24px;
+  padding: 8px 16px;
+  width: 100%;
+  max-width: 760px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s;
 }
 
-.input-wrapper.glass:focus-within {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.5);
+.input-pill:focus-within {
+  border-color: var(--text-muted);
 }
 
-.input-wrapper textarea {
+.input-pill textarea {
   flex: 1;
   background: transparent;
   border: none;
@@ -435,75 +368,54 @@ onMounted(() => {
   line-height: 1.5;
   max-height: 200px;
   min-height: 24px;
+  padding: 8px 0;
 }
 
 .send-btn {
-  background: var(--accent);
-  color: white;
+  background: transparent;
+  color: var(--text-muted);
   border: none;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s;
-  align-self: flex-end;
+  transition: color 0.2s, background-color 0.2s;
+  margin-left: 8px;
+  margin-bottom: 4px;
 }
 
 .send-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
 }
 
 .send-btn:disabled {
-  background: var(--border-color);
-  color: var(--text-muted);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.input-hint {
-  text-align: center;
-  font-size: 0.75em;
-  color: var(--text-muted);
-  margin-top: 12px;
-}
-
-.input-hint span {
-  background: var(--bg-input);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-/* Loading state */
+/* Loading */
 .loading-indicator {
-  padding: 24px;
-  display: flex;
-  gap: 16px;
+  padding: 0 12px;
 }
 
 .typing-dots {
   display: flex;
   gap: 4px;
-  font-size: 1.5em;
-  line-height: 1;
   color: var(--text-muted);
+  font-size: 1.2em;
 }
-
 .typing-dots span {
-  animation: bounce 1.4s infinite ease-in-out both;
+  animation: bounce 1.4s infinite;
 }
-
-.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
-}
-
-.pulse {
-  animation: pulse 2s infinite ease-in-out;
+  0%, 100% { opacity: 0.4; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
 }
 </style>

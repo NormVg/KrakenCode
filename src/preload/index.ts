@@ -4,6 +4,21 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   chat: (message: string) => ipcRenderer.invoke('agent:chat', message),
+  streamChat: (id: string, message: string) => ipcRenderer.send('agent:stream-chat', { id, message }),
+  onChatChunk: (id: string, callback: (chunk: string) => void) => {
+    ipcRenderer.on(`agent:chat:chunk:${id}`, (_, chunk) => callback(chunk));
+  },
+  onChatEnd: (id: string, callback: () => void) => {
+    ipcRenderer.on(`agent:chat:end:${id}`, () => callback());
+  },
+  onChatError: (id: string, callback: (err: string) => void) => {
+    ipcRenderer.on(`agent:chat:error:${id}`, (_, err) => callback(err));
+  },
+  removeChatListeners: (id: string) => {
+    ipcRenderer.removeAllListeners(`agent:chat:chunk:${id}`);
+    ipcRenderer.removeAllListeners(`agent:chat:end:${id}`);
+    ipcRenderer.removeAllListeners(`agent:chat:error:${id}`);
+  },
   setModel: (config: { provider: string, model: string, baseURL?: string }) => ipcRenderer.invoke('agent:setModel', config)
 }
 

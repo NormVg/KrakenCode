@@ -1,12 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../resources/apple-icon-squircle.png?asset'
 import { createOllama } from 'ai-sdk-ollama'
-import { generateText } from 'ai'
+import { streamText } from 'ai'
 
 let aiModel: any = null;
-let currentProviderName: string = '';
+
 
 function createWindow(): void {
   // Create the browser window.
@@ -64,7 +64,6 @@ app.whenReady().then(() => {
           baseURL: "http://127.0.0.1:11434",
         });
         aiModel = ollama(config.model || 'gemma4:31b-cloud');
-        currentProviderName = 'ollama-local';
         return { success: true };
       }
       
@@ -75,7 +74,6 @@ app.whenReady().then(() => {
           headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined
         });
         aiModel = ollama(config.model || 'gemma4:31b-cloud');
-        currentProviderName = 'ollama-cloud';
         return { success: true };
       }
       
@@ -85,22 +83,25 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('agent:chat', async (_, message) => {
-    if (!aiModel) throw new Error("Model not configured. Please select a model first.");
-    
-    // The eve agent directory resolution
-    const agentPath = is.dev 
-      ? join(__dirname, '../../resources/agent')
-      : join(process.resourcesPath, 'app.asar.unpacked/resources/agent');
+  ipcMain.on('agent:stream-chat', async (event, { id, message }) => {
+    try {
+      if (!aiModel) {
+        event.sender.send(`agent:chat:error:${id}`, "Model not configured. Please select a model first.");
+        return;
+      }
 
-    // Here is where `eve` agent would be invoked with `agentPath`.
-    // For now, we connect via standard Vercel AI SDK to prove end-to-end functionality
-    const { text } = await generateText({
-      model: aiModel,
-      prompt: message
-    });
-    
-    return text;
+      const { textStream } = streamText({
+        model: aiModel,
+        prompt: message
+      });
+
+      for await (const chunk of textStream) {
+        event.sender.send(`agent:chat:chunk:${id}`, chunk);
+      }
+      event.sender.send(`agent:chat:end:${id}`);
+    } catch (err: any) {
+      event.sender.send(`agent:chat:error:${id}`, err.message);
+    }
   });
 
   createWindow()
