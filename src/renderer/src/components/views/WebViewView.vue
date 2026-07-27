@@ -98,7 +98,7 @@ const frameStyle = computed(() => {
       width: '100%',
       height: '100%',
       transform: `scale(${zoomLevel.value / 100})`,
-      transformOrigin: 'top left'
+      transformOrigin: 'top center'
     }
   }
   
@@ -411,7 +411,7 @@ onUnmounted(() => {
 }
 
 .dim-input {
-  width: 50px;
+  width: 60px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-main);
