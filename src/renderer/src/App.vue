@@ -329,8 +329,9 @@ const closeWindow = () => window.api.closeWindow()
 }
 
 .centered-composer {
-  width: 90%;
-  max-width: 650px;
+  width: 100%;
+  max-width: 800px;
+  padding: 0 40px; /* Match chat-container padding */
 }
 
 /* Floating Input Area */
@@ -339,8 +340,9 @@ const closeWindow = () => window.api.closeWindow()
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
+  width: 100%;
   max-width: 800px;
+  padding: 0 40px; /* Match chat-container padding */
   display: flex;
   justify-content: center;
   z-index: 10;
