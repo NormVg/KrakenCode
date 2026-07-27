@@ -379,7 +379,7 @@ const closeWindow = () => window.api.closeWindow()
 .chat-container {
   max-width: 800px;
   width: 100%;
-  padding: 0 40px 20px 40px;
+  padding: 0 16px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -432,7 +432,7 @@ const closeWindow = () => window.api.closeWindow()
   bottom: 24px;
   width: 100%;
   max-width: 800px;
-  padding: 0 40px; /* Match chat-container padding */
+  padding: 0 16px; /* Match chat-container padding */
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -447,7 +447,7 @@ const closeWindow = () => window.api.closeWindow()
   transform: translateX(-50%);
   width: 100%;
   max-width: 800px;
-  padding: 0 40px; /* Match chat-container padding */
+  padding: 0 16px; /* Match chat-container padding */
   display: flex;
   justify-content: center;
   z-index: 10;
