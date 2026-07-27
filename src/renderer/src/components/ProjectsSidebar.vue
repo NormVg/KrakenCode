@@ -131,15 +131,6 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
   -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
 }
 
-.projects-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.projects-list::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
 .project-group {
   display: flex;
   flex-direction: column;

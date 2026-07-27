@@ -36,18 +36,21 @@ body, html {
 
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 2px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted-dark);
+:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Global Reset */
