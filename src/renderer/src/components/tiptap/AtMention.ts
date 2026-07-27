@@ -4,6 +4,7 @@ import { VueRenderer } from '@tiptap/vue-3'
 import tippy, { type Instance } from 'tippy.js'
 import CommandList from './CommandList.vue'
 import type { Editor } from '@tiptap/core'
+import { PluginKey } from '@tiptap/pm/state'
 
 export interface MentionItem {
   title: string
@@ -148,6 +149,7 @@ export const AtMention = Extension.create({
     return [
       Suggestion({
         editor: this.editor,
+        pluginKey: new PluginKey('atMention'),
         ...this.options.suggestion,
       }),
     ]

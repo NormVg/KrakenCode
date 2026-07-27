@@ -31,7 +31,7 @@ const editor = useEditor({
     Text,
     History,
     Placeholder.configure({
-      placeholder: props.placeholder ?? 'Plan, Build,  /  for commands,  @  for context',
+      placeholder: props.placeholder ?? 'Plan, Build, / for skills, @ for context',
       showOnlyCurrent: true,
     }),
     SlashCommands.configure({
@@ -111,23 +111,20 @@ onBeforeUnmount(() => {
 <style scoped>
 .chat-input-container {
   width: 100%;
-  background-color: var(--bg-dark);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  background-color: var(--bg-dark); /* #0A0D18 */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.03),
-    0 10px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
 }
 
 .chat-input-container.focused {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 15px 50px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
 }
 
 .chat-input-container.disabled {
@@ -136,9 +133,9 @@ onBeforeUnmount(() => {
 }
 
 .editor-wrapper {
-  padding: 12px 16px 8px;
-  min-height: 48px;
-  max-height: 200px;
+  box-sizing: border-box;
+  padding: 12px 16px 4px;
+  max-height: 204px; /* ~8 lines */
   overflow-y: auto;
   scrollbar-width: none;
   cursor: text;
@@ -151,8 +148,8 @@ onBeforeUnmount(() => {
 /* Tiptap inner editor */
 :deep(.tiptap-editor-content) {
   outline: none;
-  font-size: 0.93rem;
-  line-height: 1.6;
+  font-size: 0.95em;
+  line-height: 1.5;
   color: var(--text-main);
   font-family: var(--font-primary);
   caret-color: var(--text-main);
@@ -183,15 +180,14 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
 }
 
 .toolbar-left,
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .add-btn {
@@ -245,16 +241,15 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease;
+  transition: transform 0.2s ease-out;
   flex-shrink: 0;
 }
 
 .mic-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: scale(1.05);
 }
 
 .mic-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 </style>
