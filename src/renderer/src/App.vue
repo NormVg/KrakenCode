@@ -241,7 +241,7 @@ const closeWindow = () => window.api.closeWindow()
   flex-direction: column;
   position: relative;
   min-width: 0;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-panel);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);

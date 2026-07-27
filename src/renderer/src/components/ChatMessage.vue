@@ -81,7 +81,7 @@ const props = defineProps<{
 
 /* User Message */
 .user-bubble {
-  background-color: var(--bg-panel); /* #1C1C2A */
+  background-color: var(--bg-dark); /* #0A0D18 */
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 16px 20px;
