@@ -183,9 +183,8 @@ const removeQueuedMessage = (index: number) => {
 .centered-composer {
   position: absolute;
   bottom: 60px; /* Offset to leave room for global bottom bar */
-  width: 100%;
-  max-width: 800px;
-  padding: 0 16px; 
+  width: calc(100% - 24px);
+  max-width: 800px; 
   z-index: 10;
   display: flex;
   flex-direction: column;
