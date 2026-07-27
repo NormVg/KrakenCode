@@ -303,8 +303,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
 .text-gray { color: var(--text-muted); }
 
 .icon-folder {
-  color: #60a5fa;
-  fill: rgba(96, 165, 250, 0.2);
+  color: #cbd5e1;
+  fill: rgba(203, 213, 225, 0.15);
 }
 
 .icon-file {
