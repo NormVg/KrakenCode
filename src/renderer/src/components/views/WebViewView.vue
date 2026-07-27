@@ -11,9 +11,10 @@ type DeviceMode = 'desktop' | 'mobile' | 'responsive'
 const viewMode = ref<DeviceMode>('desktop')
 
 // Responsive dimensions
-const customWidth = ref(800)
-const customHeight = ref(600)
+const customWidth = ref(1024)
+const customHeight = ref(768)
 const zoomLevel = ref(100)
+const isTypingDimensions = ref(false)
 
 const loadUrl = () => {
   if (webviewRef.value) {
@@ -142,10 +143,8 @@ onMounted(() => {
   // Observe the frame so CSS `resize: both` updates the Vue state
   if (frameRef.value) {
     frameResizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (viewMode.value === 'responsive') {
-          // Update state when user drags the CSS resize handle
-          // Avoid infinite loops by checking if it actually changed
+      if (viewMode.value === 'responsive' && !isTypingDimensions.value) {
+        for (const entry of entries) {
           const newW = entry.contentRect.width
           const newH = entry.contentRect.height
           if (Math.abs(newW - customWidth.value) > 2) {
@@ -211,9 +210,23 @@ onUnmounted(() => {
 
       <!-- Dimensions -->
       <div class="toolbar-group dimensions-group" :class="{ 'disabled': viewMode !== 'responsive' }">
-        <input type="number" v-model="customWidth" class="dim-input" :disabled="viewMode !== 'responsive'"/>
+        <input 
+          type="number" 
+          v-model="customWidth" 
+          class="dim-input" 
+          :disabled="viewMode !== 'responsive'"
+          @focus="isTypingDimensions = true"
+          @blur="isTypingDimensions = false"
+        />
         <span class="dim-separator">×</span>
-        <input type="number" v-model="customHeight" class="dim-input" :disabled="viewMode !== 'responsive'"/>
+        <input 
+          type="number" 
+          v-model="customHeight" 
+          class="dim-input" 
+          :disabled="viewMode !== 'responsive'"
+          @focus="isTypingDimensions = true"
+          @blur="isTypingDimensions = false"
+        />
       </div>
 
       <div class="toolbar-divider"></div>
@@ -469,9 +482,6 @@ onUnmounted(() => {
 .device-frame.responsive {
   resize: both;
   overflow: hidden;
-  /* Override inline styles during manual resize */
-  max-width: 100%;
-  max-height: 100%;
 }
 
 /* Desktop Frame Styling */
