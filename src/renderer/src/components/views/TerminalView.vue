@@ -150,12 +150,10 @@ onUnmounted(() => {
   flex: 1;
   width: 100%;
   min-height: 0;
-  padding: 12px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
-  display: flex;
-  justify-content: center;
+  padding: 4px 12px; /* Small inset so text doesn't hit the physical window edges, but allows max width */
 }
 
 :deep(canvas) {
