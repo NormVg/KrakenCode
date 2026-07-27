@@ -95,11 +95,9 @@ onMounted(async () => {
     <div class="layout">
 
       <!-- Left Sidebar (Projects) -->
-      <Transition name="slide-left">
-        <aside class="left-sidebar no-drag" v-if="isLeftSidebarOpen">
-          <ProjectsSidebar @open-settings="isSettingsOpen = true" />
-        </aside>
-      </Transition>
+      <aside class="left-sidebar no-drag" :class="{ 'is-closed': !isLeftSidebarOpen }">
+        <ProjectsSidebar @open-settings="isSettingsOpen = true" />
+      </aside>
 
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
@@ -220,6 +218,11 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layout-container.left-sidebar-closed .main-content {
+  margin-left: 72px; /* Space for the macOS traffic lights */
 }
 
 .floating-bottom-bar {
@@ -419,20 +422,15 @@ onMounted(async () => {
 
 .resizer:hover, .resizer.active {
   background-color: rgba(255, 255, 255, 0.1);
-}
-
 /* Sidebar Animations */
-.slide-left-enter-active,
-.slide-left-leave-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+.left-sidebar {
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-  white-space: nowrap; /* prevent wrapping during shrink */
+  white-space: nowrap;
 }
-.slide-left-enter-from,
-.slide-left-leave-to {
+.left-sidebar.is-closed {
   width: 0 !important;
   opacity: 0;
-  transform: translateX(-40px);
   padding-left: 0 !important;
   padding-right: 0 !important;
   margin-left: 0 !important;

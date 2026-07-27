@@ -187,10 +187,6 @@ const handleMount = (editor: any) => {
   -webkit-app-region: drag;
 }
 
-:global(.left-sidebar-closed) .editor-tabs-header {
-  padding-left: 80px; /* Make room for traffic lights */
-}
-
 .tabs-scroll-area {
   display: flex;
   align-items: center;
