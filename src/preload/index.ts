@@ -32,7 +32,9 @@ const api = {
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createItem: (itemPath: string, type: 'file' | 'folder') => ipcRenderer.invoke('fs:createItem', itemPath, type),
     deleteItem: (itemPath: string) => ipcRenderer.invoke('fs:deleteItem', itemPath),
-    renameItem: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:renameItem', oldPath, newPath)
+    renameItem: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:renameItem', oldPath, newPath),
+    moveItem: (source: string, dest: string) => ipcRenderer.invoke('fs:moveItem', source, dest),
+    copyItem: (source: string, dest: string) => ipcRenderer.invoke('fs:copyItem', source, dest)
   },
   pty: {
     // Spawn a shell — resolves with { pid } once the process is running

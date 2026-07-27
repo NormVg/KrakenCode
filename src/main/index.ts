@@ -219,6 +219,16 @@ app.whenReady().then(() => {
     return true
   })
 
+  ipcMain.handle('fs:moveItem', async (_, source: string, dest: string) => {
+    await fs.rename(source, dest)
+    return true
+  })
+
+  ipcMain.handle('fs:copyItem', async (_, source: string, dest: string) => {
+    await fs.cp(source, dest, { recursive: true })
+    return true
+  })
+
   // ─── PTY Handlers ──────────────────────────────────────────────────────────
 
   // pty:create — spawn a shell and start forwarding output to the renderer

@@ -7,64 +7,138 @@ const props = defineProps<{
   depth: number
 }>()
 
-const emit = defineEmits(['open-file', 'create-item', 'delete-item', 'rename-item'])
+const emit = defineEmits(['openFile', 'createItem', 'deleteItem', 'renameItem', 'refreshTree'])
 
 const isHovered = ref(false)
 const isMenuOpen = ref(false)
+const isLoading = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
+const isDragOver = ref(false)
 
 const toggleFolder = async () => {
   if (props.node.type === 'folder') {
     props.node.isOpen = !props.node.isOpen
     if (props.node.isOpen && !props.node.childrenLoaded) {
-      const children = await window.api.fs.readDirectory(props.node.path)
-      props.node.children = children.map((c: any) => ({
-        ...c,
-        isOpen: false,
-        children: [],
-        childrenLoaded: false
-      }))
-      props.node.childrenLoaded = true
+      await loadChildren()
     }
   } else {
-    emit('open-file', props.node)
+    emit('openFile', props.node)
   }
 }
 
-const openMenu = (e: MouseEvent) => {
-  e.stopPropagation()
+const loadChildren = async () => {
+  isLoading.value = true
+  try {
+    const rawFiles = await window.api.fs.readDirectory(props.node.path)
+    props.node.children = rawFiles.map((f: any) => ({
+      ...f,
+      isOpen: false,
+      children: [],
+      childrenLoaded: false
+    }))
+    props.node.childrenLoaded = true
+  } catch (err) {
+    console.error('Failed to load folder:', err)
+  }
+  isLoading.value = false
+}
+
+const openMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const closeMenu = () => {
-  isMenuOpen.value = false
-}
-
-const handleAction = (action: string, type?: string) => {
-  closeMenu()
-  if (action === 'create') emit('create-item', props.node, type)
-  if (action === 'rename') emit('rename-item', props.node)
-  if (action === 'delete') emit('delete-item', props.node)
-}
-
-const onClickOutside = (e: MouseEvent) => {
+const closeMenu = (e: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
-    closeMenu()
+    isMenuOpen.value = false
   }
 }
 
-onMounted(() => document.addEventListener('click', onClickOutside, true))
-onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
+const handleAction = (action: string, type?: string) => {
+  isMenuOpen.value = false
+  if (action === 'create' && type) {
+    emit('createItem', { node: props.node, type })
+  } else if (action === 'delete') {
+    emit('deleteItem', props.node)
+  } else if (action === 'rename') {
+    emit('renameItem', props.node)
+  }
+}
+
+const onDragStart = (e: DragEvent) => {
+  e.dataTransfer?.setData('application/kraken-file', props.node.path)
+}
+
+const onDragOver = (e: DragEvent) => {
+  if (props.node.type === 'folder') {
+    isDragOver.value = true
+  }
+}
+
+const onDragEnter = (e: DragEvent) => {
+  if (props.node.type === 'folder') {
+    isDragOver.value = true
+  }
+}
+
+const onDragLeave = (e: DragEvent) => {
+  isDragOver.value = false
+}
+
+const onDrop = async (e: DragEvent) => {
+  isDragOver.value = false
+  if (props.node.type !== 'folder') return
+  
+  const targetDir = props.node.path
+  
+  // Internal move
+  const internalData = e.dataTransfer?.getData('application/kraken-file')
+  if (internalData) {
+    const fileName = internalData.split('/').pop()
+    const destPath = `${targetDir}/${fileName}`
+    if (internalData !== destPath) {
+      await window.api.fs.moveItem(internalData, destPath)
+      emit('refreshTree')
+    }
+    return
+  }
+  
+  // External copy
+  if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const file = e.dataTransfer.files[i]
+      const sourcePath = (file as any).path
+      if (sourcePath) {
+        await window.api.fs.copyItem(sourcePath, `${targetDir}/${file.name}`)
+      }
+    }
+    emit('refreshTree')
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenu)
+})
 </script>
 
 <template>
   <div class="tree-node">
     <div 
       class="tree-item" 
+      draggable="true"
       :style="{ paddingLeft: `${depth * 14 + 6}px` }"
+      :class="{ 'drag-over': isDragOver }"
       @click.stop="toggleFolder"
       @mouseenter="isHovered = true"
       @mouseleave="isHovered = false"
+      @dragstart.stop="onDragStart"
+      @dragover.prevent.stop="onDragOver"
+      @dragenter.prevent.stop="onDragEnter"
+      @dragleave.prevent.stop="onDragLeave"
+      @drop.prevent.stop="onDrop"
     >
       <!-- Icons -->
       <div class="item-icon">
@@ -116,19 +190,22 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
       </div>
     </div>
     
-    <!-- Children with indent guide -->
-    <div v-if="node.type === 'folder' && node.isOpen" class="tree-children" :style="{ paddingLeft: `${depth * 14 + 13}px` }">
-      <div class="indent-guide"></div>
+    <!-- Children -->
+    <div v-if="node.type === 'folder' && node.isOpen" class="tree-children">
+      <!-- Optional: Indentation guide line -->
+      <div class="indent-guide" :style="{ marginLeft: `${depth * 14 + 11}px` }"></div>
+      
       <div class="children-content">
         <FileTreeNode 
           v-for="(child, index) in node.children" 
           :key="index"
           :node="child"
           :depth="depth + 1"
-          @open-file="(n) => emit('open-file', n)"
-          @create-item="(n, t) => emit('create-item', n, t)"
-          @delete-item="(n) => emit('delete-item', n)"
-          @rename-item="(n) => emit('rename-item', n)"
+          @open-file="$emit('openFile', $event)"
+          @create-item="$emit('createItem', $event.node, $event.type)"
+          @delete-item="$emit('deleteItem', $event)"
+          @rename-item="$emit('renameItem', $event)"
+          @refresh-tree="$emit('refreshTree')"
         />
       </div>
     </div>
@@ -310,5 +387,12 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
 .icon-file {
   color: #94a3b8;
   fill: rgba(148, 163, 184, 0.15);
+}
+
+/* Drag and drop */
+.tree-item.drag-over {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 </style>

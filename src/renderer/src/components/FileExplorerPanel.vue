@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import { RotateCw } from 'lucide-vue-next'
+import { RotateCw, FilePlus, FolderPlus } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
 import FileTreeNode from './FileTreeNode.vue'
@@ -9,6 +9,7 @@ const projectsStore = useProjectsStore()
 const { activeProject } = storeToRefs(projectsStore)
 
 const files = ref<any[]>([])
+const isDragOverRoot = ref(false)
 
 const loadTree = async () => {
   if (activeProject.value?.path) {
@@ -33,13 +34,15 @@ watch(() => activeProject.value?.path, () => {
 })
 
 const handleOpenFile = (node: any) => {
-  // Fire event to editor view via projects store or direct event bus
-  // For now, let's just use the projectsStore or a custom event bus if one exists.
-  // Actually, we can just add an `openFile` action to projectsStore.
   projectsStore.openFile(node)
 }
 
-const handleCreateItem = async (node: any, type: string) => {
+const handleCreateItem = async (nodeOrObj: any, typeArg?: string) => {
+  // When called from root buttons: (null, 'file'/'folder')
+  // When called from tree node emit: ({ node, type })
+  const node = typeArg !== undefined ? nodeOrObj : nodeOrObj?.node
+  const type = typeArg !== undefined ? typeArg : nodeOrObj?.type
+
   const name = prompt(`Enter name for new ${type}:`)
   if (!name) return
   
@@ -48,15 +51,9 @@ const handleCreateItem = async (node: any, type: string) => {
   if (success) {
     if (node) {
       node.childrenLoaded = false
-      node.isOpen = false // force refresh on next open
-      // Re-open to fetch
-      setTimeout(() => {
-        // mock click to trigger fetch
-        // toggleFolder(node) is inside FileTreeNode, so we might need a more robust refresh
-        // For now, just reload the whole tree if it's the root, or let the user click it again.
-      }, 10)
+      node.isOpen = false 
     }
-    loadTree() // simple fallback
+    loadTree() 
   }
 }
 
@@ -71,7 +68,6 @@ const handleRenameItem = async (node: any) => {
   const newName = prompt(`Enter new name for ${node.name}:`, node.name)
   if (!newName || newName === node.name) return
   
-  // Replace the last path segment with the new name
   const segments = node.path.split('/')
   segments.pop()
   segments.push(newName)
@@ -80,13 +76,66 @@ const handleRenameItem = async (node: any) => {
   await window.api.fs.renameItem(node.path, newPath)
   loadTree()
 }
+
+const onDragOverRoot = (e: DragEvent) => {
+  isDragOverRoot.value = true
+}
+
+const onDragLeaveRoot = (e: DragEvent) => {
+  isDragOverRoot.value = false
+}
+
+const onDropRoot = async (e: DragEvent) => {
+  isDragOverRoot.value = false
+  if (!activeProject.value?.path) return
+
+  const targetDir = activeProject.value.path
+  
+  // Internal move
+  const internalData = e.dataTransfer?.getData('application/kraken-file')
+  if (internalData) {
+    const fileName = internalData.split('/').pop()
+    const destPath = `${targetDir}/${fileName}`
+    if (internalData !== destPath) {
+      await window.api.fs.moveItem(internalData, destPath)
+      loadTree()
+    }
+    return
+  }
+  
+  // External copy
+  if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const file = e.dataTransfer.files[i]
+      const sourcePath = (file as any).path
+      if (sourcePath) {
+        await window.api.fs.copyItem(sourcePath, `${targetDir}/${file.name}`)
+      }
+    }
+    loadTree()
+  }
+}
 </script>
 
 <template>
-  <div class="file-explorer-panel">
-    <button class="panel-action-btn no-drag" @click="loadTree" title="Refresh">
-      <RotateCw :size="13" />
-    </button>
+  <div 
+    class="file-explorer-panel"
+    @dragover.prevent="onDragOverRoot"
+    @dragleave.prevent="onDragLeaveRoot"
+    @drop.prevent="onDropRoot"
+    :class="{ 'drag-over-root': isDragOverRoot }"
+  >
+    <div class="panel-actions no-drag">
+      <button class="panel-action-btn" @click="handleCreateItem(null, 'file')" title="New File">
+        <FilePlus :size="13" />
+      </button>
+      <button class="panel-action-btn" @click="handleCreateItem(null, 'folder')" title="New Folder">
+        <FolderPlus :size="13" />
+      </button>
+      <button class="panel-action-btn" @click="loadTree" title="Refresh">
+        <RotateCw :size="13" />
+      </button>
+    </div>
 
     <div class="file-tree" v-if="files.length">
       <FileTreeNode 
@@ -98,6 +147,7 @@ const handleRenameItem = async (node: any) => {
         @create-item="handleCreateItem"
         @delete-item="handleDeleteItem"
         @rename-item="handleRenameItem"
+        @refresh-tree="loadTree"
       />
     </div>
     <div class="empty-state" v-else>
@@ -113,13 +163,23 @@ const handleRenameItem = async (node: any) => {
   height: 100%;
   padding: 10px 12px 0;
   position: relative;
+  transition: background-color 0.15s ease;
 }
 
-.panel-action-btn {
+.file-explorer-panel.drag-over-root {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.panel-actions {
   position: absolute;
   top: 8px;
   right: 10px;
   z-index: 2;
+  display: flex;
+  gap: 2px;
+}
+
+.panel-action-btn {
   background: transparent;
   border: none;
   color: var(--text-muted-dark);
