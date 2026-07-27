@@ -28,31 +28,31 @@ monaco.editor.defineTheme('kraken-theme', {
   base: 'vs-dark',
   inherit: true,
   rules: [
-    { token: 'comment', foreground: '6C7A9C', fontStyle: 'italic' },
-    { token: 'keyword', foreground: 'C678DD', fontStyle: 'bold' },
-    { token: 'string', foreground: 'A3BE8C' },
-    { token: 'number', foreground: 'D08770' },
-    { token: 'type', foreground: 'EBCB8B' },
-    { token: 'class', foreground: 'EBCB8B', fontStyle: 'bold' },
-    { token: 'function', foreground: '82AAFF' },
-    { token: 'variable', foreground: 'A6ACCD' },
-    { token: 'operator', foreground: '89DDFF' },
-    { token: 'property', foreground: '80CBC4' }
+    { token: 'comment', foreground: '71738E', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '9374BE', fontStyle: 'bold' },
+    { token: 'string', foreground: '08C371' },
+    { token: 'number', foreground: 'FF5F5F' },
+    { token: 'type', foreground: 'FED31D' },
+    { token: 'class', foreground: 'FED31D', fontStyle: 'bold' },
+    { token: 'function', foreground: 'AA205A' },
+    { token: 'variable', foreground: 'FFFFFF' },
+    { token: 'operator', foreground: '9DA1D3' },
+    { token: 'property', foreground: '9DA1D3' }
   ],
   colors: {
-    'editor.background': '#11131e',
-    'editor.foreground': '#A6ACCD',
-    'editor.lineHighlightBackground': '#181b2b',
-    'editorCursor.foreground': '#82AAFF',
-    'editorWhitespace.foreground': '#1f2438',
-    'editorIndentGuide.background': '#1f2438',
-    'editorIndentGuide.activeBackground': '#3b4366',
-    'editorLineNumber.foreground': '#3b4366',
-    'editorLineNumber.activeForeground': '#82AAFF',
-    'editorWidget.background': '#181b2b',
-    'editorSuggestWidget.background': '#181b2b',
-    'editorSuggestWidget.border': '#1f2438',
-    'editorSuggestWidget.selectedBackground': '#252a42'
+    'editor.background': '#1C1C2A',
+    'editor.foreground': '#FFFFFF',
+    'editor.lineHighlightBackground': '#272A29',
+    'editorCursor.foreground': '#FF5F5F',
+    'editorWhitespace.foreground': '#53556E',
+    'editorIndentGuide.background': '#53556E',
+    'editorIndentGuide.activeBackground': '#9DA1D3',
+    'editorLineNumber.foreground': '#53556E',
+    'editorLineNumber.activeForeground': '#9DA1D3',
+    'editorWidget.background': '#1C1C2A',
+    'editorSuggestWidget.background': '#272A29',
+    'editorSuggestWidget.border': '#53556E',
+    'editorSuggestWidget.selectedBackground': '#53556E'
   }
 })
 
@@ -153,7 +153,7 @@ const handleMount = (editor: any) => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: #11131e; /* Matches kraken-theme background */
+  background-color: #1C1C2A; /* Matches kraken-theme background */
 }
 
 /* Tabs Header */
@@ -161,7 +161,7 @@ const handleMount = (editor: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #11131e; /* Same as editor background */
+  background-color: #1C1C2A; /* Same as editor background */
   padding: 8px 12px;
   user-select: none;
 }
