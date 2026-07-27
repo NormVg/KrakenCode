@@ -102,7 +102,7 @@ const frameStyle = computed(() => {
       width: '100%',
       height: '100%',
       transform: `scale(${zoomLevel.value / 100})`,
-      transformOrigin: 'top center'
+      transformOrigin: 'center'
     }
   }
   
