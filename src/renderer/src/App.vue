@@ -5,7 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
-import { PanelLeft, PanelRight, Settings2 } from 'lucide-vue-next'
+import { Settings2 } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -182,14 +182,8 @@ const closeWindow = () => window.api.closeWindow()
           </div>
         </div>
         <div class="focus-actions">
-          <button class="focus-icon-btn" title="Toggle Projects Sidebar" @click="isLeftSidebarOpen = !isLeftSidebarOpen">
-            <PanelLeft :size="18" stroke-width="2" />
-          </button>
           <button class="focus-icon-btn" title="Settings" @click="isSettingsOpen = true">
             <Settings2 :size="18" stroke-width="2" />
-          </button>
-          <button class="focus-icon-btn" title="Toggle Tools Sidebar" @click="isRightSidebarOpen = !isRightSidebarOpen">
-            <PanelRight :size="18" stroke-width="2" />
           </button>
         </div>
       </div>
