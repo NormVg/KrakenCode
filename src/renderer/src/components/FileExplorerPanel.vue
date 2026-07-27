@@ -161,7 +161,8 @@ const onDropRoot = async (e: DragEvent) => {
 
     <!-- Inline creation input (shown at root level) -->
     <div v-if="creatingType && !creatingInNode" class="inline-create">
-      <span class="inline-create-icon">{{ creatingType === 'folder' ? '📁' : '📄' }}</span>
+      <FolderPlus v-if="creatingType === 'folder'" :size="13" class="inline-create-icon" />
+      <FilePlus v-else :size="13" class="inline-create-icon" />
       <input
         ref="newItemInputRef"
         v-model="newItemName"
@@ -252,8 +253,9 @@ const onDropRoot = async (e: DragEvent) => {
 }
 
 .inline-create-icon {
-  font-size: 12px;
+  color: var(--text-muted-dark);
   flex-shrink: 0;
+  display: flex;
 }
 
 .inline-create-input {
