@@ -255,19 +255,24 @@ const handleSave = async () => {
 .form-group select,
 .form-group input {
   width: 100%;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.02); /* Extremely subtle background */
+  border: 1px solid rgba(255, 255, 255, 0.06); /* Very soft border */
   color: var(--text-main);
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 8px; /* Slightly softer radius */
   outline: none;
   font-size: 0.9em;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  /* Remove native dropdown arrows */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .form-group select:focus,
 .form-group input:focus {
-  border-color: var(--text-muted);
+  border-color: rgba(255, 255, 255, 0.15); /* Soft highlight on focus */
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .action-row {
