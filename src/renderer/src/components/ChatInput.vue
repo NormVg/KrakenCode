@@ -297,8 +297,8 @@ onBeforeUnmount(() => {
 .actions-drawer {
   position: absolute;
   bottom: 100%;
-  left: 6px;
-  right: 6px;
+  left: 0;
+  right: 0;
   background-color: var(--bg-dark);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: none;
