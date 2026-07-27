@@ -17,7 +17,7 @@ const props = defineProps({
   },
   rows: {
     type: Number,
-    default: 3
+    default: 1
   }
 })
 
@@ -84,7 +84,7 @@ textarea {
   outline: none;
   font-size: 0.95em;
   line-height: 1.5;
-  padding: 16px;
+  padding: 12px 16px;
   min-height: 24px;
   max-height: 300px;
 }
