@@ -61,8 +61,29 @@ export const suggestion = {
         command: ({ editor, range }: any) => {
           editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
         },
+      },
+      {
+        title: 'Delete Row',
+        icon: 'Trash2',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).deleteRow().run()
+        },
+      },
+      {
+        title: 'Delete Column',
+        icon: 'Trash2',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).deleteColumn().run()
+        },
+      },
+      {
+        title: 'Delete Table',
+        icon: 'Trash2',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).deleteTable().run()
+        },
       }
-    ].filter(item => item.title.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10)
+    ].filter(item => item.title.toLowerCase().includes(query.toLowerCase())).slice(0, 15)
   },
 
   render: () => {
