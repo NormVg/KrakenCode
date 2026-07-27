@@ -58,16 +58,13 @@ const props = defineProps<{
 
 /* User Message */
 .user-bubble {
-  background-color: rgba(255, 255, 255, 0.03); /* Subtle inset */
+  background-color: var(--bg-dark); /* #0A0D18 */
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  border-bottom-right-radius: 4px; /* classic chat bubble tail */
-  padding: 12px 18px;
+  border-radius: 12px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  align-self: flex-end;
-  max-width: 85%;
   /* Maya-design */
   transition: border-color 0.2s;
 }
