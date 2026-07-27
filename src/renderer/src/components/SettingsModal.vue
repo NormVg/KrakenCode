@@ -194,13 +194,14 @@ const handleSave = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
 }
 
 .content-header h2 {
-  font-size: 1.1em;
-  font-weight: 600;
+  font-size: 1.05em;
+  font-weight: 500;
   margin: 0;
   color: var(--text-main);
 }
