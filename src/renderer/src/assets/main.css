@@ -1,12 +1,16 @@
 :root {
-  --bg-dark: #0f0f0f;
-  --bg-panel: #181818;
-  --bg-input: #1e1e1e;
-  --text-main: #cccccc;
-  --text-muted: #777777;
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --border-color: #2b2b2b;
+  /* New Kraken 2.0 Palette */
+  --bg-dark: #0A0D18;
+  --bg-panel: #1C1C2A;
+  --bg-input: #1C1C2A;
+  --text-main: #FFFFFF;
+  --text-muted: #9DA1D3; /* Or #71738E for darker muted */
+  --text-muted-dark: #71738E;
+  --accent: #FF5F5F; /* Primary red accent */
+  --accent-hover: #ff7a7a;
+  --accent-purple: #9374BE;
+  --accent-green: #08C371;
+  --border-color: #53556E;
   
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
@@ -37,11 +41,11 @@ body, html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3b425a;
+  background: var(--border-color);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: var(--text-muted-dark);
 }
 
 /* Global Reset */
