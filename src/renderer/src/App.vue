@@ -225,6 +225,11 @@ onMounted(async () => {
     0 4px 20px rgba(0, 0, 0, 0.28);
 }
 
+/* When left sidebar is closed, pad the top-left so content clears macOS traffic lights */
+.left-sidebar-closed .main-content {
+  padding-left: 70px;
+}
+
 .floating-bottom-bar {
   display: flex;
   align-items: center;
