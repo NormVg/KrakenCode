@@ -21,7 +21,8 @@ const viewMode = ref<'split' | 'unified'>('split')
 
 // Mock data — will be replaced by real file diffs from the agent later
 const originalCode = ref(`import { createApp } from 'vue'
-import { createStore } from 'vuex'
+// fake import to avoid vite scanner
+const { createStore } = require('dummy-store')
 import App from './App.vue'
 
 const store = createStore({
