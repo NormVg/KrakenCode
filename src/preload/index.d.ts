@@ -25,6 +25,15 @@ declare global {
         deleteItem: (itemPath: string) => Promise<boolean>
         renameItem: (oldPath: string, newPath: string) => Promise<boolean>
       }
+      pty: {
+        create: (id: string, cols: number, rows: number, cwd?: string) => Promise<{ success: boolean; pid?: number }>
+        write: (id: string, data: string) => void
+        resize: (id: string, cols: number, rows: number) => void
+        kill: (id: string) => void
+        onData: (id: string, callback: (data: string) => void) => void
+        onExit: (id: string, callback: (exitCode: number) => void) => void
+        removeListeners: (id: string) => void
+      }
     }
   }
 }

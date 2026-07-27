@@ -1,12 +1,18 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import * as os from 'os'
 import * as fs from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/apple-icon-squircle.png?asset'
 import { createOllama } from 'ai-sdk-ollama'
 import { streamText } from 'ai'
+import * as pty from 'node-pty'
 
-let aiModel: any = null;
+let aiModel: any = null
+
+// ─── PTY Session Registry ────────────────────────────────────────────────────
+// Maps session ID → IPty instance. Supports multiple concurrent terminals.
+const ptyProcesses = new Map<string, pty.IPty>()
 
 
 function createWindow(): void {
@@ -171,13 +177,13 @@ app.whenReady().then(() => {
         path: join(dirPath, dirent.name),
         type: dirent.isDirectory() ? 'folder' : 'file'
       }))
-      
+
       // Sort folders first, then alphabetically
       items.sort((a, b) => {
         if (a.type === b.type) return a.name.localeCompare(b.name)
         return a.type === 'folder' ? -1 : 1
       })
-      
+
       return items
     } catch (error: any) {
       console.error('Failed to read directory:', error)
@@ -213,6 +219,75 @@ app.whenReady().then(() => {
     return true
   })
 
+  // ─── PTY Handlers ──────────────────────────────────────────────────────────
+
+  // pty:create — spawn a shell and start forwarding output to the renderer
+  ipcMain.handle('pty:create', (event, { id, cols, rows, cwd }: {
+    id: string
+    cols: number
+    rows: number
+    cwd?: string
+  }) => {
+    // Resolve shell: honour SHELL env var, fall back to zsh → bash → sh
+    const shell = process.env.SHELL ||
+      (process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh')
+
+    // Use the active project directory, home dir, or cwd as working directory
+    const workingDir = cwd && cwd.length > 0 ? cwd : os.homedir()
+
+    const ptyProcess = pty.spawn(shell, [], {
+      name: 'xterm-256color',
+      cols: cols || 80,
+      rows: rows || 24,
+      cwd: workingDir,
+      env: {
+        ...process.env,
+        TERM: 'xterm-256color',
+        COLORTERM: 'truecolor',
+      }
+    })
+
+    ptyProcesses.set(id, ptyProcess)
+
+    // Forward PTY output → renderer
+    ptyProcess.onData((data) => {
+      event.sender.send(`pty:data:${id}`, data)
+    })
+
+    // Notify renderer when process exits
+    ptyProcess.onExit(({ exitCode }) => {
+      event.sender.send(`pty:exit:${id}`, exitCode)
+      ptyProcesses.delete(id)
+    })
+
+    return { success: true, pid: ptyProcess.pid }
+  })
+
+  // pty:write — send keystrokes / data to the PTY
+  ipcMain.on('pty:write', (_, { id, data }: { id: string; data: string }) => {
+    const ptyProcess = ptyProcesses.get(id)
+    if (ptyProcess) {
+      ptyProcess.write(data)
+    }
+  })
+
+  // pty:resize — update PTY dimensions when the terminal panel is resized
+  ipcMain.on('pty:resize', (_, { id, cols, rows }: { id: string; cols: number; rows: number }) => {
+    const ptyProcess = ptyProcesses.get(id)
+    if (ptyProcess) {
+      ptyProcess.resize(cols, rows)
+    }
+  })
+
+  // pty:kill — explicitly destroy a PTY session
+  ipcMain.on('pty:kill', (_, { id }: { id: string }) => {
+    const ptyProcess = ptyProcesses.get(id)
+    if (ptyProcess) {
+      ptyProcess.kill()
+      ptyProcesses.delete(id)
+    }
+  })
+
   createWindow()
 
   app.on('activate', function () {
@@ -226,6 +301,11 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // Kill all active PTY sessions before quitting
+  for (const [id, ptyProcess] of ptyProcesses) {
+    try { ptyProcess.kill() } catch { /* already dead */ }
+    ptyProcesses.delete(id)
+  }
   if (process.platform !== 'darwin') {
     app.quit()
   }

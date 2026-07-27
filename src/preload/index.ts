@@ -33,6 +33,31 @@ const api = {
     createItem: (itemPath: string, type: 'file' | 'folder') => ipcRenderer.invoke('fs:createItem', itemPath, type),
     deleteItem: (itemPath: string) => ipcRenderer.invoke('fs:deleteItem', itemPath),
     renameItem: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:renameItem', oldPath, newPath)
+  },
+  pty: {
+    // Spawn a shell — resolves with { pid } once the process is running
+    create: (id: string, cols: number, rows: number, cwd?: string) =>
+      ipcRenderer.invoke('pty:create', { id, cols, rows, cwd }),
+    // Send raw input (keystrokes, paste, etc.) to the shell
+    write: (id: string, data: string) =>
+      ipcRenderer.send('pty:write', { id, data }),
+    // Notify the PTY of a terminal resize
+    resize: (id: string, cols: number, rows: number) =>
+      ipcRenderer.send('pty:resize', { id, cols, rows }),
+    // Explicitly kill the shell (also called on component unmount)
+    kill: (id: string) =>
+      ipcRenderer.send('pty:kill', { id }),
+    // Subscribe to data chunks coming from the shell
+    onData: (id: string, callback: (data: string) => void) =>
+      ipcRenderer.on(`pty:data:${id}`, (_, data) => callback(data)),
+    // Subscribe to shell exit event
+    onExit: (id: string, callback: (exitCode: number) => void) =>
+      ipcRenderer.once(`pty:exit:${id}`, (_, exitCode) => callback(exitCode)),
+    // Remove all listeners for a session (call before kill to avoid leaks)
+    removeListeners: (id: string) => {
+      ipcRenderer.removeAllListeners(`pty:data:${id}`)
+      ipcRenderer.removeAllListeners(`pty:exit:${id}`)
+    }
   }
 }
 

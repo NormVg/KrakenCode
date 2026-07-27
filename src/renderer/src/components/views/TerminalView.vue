@@ -1,26 +1,46 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { Ghostty, Terminal, FitAddon } from 'ghostty-web'
 import { Terminal as TerminalIcon } from 'lucide-vue-next'
-// Vite bundles the .wasm file as a static asset and returns the correct URL
-// for both dev (localhost) and production (file://) Electron contexts.
 import ghosttyWasmUrl from 'ghostty-web/ghostty-vt.wasm?url'
+import { useProjectsStore } from '../../stores/projects'
+
+const projectsStore = useProjectsStore()
+const { activeProject } = storeToRefs(projectsStore)
 
 const terminalContainer = ref<HTMLElement | null>(null)
+
+// Unique session ID for this terminal instance
+const sessionId = crypto.randomUUID()
+
 let term: InstanceType<typeof Terminal> | null = null
 let fitAddon: InstanceType<typeof FitAddon> | null = null
 let resizeObserver: ResizeObserver | null = null
+let isDisposed = false
+
+// Throttle resize calls — PTY resize is cheap but no need to hammer it
+let resizeThrottle: ReturnType<typeof setTimeout> | null = null
+
+function schedulePtyResize() {
+  if (resizeThrottle) clearTimeout(resizeThrottle)
+  resizeThrottle = setTimeout(() => {
+    if (!term || !fitAddon || isDisposed) return
+    fitAddon.fit()
+    const dims = fitAddon.proposeDimensions()
+    if (dims) {
+      window.api.pty.resize(sessionId, dims.cols, dims.rows)
+    }
+  }, 60)
+}
 
 onMounted(async () => {
   if (!terminalContainer.value) return
 
   try {
-    // Load Ghostty WASM using the Vite-resolved asset URL.
-    // This bypasses ghostty-web's broken file:// path resolution in Electron.
+    // Load Ghostty WASM via Vite-resolved asset URL (works in both dev + prod Electron)
     const ghostty = await Ghostty.load(ghosttyWasmUrl)
 
-    // Create terminal, passing the loaded Ghostty instance directly
-    // to skip the global init() requirement.
     term = new Terminal({
       ghostty,
       fontSize: 14,
@@ -29,85 +49,66 @@ onMounted(async () => {
         background: '#1C1C2A',
         foreground: '#E2E8F0',
         cursor: '#FF5F5F',
-        selectionBackground: 'rgba(255, 255, 255, 0.1)',
-        black: '#1C1C2A',
-        red: '#FF5F5F',
-        green: '#08C371',
-        yellow: '#f1fa8c',
-        blue: '#bd93f9',
-        magenta: '#ff79c6',
-        cyan: '#8be9fd',
-        white: '#f8f8f2',
-        brightBlack: '#6272a4',
-        brightRed: '#ff6e6e',
-        brightGreen: '#69ff94',
-        brightYellow: '#ffffa5',
-        brightBlue: '#d6acff',
-        brightMagenta: '#ff92df',
-        brightCyan: '#a4ffff',
-        brightWhite: '#ffffff'
+        selectionBackground: 'rgba(255, 255, 255, 0.15)',
+        black:          '#1C1C2A',
+        red:            '#FF5F5F',
+        green:          '#08C371',
+        yellow:         '#f1fa8c',
+        blue:           '#bd93f9',
+        magenta:        '#ff79c6',
+        cyan:           '#8be9fd',
+        white:          '#f8f8f2',
+        brightBlack:    '#6272a4',
+        brightRed:      '#ff6e6e',
+        brightGreen:    '#69ff94',
+        brightYellow:   '#ffffa5',
+        brightBlue:     '#d6acff',
+        brightMagenta:  '#ff92df',
+        brightCyan:     '#a4ffff',
+        brightWhite:    '#ffffff',
       }
     })
 
-    // FitAddon fills the terminal to its container dimensions
     fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
-
-    // Mount into DOM, then fit
     term.open(terminalContainer.value)
     fitAddon.fit()
 
-    // Refit whenever the panel is resized
-    resizeObserver = new ResizeObserver(() => {
-      fitAddon?.fit()
+    // Get initial dimensions
+    const dims = fitAddon.proposeDimensions() ?? { cols: 80, rows: 24 }
+
+    // Spawn real shell in the active project directory (falls back to $HOME)
+    const cwd = activeProject.value?.path || ''
+    await window.api.pty.create(sessionId, dims.cols, dims.rows, cwd)
+
+    // Shell → Terminal: pipe PTY output into Ghostty for rendering
+    window.api.pty.onData(sessionId, (data: string) => {
+      if (!isDisposed) term?.write(data)
     })
-    resizeObserver.observe(terminalContainer.value)
 
-    // Welcome prompt
-    term.write('\x1b[1;32mKraken Terminal\x1b[0m\r\n')
-    term.write('\x1b[2m(local echo — no shell attached)\x1b[0m\r\n\r\n')
-    term.write('$ ')
-
-    // Local echo with basic line editing
-    let currentLine = ''
-
-    term.onData((data: string) => {
-      if (!term) return
-
-      if (data === '\r') {
-        // Enter — submit line
-        term.write('\r\n')
-        if (currentLine.trim()) {
-          term.write(`\x1b[33m${currentLine.trim()}\x1b[0m: command not found\r\n`)
-        }
-        currentLine = ''
-        term.write('$ ')
-      } else if (data === '\x7f') {
-        // Backspace
-        if (currentLine.length > 0) {
-          currentLine = currentLine.slice(0, -1)
-          term.write('\b \b')
-        }
-      } else if (data === '\x03') {
-        // Ctrl+C — cancel line
-        term.write('^C\r\n$ ')
-        currentLine = ''
-      } else if (data === '\x0c') {
-        // Ctrl+L — clear screen
-        term.write('\x1b[2J\x1b[H$ ' + currentLine)
-      } else if (data >= ' ') {
-        // Printable character
-        currentLine += data
-        term.write(data)
+    // Shell exited — show a faint notice and allow restart
+    window.api.pty.onExit(sessionId, (exitCode: number) => {
+      if (!isDisposed) {
+        term?.write(`\r\n\x1b[2m[Process exited with code ${exitCode}]\x1b[0m\r\n`)
       }
     })
+
+    // Terminal → Shell: pipe keystrokes / paste to the PTY
+    term.onData((data: string) => {
+      if (!isDisposed) window.api.pty.write(sessionId, data)
+    })
+
+    // Refit + resize PTY when the panel dimensions change
+    resizeObserver = new ResizeObserver(() => schedulePtyResize())
+    resizeObserver.observe(terminalContainer.value)
+
   } catch (err) {
-    console.error('[Terminal] Ghostty WASM failed to load:', err)
+    console.error('[Terminal] Failed to initialize:', err)
     if (terminalContainer.value) {
       terminalContainer.value.innerHTML = `
         <div class="terminal-error">
           <span class="error-title">Terminal unavailable</span>
-          <span class="error-detail">Ghostty WASM could not be loaded</span>
+          <span class="error-detail">${err instanceof Error ? err.message : 'Unknown error'}</span>
         </div>
       `
     }
@@ -115,7 +116,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isDisposed = true
+  if (resizeThrottle) clearTimeout(resizeThrottle)
   resizeObserver?.disconnect()
+  // Remove IPC listeners before killing so the exit event doesn't fire into a dead component
+  window.api.pty.removeListeners(sessionId)
+  window.api.pty.kill(sessionId)
   term?.dispose()
   resizeObserver = null
   fitAddon = null
@@ -172,12 +178,10 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-/* Ensure Ghostty's canvas fills the wrapper */
 :deep(canvas) {
   display: block;
 }
 
-/* Error fallback styling */
 :deep(.terminal-error) {
   display: flex;
   flex-direction: column;
