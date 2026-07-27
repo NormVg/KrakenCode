@@ -120,6 +120,7 @@ const closeWindow = () => window.api.closeWindow()
 
       <!-- Empty Conversation State -->
       <div v-if="isSetup && messages.length === 0" class="empty-conversation-state">
+        <img src="./assets/banner.png" alt="Kraken Logo" class="empty-banner" />
         <div class="centered-composer">
           <ChatInput 
             v-model="prompt"
@@ -344,8 +345,14 @@ const closeWindow = () => window.api.closeWindow()
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  width: 100%;
+  padding: 40px;
+  gap: 32px;
+}
+
+.empty-banner {
+  width: 240px;
+  max-width: 100%;
+  opacity: 0.8;
 }
 
 .centered-composer {
