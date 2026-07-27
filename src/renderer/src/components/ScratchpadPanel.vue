@@ -170,7 +170,12 @@ onBeforeUnmount(() => {
   <div class="scratchpad-panel">
     <div class="panel-header">
       <h3>Scratchpad</h3>
-      <!-- Speech to Text Button -->
+    </div>
+    
+    <div class="scratchpad-content">
+      <editor-content :editor="editor" class="editor-container" />
+
+      <!-- Speech to Text Floating Button -->
       <button 
         class="stt-btn" 
         :class="{ 'is-listening': isListening }" 
@@ -180,10 +185,6 @@ onBeforeUnmount(() => {
         <Mic v-if="!isListening" :size="14" />
         <MicOff v-else :size="14" />
       </button>
-    </div>
-    
-    <div class="scratchpad-content">
-      <editor-content :editor="editor" class="editor-container" />
     </div>
   </div>
 </template>
@@ -230,17 +231,20 @@ onBeforeUnmount(() => {
 
 /* STT Button */
 .stt-btn {
-  width: 28px;
-  height: 28px;
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
+  z-index: 10;
   transition: all 0.2s ease;
 }
 
