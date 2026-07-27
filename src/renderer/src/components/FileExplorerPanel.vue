@@ -75,30 +75,30 @@ const toggleFolder = (folder: any) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0 16px;
+  padding: 12px 8px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
+  padding: 0 4px;
 }
 
 .panel-header h3 {
-  font-size: 0.85em;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
 .file-tree {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  overflow-y: auto;
+  gap: 0;
 }
 
 .tree-node {
@@ -110,26 +110,38 @@ const toggleFolder = (folder: any) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
   cursor: pointer;
   color: var(--text-main);
-  transition: background-color 0.2s;
-  font-size: 0.85em;
+  transition: background-color 0.1s ease;
+  user-select: none;
 }
 
 .tree-item:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+.item-name {
+  font-size: 0.85em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.indent {
+  padding-left: 14px;
+}
+
 .item-icon {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.item-icon.indent {
-  margin-left: 18px;
 }
 
 .folder-chevron {
