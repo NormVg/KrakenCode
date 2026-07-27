@@ -178,9 +178,9 @@ const removeQueuedMessage = (index: number) => {
 }
 
 .empty-banner {
-  width: 140px;
+  width: 240px;
   opacity: 0.8;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .centered-composer {
