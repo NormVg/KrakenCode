@@ -24,6 +24,8 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@guolao/vue-monaco-editor": "^1.6.0",
+    "@tiptap/starter-kit": "^3.29.1",
+    "@tiptap/vue-3": "^3.29.1",
     "ai": "latest",
     "ai-sdk-ollama": "latest",
     "eve": "latest",
