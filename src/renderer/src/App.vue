@@ -344,15 +344,14 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px;
-  gap: 32px;
+  padding: 24px;
 }
 
 .empty-banner {
   width: 240px;
   max-width: 100%;
   opacity: 0.8;
+  margin: auto 0; /* Pushes composer to bottom and centers banner */
 }
 
 .centered-composer {
