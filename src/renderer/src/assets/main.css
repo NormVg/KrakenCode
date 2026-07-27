@@ -10,7 +10,7 @@
   --accent-hover: #ff7a7a;
   --accent-purple: #9374BE;
   --accent-green: #08C371;
-  --border-color: #53556E;
+  --border-color: rgba(255, 255, 255, 0.05);
   
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
