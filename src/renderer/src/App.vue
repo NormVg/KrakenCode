@@ -298,33 +298,39 @@ onMounted(async () => {
 .bottom-view-toggles {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);
 }
 
 .bottom-tab-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .bottom-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .bottom-tab-btn.active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .view-container {
