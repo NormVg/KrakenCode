@@ -146,7 +146,7 @@ const closeWindow = () => window.api.closeWindow()
       
       <!-- Left Sidebar (Projects) -->
       <aside class="left-sidebar no-drag" v-if="isLeftSidebarOpen">
-        <ProjectsSidebar />
+        <ProjectsSidebar @open-settings="isSettingsOpen = true" />
       </aside>
 
       <!-- Main Content (Island) -->

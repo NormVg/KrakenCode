@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { SlidersHorizontal, FolderPlus, Folder, Plus, Trash2 } from 'lucide-vue-next'
+import { Settings, FolderPlus, Folder, Plus, Trash2 } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
+
+const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
 const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
@@ -13,8 +15,8 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
     <header class="projects-header">
       <h2 class="title">Projects</h2>
       <div class="header-actions">
-        <button class="icon-btn" title="Settings">
-          <SlidersHorizontal :size="16" stroke-width="2" />
+        <button class="icon-btn" title="Settings" @click="emit('open-settings')">
+          <Settings :size="16" stroke-width="2" />
         </button>
         <button class="icon-btn" title="Add Project" @click="projectsStore.addProject()">
           <FolderPlus :size="16" stroke-width="2" />
