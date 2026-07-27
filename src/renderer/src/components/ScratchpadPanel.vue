@@ -9,6 +9,7 @@ import TableHeader from '@tiptap/extension-table-header'
 import Link from '@tiptap/extension-link'
 import SlashCommands from './tiptap/SlashCommands'
 import { suggestion } from './tiptap/suggestion'
+import { Mic, MicOff } from 'lucide-vue-next'
 
 const content = ref(`
 <h2>Scratchpad</h2>
@@ -44,11 +45,69 @@ onMounted(() => {
       },
     },
   })
+
+  // Initialize Speech Recognition
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = false
+    
+    recognition.onstart = () => {
+      isListening.value = true
+    }
+    
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .slice(event.resultIndex)
+        .map((result: any) => result[0].transcript)
+        .join('')
+        
+      if (transcript && editor.value) {
+        const textToInsert = transcript + ' '
+        if (!editor.value.isFocused) {
+          // If not focused, append to the end on a new line or just at the very end
+          editor.value.chain().focus('end').insertContent(textToInsert).run()
+        } else {
+          // If focused, insert at cursor
+          editor.value.chain().insertContent(textToInsert).run()
+        }
+      }
+    }
+    
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error)
+      isListening.value = false
+    }
+    
+    recognition.onend = () => {
+      isListening.value = false
+    }
+  }
 })
+
+const isListening = ref(false)
+let recognition: any = null
+
+const toggleListening = () => {
+  if (!recognition) {
+    alert("Speech recognition is not supported in this environment.")
+    return
+  }
+  
+  if (isListening.value) {
+    recognition.stop()
+  } else {
+    recognition.start()
+  }
+}
 
 onBeforeUnmount(() => {
   if (editor.value) {
     editor.value.destroy()
+  }
+  if (recognition && isListening.value) {
+    recognition.stop()
   }
 })
 </script>
@@ -61,6 +120,17 @@ onBeforeUnmount(() => {
     
     <div class="scratchpad-content">
       <editor-content :editor="editor" class="editor-container" />
+      
+      <!-- Speech to Text Floating Button -->
+      <button 
+        class="stt-btn" 
+        :class="{ 'is-listening': isListening }" 
+        @click="toggleListening"
+        :title="isListening ? 'Stop listening' : 'Start dictation'"
+      >
+        <Mic v-if="!isListening" :size="16" />
+        <MicOff v-else :size="16" />
+      </button>
     </div>
   </div>
 </template>
@@ -95,6 +165,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   padding-bottom: 16px;
   min-height: 0; /* Important for scrollable flex children */
+  position: relative;
 }
 
 .editor-container {
@@ -102,6 +173,45 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* STT Button */
+.stt-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.stt-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  transform: translateY(-2px);
+}
+
+.stt-btn.is-listening {
+  background: rgba(243, 139, 168, 0.1); /* light red/pink bg */
+  color: #f38ba8;
+  border-color: rgba(243, 139, 168, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(243, 139, 168, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0); }
 }
 
 /* Global styles for Tiptap editor since it creates DOM outside the scoped template somewhat or inside the wrapper */
