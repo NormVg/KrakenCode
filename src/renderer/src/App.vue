@@ -112,10 +112,10 @@ const closeWindow = () => window.api.closeWindow()
 </script>
 
 <template>
-  <div class="layout">
-    
-    <!-- Main Content -->
-    <main class="main-content">
+  <div class="layout-container" style="-webkit-app-region: drag;">
+    <div class="layout">
+      <!-- Main Content (Island) -->
+      <main class="main-content no-drag">
       
       <!-- Settings Modal via component -->
       <SettingsModal 
@@ -151,7 +151,7 @@ const closeWindow = () => window.api.closeWindow()
 
       <!-- Agent Input Pill (Floating above focus bar) -->
       <div class="floating-input-container">
-        <div class="input-pill">
+        <div class="input-pill no-drag">
           <textarea 
             v-model="prompt" 
             placeholder="Can you code me a multi threaded logger"
@@ -163,7 +163,7 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Bottom Focus Bar -->
-      <div class="focus-bar">
+      <div class="focus-bar no-drag">
         <div class="focus-tabs">
           <div class="focus-tab active">
             <span>agent_chat</span>
@@ -183,14 +183,14 @@ const closeWindow = () => window.api.closeWindow()
 
     <!-- Right Sidebar -->
     <aside class="right-sidebar" v-if="isSidebarOpen">
-      <div class="sidebar-content">
+      <div class="sidebar-content no-drag">
         <div class="sidebar-placeholder">
           <h3>File Explorer</h3>
           <p class="muted">Agent workspace files will appear here.</p>
         </div>
       </div>
       
-      <div class="sidebar-tabs">
+      <div class="sidebar-tabs no-drag">
         <div class="sidebar-tab active">FileExplorer</div>
         <div class="sidebar-tab">Tools</div>
       </div>
@@ -199,16 +199,28 @@ const closeWindow = () => window.api.closeWindow()
 </template>
 
 <style scoped>
-.layout {
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.layout-container {
   display: flex;
   height: 100vh;
   width: 100vw;
-  background-color: var(--bg-panel); /* The main purple-ish background */
-  position: relative;
-  overflow: hidden;
+  background-color: var(--bg-dark); /* #0A0D18 */
 }
 
-/* Main Content */
+.layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 16px; /* Margin around the island */
+  gap: 16px;
+}
+
+/* Main Content (The Island) */
 .main-content {
   flex: 1;
   display: flex;
@@ -216,6 +228,9 @@ const closeWindow = () => window.api.closeWindow()
   position: relative;
   min-width: 0;
   background-color: var(--bg-panel); /* #1C1C2A */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* Chat History */
@@ -403,18 +418,16 @@ const closeWindow = () => window.api.closeWindow()
 
 /* Right Sidebar */
 .right-sidebar {
-  width: 320px;
-  background-color: var(--bg-dark); /* #0A0D18 */
-  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  width: 300px;
+  background-color: transparent; /* Blends with layout-container bg-dark */
   display: flex;
   flex-direction: column;
   z-index: 10;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-content {
   flex: 1;
-  padding: 24px;
+  padding: 24px 0;
   overflow-y: auto;
 }
 
@@ -435,7 +448,7 @@ const closeWindow = () => window.api.closeWindow()
 
 .sidebar-tabs {
   display: flex;
-  padding: 12px 24px 24px 24px;
+  padding: 12px 0 24px 0;
   gap: 16px;
   justify-content: center;
 }
