@@ -135,22 +135,24 @@ const handleMount = (editor: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #15151e; /* Slightly darker than panel to distinguish tabs */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  height: 40px;
+  background-color: #1e1e1e; /* Same as editor background */
+  padding: 8px 12px;
   user-select: none;
 }
 
 .tabs-scroll-area {
   display: flex;
   align-items: center;
-  height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  gap: 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  flex: 1;
 }
 
 .tabs-scroll-area::-webkit-scrollbar {
-  height: 0px; /* Hide scrollbar for tabs */
+  display: none; /* Hide scrollbar for Chrome/Safari/Webkit */
 }
 
 /* Individual Tab */
@@ -158,26 +160,26 @@ const handleMount = (editor: any) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 100%;
-  padding: 0 12px 0 16px;
+  height: 32px;
+  padding: 0 10px 0 12px;
   background-color: transparent;
-  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 8px; /* Chip style */
   cursor: pointer;
   color: var(--text-muted-dark);
   transition: all 0.2s ease;
   min-width: 120px;
   max-width: 200px;
+  flex-shrink: 0;
 }
 
 .editor-tab:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.04);
   color: var(--text-muted);
 }
 
 .editor-tab.active {
-  background-color: #1e1e1e; /* Matches editor background */
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
-  border-top: 1px solid var(--accent); /* Thin highlight at top */
 }
 
 /* Tab Icon Colors */
