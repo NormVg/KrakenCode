@@ -145,9 +145,11 @@ const closeWindow = () => window.api.closeWindow()
     <div class="layout">
       
       <!-- Left Sidebar (Projects) -->
-      <aside class="left-sidebar no-drag" v-if="isLeftSidebarOpen">
-        <ProjectsSidebar @open-settings="isSettingsOpen = true" />
-      </aside>
+      <Transition name="slide-left">
+        <aside class="left-sidebar no-drag" v-if="isLeftSidebarOpen">
+          <ProjectsSidebar @open-settings="isSettingsOpen = true" />
+        </aside>
+      </Transition>
 
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
@@ -245,7 +247,8 @@ const closeWindow = () => window.api.closeWindow()
     </main>
 
     <!-- Right Sidebar -->
-    <aside class="right-sidebar" v-if="isRightSidebarOpen">
+    <Transition name="slide-right">
+      <aside class="right-sidebar" v-if="isRightSidebarOpen">
       <RightSidebar />
     </aside>
     </div>
@@ -476,13 +479,48 @@ const closeWindow = () => window.api.closeWindow()
   font-size: 1.2em;
 }
 .typing-dots span {
-  animation: bounce 1.4s infinite;
+  animation: typing 1.4s infinite;
 }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes bounce {
-  0%, 100% { opacity: 0.4; transform: translateY(0); }
+@keyframes typing {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* Sidebar Animations */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  white-space: nowrap; /* prevent wrapping during shrink */
+}
+.slide-left-enter-from,
+.slide-left-leave-to {
+  width: 0 !important;
+  opacity: 0;
+  transform: translateX(-40px);
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: -8px !important; /* cancel flex gap */
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.slide-right-enter-from,
+.slide-right-leave-to {
+  width: 0 !important;
+  opacity: 0;
+  transform: translateX(40px);
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: -8px !important; /* cancel flex gap */
+  margin-right: 0 !important;
 }
 </style>
