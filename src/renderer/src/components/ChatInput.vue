@@ -101,6 +101,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 textarea {
+  box-sizing: border-box;
   width: 100%;
   background: transparent;
   border: none;
@@ -110,7 +111,6 @@ textarea {
   font-size: 0.95em;
   line-height: 1.5;
   padding: 12px 16px;
-  min-height: 24px;
   max-height: 204px; /* ~8 lines */
   overflow-y: auto;
 }
