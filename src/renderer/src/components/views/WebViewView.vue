@@ -259,18 +259,18 @@ onUnmounted(() => {
 .webview-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
-  background-color: var(--bg-panel);
+  height: 100%;
+  background: transparent;
 }
 
-/* ─── Address Bar ────────────────────────────────────────────────────────── */
+/* ─── Top Address Bar ────────────────────────────────────────────────────── */
 .address-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background-color: var(--bg-dark);
+  background: transparent;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
   overflow-x: auto;
