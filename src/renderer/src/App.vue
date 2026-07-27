@@ -154,25 +154,26 @@ const closeWindow = () => window.api.closeWindow()
             @submit="handleChat"
             :disabled="!isSetup || isLoading"
             placeholder="Plan, Build, / for skills, @ for context"
-          />
+          >
+            <template #footer>
+              <div class="chat-header-inner">
+                <div class="header-left-group">
+                  <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+                    <PanelLeft :size="16" />
+                  </button>
+                  <div class="chat-breadcrumbs">
+                    <span class="muted">kraken</span>
+                    <span class="divider">/</span>
+                    <span>Codebase And Skills Analysis</span>
+                  </div>
+                </div>
+                <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+                  <PanelRight :size="16" />
+                </button>
+              </div>
+            </template>
+          </ChatInput>
         </div>
-      </div>
-
-      <!-- Chat Header -->
-      <div class="chat-header no-drag" v-if="isSetup">
-        <div class="header-left-group">
-          <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
-            <PanelLeft :size="16" />
-          </button>
-          <div class="chat-breadcrumbs">
-            <span class="muted">kraken</span>
-            <span class="divider">/</span>
-            <span>Codebase And Skills Analysis</span>
-          </div>
-        </div>
-        <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-          <PanelRight :size="16" />
-        </button>
       </div>
 
       <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && messages.length > 0">
@@ -213,7 +214,25 @@ const closeWindow = () => window.api.closeWindow()
             :disabled="!isSetup"
             :rows="1"
             placeholder="Ask a follow-up question..."
-          />
+          >
+            <template #footer>
+              <div class="chat-header-inner">
+                <div class="header-left-group">
+                  <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+                    <PanelLeft :size="16" />
+                  </button>
+                  <div class="chat-breadcrumbs">
+                    <span class="muted">kraken</span>
+                    <span class="divider">/</span>
+                    <span>Codebase And Skills Analysis</span>
+                  </div>
+                </div>
+                <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+                  <PanelRight :size="16" />
+                </button>
+              </div>
+            </template>
+          </ChatInput>
         </div>
       </div>
     </main>
@@ -283,12 +302,11 @@ const closeWindow = () => window.api.closeWindow()
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.chat-header {
+.chat-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
 }
 
 .chat-breadcrumbs {
