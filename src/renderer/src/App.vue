@@ -199,6 +199,7 @@ onMounted(async () => {
 /* Left Sidebar */
 .left-sidebar {
   width: 260px;
+  min-width: 260px;
   background-color: var(--bg-dark);
   border-radius: 12px;
   display: flex;
@@ -426,15 +427,19 @@ onMounted(async () => {
 
 /* Sidebar Animations */
 .left-sidebar {
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    min-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-  white-space: nowrap;
 }
 .left-sidebar.is-closed {
   width: 0 !important;
+  min-width: 0 !important;
   opacity: 0;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  padding: 0 !important; /* zero ALL padding sides including top */
   margin-left: 0 !important;
   margin-right: -8px !important; /* cancel flex gap */
 }
