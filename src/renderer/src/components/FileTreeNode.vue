@@ -190,7 +190,7 @@ onUnmounted(() => {
     <div 
       class="tree-item" 
       draggable="true"
-      :style="{ paddingLeft: `${depth * 12 + 8}px` }"
+      :style="{ paddingLeft: `${depth * 17 + 8}px` }"
       :class="{ 'drag-over': isDragOver }"
       @click.stop="toggleFolder"
       @mouseenter="isHovered = true"
@@ -264,10 +264,10 @@ onUnmounted(() => {
     
     <!-- Children -->
     <div v-if="node.type === 'folder' && node.isOpen" class="tree-children">
-      <div class="indent-guide" :style="{ left: `${depth * 12 + 13}px` }"></div>
+      <div class="indent-guide" :style="{ left: `${depth * 17 + 13}px` }"></div>
       
       <!-- Inline creation input inside this folder -->
-      <div v-if="inlineCreateType" class="inline-create-row" :style="{ paddingLeft: `${(depth + 1) * 12 + 8}px` }">
+      <div v-if="inlineCreateType" class="inline-create-row" :style="{ paddingLeft: `${(depth + 1) * 17 + 8}px` }">
         <FilePlus v-if="inlineCreateType === 'file'" :size="13" class="inline-create-icon" />
         <FolderPlus v-else :size="13" class="inline-create-icon" />
         <input
