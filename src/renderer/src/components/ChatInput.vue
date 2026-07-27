@@ -347,5 +347,8 @@ onBeforeUnmount(() => {
   box-shadow: none;
   border: none;
   padding: 8px;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>
