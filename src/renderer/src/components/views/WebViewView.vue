@@ -51,6 +51,28 @@ const onDidNavigate = (e: any) => {
   }
 }
 
+const userAgents = [
+  { label: 'Default Browser', value: 'default' },
+  { label: 'Chrome (Windows)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' },
+  { label: 'Chrome (macOS)', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36' },
+  { label: 'iPhone (Safari)', value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1' },
+  { label: 'iPad (Safari)', value: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1' },
+  { label: 'Android (Chrome)', value: 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36' },
+]
+
+const currentUserAgent = ref('default')
+
+const applyUserAgent = () => {
+  if (webviewRef.value) {
+    if (currentUserAgent.value === 'default') {
+      webviewRef.value.setUserAgent(navigator.userAgent)
+    } else {
+      webviewRef.value.setUserAgent(currentUserAgent.value)
+    }
+    webviewRef.value.reload()
+  }
+}
+
 const setViewMode = (mode: DeviceMode) => {
   viewMode.value = mode
   
@@ -60,14 +82,13 @@ const setViewMode = (mode: DeviceMode) => {
     customHeight.value = Math.max(480, Math.floor(rect.height - 48))
   }
 
-  if (webviewRef.value) {
-    if (mode === 'mobile') {
-      webviewRef.value.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1')
-    } else {
-      webviewRef.value.setUserAgent(navigator.userAgent)
-    }
-    webviewRef.value.reload()
+  if (mode === 'mobile') {
+    currentUserAgent.value = userAgents[3].value // iPhone Safari
+  } else if (mode === 'desktop') {
+    currentUserAgent.value = 'default'
   }
+  
+  applyUserAgent()
 }
 
 // Computed styles for the device frame
@@ -221,12 +242,23 @@ onUnmounted(() => {
 
       <!-- Zoom -->
       <div class="toolbar-group">
-        <select v-model="zoomLevel" class="zoom-select">
+        <select v-model="zoomLevel" class="toolbar-select">
           <option :value="50">50%</option>
           <option :value="75">75%</option>
           <option :value="100">100%</option>
           <option :value="125">125%</option>
           <option :value="150">150%</option>
+        </select>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- User Agent -->
+      <div class="toolbar-group">
+        <select v-model="currentUserAgent" @change="applyUserAgent" class="toolbar-select user-agent-select">
+          <option v-for="agent in userAgents" :key="agent.label" :value="agent.value">
+            {{ agent.label }}
+          </option>
         </select>
       </div>
     </div>
@@ -402,8 +434,8 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
-/* Zoom Dropdown */
-.zoom-select {
+/* Select Dropdowns */
+.toolbar-select {
   background: transparent;
   border: none;
   color: var(--text-main);
@@ -411,9 +443,15 @@ onUnmounted(() => {
   cursor: pointer;
   outline: none;
   padding: 2px;
+  max-width: 150px;
+  text-overflow: ellipsis;
 }
-.zoom-select option {
+.toolbar-select option {
   background-color: var(--bg-panel);
+}
+
+.user-agent-select {
+  max-width: 140px;
 }
 
 /* ─── Workspace Stage ────────────────────────────────────────────────────── */
