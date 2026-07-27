@@ -1,16 +1,16 @@
 :root {
-  /* New Kraken 2.0 Palette */
-  --bg-dark: #0A0D18;
-  --bg-panel: #1C1C2A;
-  --bg-input: #1C1C2A;
-  --text-main: #FFFFFF;
-  --text-muted: #9DA1D3; /* Or #71738E for darker muted */
-  --text-muted-dark: #71738E;
-  --accent: #FF5F5F; /* Primary red accent */
-  --accent-hover: #ff7a7a;
+  /* Premium Neutral Dark Palette (Cursor-style) */
+  --bg-dark: #101114;
+  --bg-panel: #1A1C20;
+  --bg-input: #1A1C20;
+  --text-main: #E2E2E2;
+  --text-muted: #8B8C91;
+  --text-muted-dark: #5C5D61;
+  --accent: #3B82F6; /* Premium Blue */
+  --accent-hover: #60A5FA;
   --accent-purple: #9374BE;
-  --accent-green: #08C371;
-  --border-color: rgba(255, 255, 255, 0.05);
+  --accent-green: #10B981;
+  --border-color: rgba(255, 255, 255, 0.06);
   
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;

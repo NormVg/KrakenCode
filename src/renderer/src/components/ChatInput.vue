@@ -60,8 +60,8 @@ const handleKeydown = (e: KeyboardEvent) => {
 <style scoped>
 .chat-input-container {
   width: 100%;
-  background-color: rgba(10, 13, 24, 0.7); /* Translucent dark #0A0D18 */
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
