@@ -249,8 +249,9 @@ const closeWindow = () => window.api.closeWindow()
     <!-- Right Sidebar -->
     <Transition name="slide-right">
       <aside class="right-sidebar" v-if="isRightSidebarOpen">
-      <RightSidebar />
-    </aside>
+        <RightSidebar />
+      </aside>
+    </Transition>
     </div>
   </div>
 </template>
