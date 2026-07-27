@@ -13,14 +13,7 @@ const props = defineProps<{
   <div :class="['message', role]">
     <div class="message-avatar">
       <div v-if="role === 'agent'" class="avatar agent-avatar">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 8V4H8"></path>
-          <rect x="4" y="8" width="16" height="12" rx="2"></rect>
-          <path d="M2 14h2"></path>
-          <path d="M20 14h2"></path>
-          <path d="M15 13v2"></path>
-          <path d="M9 13v2"></path>
-        </svg>
+        <img src="../assets/icon-nobg.png" alt="Kraken" class="agent-icon" />
       </div>
       <div v-else class="avatar user-avatar">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -31,7 +24,7 @@ const props = defineProps<{
     </div>
     
     <div class="message-content">
-      <div class="message-sender">{{ role === 'agent' ? 'Eve' : 'You' }}</div>
+      <div class="message-sender">{{ role === 'agent' ? 'Kraken' : 'You' }}</div>
       <div class="markdown-body">
         <MarkdownRender 
           mode="chat" 
@@ -68,9 +61,15 @@ const props = defineProps<{
 }
 
 .agent-avatar {
-  background: var(--bg-input);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+  background: transparent;
+  border: none;
+}
+
+.agent-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .user-avatar {
