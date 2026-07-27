@@ -188,7 +188,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 .projects-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px 24px 8px;
+  padding: 0 4px 24px 8px; /* Reduced right padding */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -287,11 +287,11 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px 8px 30px; /* Indent to align with folder text */
+  padding: 8px 10px 8px 26px; /* Reduced left indent slightly */
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin: 0 4px;
+  margin: 0; /* Removed horizontal margin to use full width */
 }
 
 .project-item:hover {
