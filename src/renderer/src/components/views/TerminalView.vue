@@ -149,7 +149,7 @@ onUnmounted(() => {
   flex: 1;
   width: 100%;
   min-height: 0;
-  padding: 8px;
+  padding: 12px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
