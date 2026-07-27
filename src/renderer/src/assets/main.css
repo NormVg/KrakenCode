@@ -10,6 +10,7 @@
   --accent-hover: #ff7a7a;
   --accent-purple: #9374BE;
   --accent-green: #08C371;
+  --accent-magenta: #AA205A; /* Brand color requested by user */
   --border-color: rgba(255, 255, 255, 0.05);
 
   --titlebar-height: 10px;
