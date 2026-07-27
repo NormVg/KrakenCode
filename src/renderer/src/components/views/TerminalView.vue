@@ -42,8 +42,9 @@ onMounted(async () => {
 
     term = new Terminal({
       ghostty,
-      fontSize: 14,
-      fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
+      fontSize: 13,
+      fontFamily: '"JetBrainsMono Nerd Font", "JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
+      lineHeight: 1.1,
       theme: {
         background: '#1C1C2A',
         foreground: '#E2E8F0',
