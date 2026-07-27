@@ -183,7 +183,7 @@ onMounted(async () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 16px;
+  height: 40px;
   -webkit-app-region: drag;
   z-index: 5000;
 }
@@ -194,22 +194,18 @@ onMounted(async () => {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 10px 8px 8px 8px;
-  /* No gap — spacing is handled by margin-right on .left-sidebar
-     so it collapses to zero when the sidebar is removed from DOM */
+  padding: 40px 8px 8px 8px;
 }
 
 /* Left Sidebar */
 .left-sidebar {
   width: 260px;
-  /* min-width intentionally omitted — flex-shrink:0 already prevents
-     flexbox from squishing it, and we need width to animate to 0 */
   background-color: var(--bg-dark);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  padding-top: 12px;
+  padding-top: 0;
   margin-right: 8px;
 }
 

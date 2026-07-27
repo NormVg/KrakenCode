@@ -80,12 +80,12 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               <Plus :size="14" stroke-width="2" />
             </button>
           </div>
-          
+
           <!-- Project Items (Chat Sessions) -->
           <div class="project-items" v-if="project.items && project.items.length > 0">
-            <div 
-              v-for="item in project.items" 
-              :key="item.id" 
+            <div
+              v-for="item in project.items"
+              :key="item.id"
               class="project-item"
               :class="{ 'active': activeChatId === item.id }"
               @click="projectsStore.selectChat(project.id, item.id)"
@@ -93,12 +93,12 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
                 <MessageSquare :size="14" />
               </div>
-              
+
               <div class="item-content" style="flex: 1; display: flex; justify-content: space-between; align-items: center; min-width: 0;">
                 <div v-if="editingChatId === item.id" class="edit-mode" style="width: 100%;">
-                  <input 
-                    type="text" 
-                    v-model="editTitle" 
+                  <input
+                    type="text"
+                    v-model="editTitle"
                     @keyup.enter="saveEdit(project.id, item.id)"
                     @blur="saveEdit(project.id, item.id)"
                     @click.stop
@@ -129,7 +129,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
             </div>
           </div>
         </div>
-        
+
         <div v-if="projects.length === 0" class="empty-state">
           <p>No projects yet.</p>
           <button class="btn-primary" @click="projectsStore.addProject()">Add Project</button>
@@ -154,7 +154,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px 16px 8px;
+  padding: 12px 12px 12px 12px;
   flex-shrink: 0;
 }
 

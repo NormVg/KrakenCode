@@ -156,7 +156,6 @@ onUnmounted(() => {
   padding: 4px 12px;
   background-color: transparent;
   border-bottom: 1px solid var(--border-color);
-  -webkit-app-region: drag;
 }
 
 .header-title {
