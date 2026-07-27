@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
   padding: 0;
   margin-bottom: -12px; /* Hide bottom padding behind input container */
   z-index: -1;
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out;
   transform: translateY(100%);
   opacity: 0;
   pointer-events: none;
