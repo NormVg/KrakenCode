@@ -232,9 +232,8 @@ const removeQueuedMessage = (index: number) => {
   bottom: 60px; /* Offset for global bottom bar */
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 800px;
-  padding: 0 16px; 
+  width: calc(100% - 24px);
+  max-width: 800px; 
   display: flex;
   justify-content: center;
   z-index: 10;
