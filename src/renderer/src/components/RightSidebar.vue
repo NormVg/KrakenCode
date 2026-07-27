@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useProjectsStore } from '../stores/projects'
 import ToolsPanel from './ToolsPanel.vue'
+import ChatSessionsPanel from './ChatSessionsPanel.vue'
+
+const projectsStore = useProjectsStore()
+const { activeView } = storeToRefs(projectsStore)
 
 // Define the shape of a tab
 export interface SidebarTab {
@@ -9,17 +15,36 @@ export interface SidebarTab {
   component: any // Vue component
 }
 
-// In a real application, this could be moved to a Pinia store 
-// so that different plugins or systems can register their own tabs dynamically.
-const tabs = shallowRef<SidebarTab[]>([
-  {
-    id: 'tools',
-    label: 'Tools',
-    component: ToolsPanel
-  }
-])
+// Global tools that are always available
+const toolsTab: SidebarTab = {
+  id: 'tools',
+  label: 'Tools',
+  component: ToolsPanel
+}
 
-const activeTabId = ref('tools')
+// Contextual tabs based on active view
+const contextualTabs = computed<SidebarTab[]>(() => {
+  if (activeView.value === 'agent') {
+    return [
+      { id: 'sessions', label: 'Sessions', component: ChatSessionsPanel }
+    ]
+  }
+  // Other views might have their own contextual tabs, e.g. Editor -> File Tree
+  return []
+})
+
+const tabs = computed<SidebarTab[]>(() => {
+  return [...contextualTabs.value, toolsTab]
+})
+
+const activeTabId = ref(tabs.value[0]?.id || 'tools')
+
+// Update active tab when tabs change (e.g. view switch)
+watch(tabs, (newTabs) => {
+  if (!newTabs.find(t => t.id === activeTabId.value)) {
+    activeTabId.value = newTabs[0]?.id || 'tools'
+  }
+}, { immediate: true })
 
 const activeTab = computed(() => {
   return tabs.value.find(t => t.id === activeTabId.value)

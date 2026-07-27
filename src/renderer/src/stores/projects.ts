@@ -22,10 +22,13 @@ export interface Project {
   items: ChatSession[];
 }
 
+export type ViewType = 'agent' | 'editor' | 'web' | 'diff' | 'graph' | 'terminal'
+
 export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([])
   const activeProjectId = ref<string | null>(null)
   const activeChatId = ref<string | null>(null)
+  const activeView = ref<ViewType>('agent')
   const isLoaded = ref(false)
 
   // Getters
@@ -46,6 +49,7 @@ export const useProjectsStore = defineStore('projects', () => {
         projects.value = data.projects
         activeProjectId.value = data.activeProjectId || (projects.value.length > 0 ? projects.value[0].id : null)
         activeChatId.value = data.activeChatId || null
+        if (data.activeView) activeView.value = data.activeView
       }
       isLoaded.value = true
     } catch (e) {
@@ -59,7 +63,8 @@ export const useProjectsStore = defineStore('projects', () => {
     const data = {
       projects: projects.value,
       activeProjectId: activeProjectId.value,
-      activeChatId: activeChatId.value
+      activeChatId: activeChatId.value,
+      activeView: activeView.value
     }
     await window.api.storeWrite('kraken_projects', data)
   }
@@ -186,6 +191,7 @@ export const useProjectsStore = defineStore('projects', () => {
     projects,
     activeProjectId,
     activeChatId,
+    activeView,
     activeProject,
     activeChat,
     isLoaded,

@@ -1,49 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Settings, FolderPlus, Folder, Plus, Trash2, MoreHorizontal, Edit2 } from 'lucide-vue-next'
+import { Settings, FolderPlus, Folder } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
 
 const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
-const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
-
-const activeMenuId = ref<string | null>(null)
-const editingChatId = ref<string | null>(null)
-const editTitle = ref('')
-
-const toggleMenu = (chatId: string) => {
-  activeMenuId.value = activeMenuId.value === chatId ? null : chatId
-}
-
-const startEdit = (chatId: string, title: string) => {
-  editingChatId.value = chatId
-  editTitle.value = title
-  activeMenuId.value = null
-}
-
-const saveEdit = (projectId: string, chatId: string) => {
-  if (editTitle.value.trim()) {
-    projectsStore.renameChat(projectId, chatId, editTitle.value.trim())
-  }
-  editingChatId.value = null
-}
-
-const handleDelete = (projectId: string, chatId: string) => {
-  projectsStore.deleteChat(projectId, chatId)
-  activeMenuId.value = null
-}
-
-const closeMenu = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.chat-menu')) {
-    activeMenuId.value = null
-  }
-}
-
-onMounted(() => document.addEventListener('click', closeMenu))
-onUnmounted(() => document.removeEventListener('click', closeMenu))
+const { projects, activeProjectId } = storeToRefs(projectsStore)
 </script>
 
 <template>
@@ -70,50 +33,6 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
             <div class="folder-title">
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
-            </div>
-            <button class="icon-btn add-chat-btn" title="New Chat" @click.stop="projectsStore.createChat(project.id)">
-              <Plus :size="14" stroke-width="2" />
-            </button>
-          </div>
-        
-          <!-- Project Items -->
-          <div class="project-items" v-show="project.items.length > 0">
-            <div 
-              v-for="item in project.items" 
-              :key="item.id" 
-              :class="['project-item', { active: activeChatId === item.id }]"
-              @click="projectsStore.selectChat(project.id, item.id)"
-            >
-              <div v-if="editingChatId === item.id" class="edit-mode">
-                <input 
-                  type="text" 
-                  v-model="editTitle" 
-                  @keyup.enter="saveEdit(project.id, item.id)"
-                  @blur="saveEdit(project.id, item.id)"
-                  @click.stop
-                  autofocus
-                  class="edit-input"
-                />
-              </div>
-              <template v-else>
-                <span class="item-title">{{ item.title || 'New Chat' }}</span>
-                <div class="item-meta">
-                  <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ item.time }}</span>
-                  <div class="chat-menu">
-                    <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
-                      <MoreHorizontal :size="14" />
-                    </button>
-                    <div class="dropdown-menu" v-if="activeMenuId === item.id">
-                      <button class="dropdown-item" @click.stop="startEdit(item.id, item.title || 'New Chat')">
-                        <Edit2 :size="12" /> Rename
-                      </button>
-                      <button class="dropdown-item delete" @click.stop="handleDelete(project.id, item.id)">
-                        <Trash2 :size="12" /> Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </template>
             </div>
           </div>
         </div>

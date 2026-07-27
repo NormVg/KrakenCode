@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from './stores/config'
 import { useProjectsStore } from './stores/projects'
-import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
-import ModelSelector from './components/ModelSelector.vue'
-import ChatInput from './components/ChatInput.vue'
-import QueuedMessages from './components/QueuedMessages.vue'
-import { PanelLeft, PanelRight } from 'lucide-vue-next'
+import { PanelLeft, PanelRight, MessageSquare, Code, Globe, SplitSquareHorizontal, Network, Terminal } from 'lucide-vue-next'
 import './assets/main.css'
+
+import AgentView from './components/views/AgentView.vue'
+import EditorView from './components/views/EditorView.vue'
+import WebViewView from './components/views/WebViewView.vue'
+import DiffView from './components/views/DiffView.vue'
+import ArchGraphView from './components/views/ArchGraphView.vue'
+import TerminalView from './components/views/TerminalView.vue'
+
+const views = {
+  agent: { component: AgentView, icon: MessageSquare, label: 'Agent' },
+  editor: { component: EditorView, icon: Code, label: 'Editor' },
+  web: { component: WebViewView, icon: Globe, label: 'Web' },
+  diff: { component: DiffView, icon: SplitSquareHorizontal, label: 'Diff' },
+  graph: { component: ArchGraphView, icon: Network, label: 'Graph' },
+  terminal: { component: TerminalView, icon: Terminal, label: 'Terminal' }
+}
 
 // Configuration State via Pinia
 const configStore = useConfigStore()
-const { isSetup, provider, model } = storeToRefs(configStore)
+const { isSetup } = storeToRefs(configStore)
 const isSettingsOpen = ref(false)
 const isRightSidebarOpen = ref(true)
 const isLeftSidebarOpen = ref(true)
@@ -25,10 +37,7 @@ watch(isSetup, (newVal) => {
   if (!newVal) isSettingsOpen.value = true
 })
 
-// Chat State
-const prompt = ref('')
-const isLoading = ref(false)
-const queuedMessages = ref<string[]>([])
+// Chat state moved to AgentView.vue
 
 // Projects State
 const projectsStore = useProjectsStore()
@@ -49,94 +58,6 @@ onMounted(async () => {
   }
 })
 
-// DOM Ref for auto-scroll
-const chatHistoryRef = ref<HTMLElement | null>(null)
-
-const scrollToBottom = async () => {
-  await nextTick()
-  if (chatHistoryRef.value) {
-    chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
-  }
-}
-
-const processNextMessage = async () => {
-  if (queuedMessages.value.length === 0 || isLoading.value || !isSetup.value) return
-  const text = queuedMessages.value.shift()
-  if (text) {
-    await executeMessage(text)
-  }
-}
-
-const executeMessage = async (text: string) => {
-  // If no project exists, create a default one
-  if (projectsStore.projects.length === 0) {
-    const proj = {
-      id: crypto.randomUUID(),
-      name: 'Default Project',
-      path: '',
-      items: []
-    }
-    projectsStore.projects.push(proj)
-    projectsStore.activeProjectId = proj.id
-    projectsStore.saveData()
-  }
-  
-  // If no chat is active, create one
-  if (!projectsStore.activeChat) {
-    projectsStore.createChat(projectsStore.activeProjectId!)
-  }
-  
-  projectsStore.addMessageToActiveChat({ role: 'user', content: text })
-  scrollToBottom()
-  
-  isLoading.value = true
-  const msgId = Date.now().toString()
-  projectsStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
-  
-  window.api.onChatChunk(msgId, (chunk) => {
-    projectsStore.updateActiveChatStreamingMessage(chunk)
-    scrollToBottom()
-  })
-
-  window.api.onChatEnd(msgId, () => {
-    projectsStore.endActiveChatStreamingMessage()
-    isLoading.value = false
-    window.api.removeChatListeners(msgId)
-    processNextMessage()
-  })
-
-  window.api.onChatError(msgId, (err) => {
-    projectsStore.appendErrorToActiveChat(err)
-    isLoading.value = false
-    window.api.removeChatListeners(msgId)
-    processNextMessage()
-  })
-
-  window.api.streamChat(msgId, text)
-}
-
-const handleChat = async () => {
-  const text = prompt.value.trim()
-  if (!text || !isSetup.value) return
-  
-  if (isLoading.value) {
-    queuedMessages.value.push(text)
-    prompt.value = ''
-    return
-  }
-
-  prompt.value = ''
-  await executeMessage(text)
-}
-
-const removeQueuedMessage = (index: number) => {
-  queuedMessages.value.splice(index, 1)
-}
-
-// Window Controls
-const minimizeWindow = () => window.api.minimizeWindow()
-const maximizeWindow = () => window.api.maximizeWindow()
-const closeWindow = () => window.api.closeWindow()
 </script>
 
 <template>
@@ -160,89 +81,40 @@ const closeWindow = () => window.api.closeWindow()
         @close="isSettingsOpen = false" 
       />
 
-      <!-- Empty Conversation State -->
-      <div v-if="isSetup && (!projectsStore.activeChat || projectsStore.activeChat.messages.length === 0)" class="empty-conversation-state">
-        <img src="./assets/banner.png" alt="Kraken Logo" class="empty-banner" />
-        <div class="centered-composer">
-          <ChatInput 
-            v-model="prompt"
-            @submit="handleChat"
-            :disabled="!isSetup || isLoading"
-            placeholder="Plan, Build, / for skills, @ for context"
-          />
-          <div class="floating-bottom-bar">
-            <div class="header-left-group">
-              <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
-                <PanelLeft :size="16" />
-              </button>
-              <div class="chat-breadcrumbs">
-                <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
-                <span class="divider">/</span>
-                <span>{{ projectsStore.activeChat?.title || 'New Chat' }}</span>
-              </div>
-            </div>
-            <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-              <PanelRight :size="16" />
-            </button>
-          </div>
-        </div>
+      <!-- Top View Navigation -->
+      <header class="view-tabs">
+        <button 
+          v-for="(view, key) in views" 
+          :key="key"
+          class="tab-btn"
+          :class="{ active: projectsStore.activeView === key }"
+          @click="projectsStore.activeView = key"
+        >
+          <component :is="view.icon" :size="14" />
+          <span>{{ view.label }}</span>
+        </button>
+      </header>
+
+      <!-- Dynamic View Component -->
+      <div class="view-container">
+        <component :is="views[projectsStore.activeView].component" />
       </div>
 
-      <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
-        <div class="chat-container">
-          <div v-if="!isSetup" class="welcome-screen">
-            <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
-            <p>Please configure the agent to start.</p>
-          </div>
-          <template v-else-if="projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
-            <!-- Spacer to push content down below traffic lights -->
-            <div class="top-spacer" style="height: 60px;"></div>
-            <ChatMessage 
-              v-for="(msg, index) in projectsStore.activeChat.messages" 
-              :key="msg.id || index" 
-              :role="msg.role" 
-              :content="msg.content"
-              :is-streaming="msg.isStreaming"
-            />
-            <div v-if="isLoading" class="message agent loading-indicator">
-              <div class="typing-dots">
-                <span>.</span><span>.</span><span>.</span>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Agent Input (Floating at bottom) -->
-      <div class="floating-input-container" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
-        <div class="floating-composer-wrapper no-drag">
-          <QueuedMessages 
-            :messages="queuedMessages"
-            @remove="removeQueuedMessage"
-          />
-          <ChatInput 
-            v-model="prompt"
-            @submit="handleChat"
-            :disabled="!isSetup"
-            :rows="1"
-            placeholder="Ask a follow-up question..."
-          />
-          <div class="floating-bottom-bar">
-            <div class="header-left-group">
-              <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
-                <PanelLeft :size="16" />
-              </button>
-              <div class="chat-breadcrumbs">
-                <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
-                <span class="divider">/</span>
-                <span>{{ projectsStore.activeChat?.title || 'New Chat' }}</span>
-              </div>
-            </div>
-            <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-              <PanelRight :size="16" />
-            </button>
+      <!-- Global Bottom Bar -->
+      <div class="global-bottom-bar no-drag">
+        <div class="header-left-group">
+          <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+            <PanelLeft :size="16" />
+          </button>
+          <div class="chat-breadcrumbs">
+            <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
+            <span class="divider">/</span>
+            <span>{{ views[projectsStore.activeView].label }}</span>
           </div>
         </div>
+        <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+          <PanelRight :size="16" />
+        </button>
       </div>
     </main>
 
@@ -420,44 +292,67 @@ const closeWindow = () => window.api.closeWindow()
   position: relative; /* For absolute composer */
 }
 
-.empty-banner {
-  width: 240px;
-  max-width: 100%;
-  opacity: 0.8;
-  /* Centered perfectly in the container */
+.view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  -webkit-app-region: drag;
+  flex-shrink: 0;
 }
 
-.centered-composer {
-  position: absolute;
-  bottom: 12px;
-  width: 100%;
-  max-width: 800px;
-  padding: 0 16px; /* Match chat-container padding */
-  z-index: 10;
+.tab-btn {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.view-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Floating Input Area */
-.floating-input-container {
+.global-bottom-bar {
   position: absolute;
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
+  width: calc(100% - 24px);
   max-width: 800px;
-  padding: 0 16px; /* Match chat-container padding */
   display: flex;
-  justify-content: center;
-  z-index: 10;
-}
-
-.floating-composer-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 8px 12px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Right Sidebar wrapper */
@@ -467,28 +362,6 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   flex-direction: column;
   z-index: 10;
-}
-
-/* Loading */
-.loading-indicator {
-  padding: 0 12px;
-}
-
-.typing-dots {
-  display: flex;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 1.2em;
-}
-.typing-dots span {
-  animation: typing 1.4s infinite;
-}
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes typing {
-  0%, 100% { opacity: 0.2; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-2px); }
 }
 
 /* Sidebar Animations */
