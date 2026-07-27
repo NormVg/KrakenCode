@@ -97,9 +97,6 @@ onBeforeUnmount(() => {
         <ModelSelector />
       </div>
       <div class="toolbar-right">
-        <span class="hint-text">
-          <kbd>/</kbd> commands &nbsp;·&nbsp; <kbd>@</kbd> context
-        </span>
         <button class="mic-btn" title="Voice input">
           <Mic :size="14" />
         </button>
@@ -210,25 +207,6 @@ onBeforeUnmount(() => {
   color: var(--text-main);
 }
 
-.hint-text {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.18);
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  letter-spacing: 0.01em;
-}
-
-.hint-text kbd {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.68rem;
-  background: rgba(255,255,255,0.07);
-  border-radius: 3px;
-  padding: 0 4px;
-  color: rgba(255,255,255,0.3);
-  border: none;
-}
 
 .mic-btn {
   background: #fff;
