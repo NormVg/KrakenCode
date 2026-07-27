@@ -65,23 +65,14 @@ const handleKeydown = (e: KeyboardEvent) => {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.02);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
-  /* Maya-design */
-  transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.4s ease-out,
-              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.chat-input-container:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), 0 0 35px rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .chat-input-container:focus-within {
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 40px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
 }
 
 textarea {
