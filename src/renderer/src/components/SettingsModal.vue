@@ -140,7 +140,7 @@ const handleSave = async () => {
 .settings-sidebar {
   width: 240px;
   background-color: var(--bg-panel);
-  border-right: 1px solid var(--border-color);
+  /* Removed border-right to reduce lines */
   padding: 24px 12px;
 }
 
@@ -281,7 +281,8 @@ const handleSave = async () => {
   justify-content: space-between;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid var(--border-color);
+  /* Softened the dividing line */
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .primary-btn {
