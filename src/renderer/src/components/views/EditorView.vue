@@ -2,13 +2,14 @@
 import { ref, shallowRef } from 'vue'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
+import { X, FileCode2, FileJson, Play } from 'lucide-vue-next'
 
 // Configure Vite Web Workers for Monaco
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker'
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker'
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker.js?worker'
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker.js?worker'
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker.js?worker'
+import editorWorker from 'monaco-editor/editor/editor.worker.js?worker'
+import jsonWorker from 'monaco-editor/language/json/json.worker.js?worker'
+import cssWorker from 'monaco-editor/language/css/css.worker.js?worker'
+import htmlWorker from 'monaco-editor/language/html/html.worker.js?worker'
+import tsWorker from 'monaco-editor/language/typescript/ts.worker.js?worker'
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
@@ -50,6 +51,27 @@ function helloWorld() {
 const language = ref('javascript')
 const editorRef = shallowRef()
 
+// Mock open tabs
+const openTabs = ref([
+  { id: '1', name: 'untitled.js', language: 'javascript', isModified: true, isActive: true },
+  { id: '2', name: 'App.vue', language: 'html', isModified: false, isActive: false },
+  { id: '3', name: 'package.json', language: 'json', isModified: false, isActive: false }
+])
+
+const selectTab = (id: string) => {
+  openTabs.value.forEach(tab => {
+    tab.isActive = (tab.id === id)
+  })
+}
+
+const closeTab = (id: string, event: Event) => {
+  event.stopPropagation()
+  openTabs.value = openTabs.value.filter(tab => tab.id !== id)
+  if (openTabs.value.length > 0 && !openTabs.value.some(t => t.isActive)) {
+    openTabs.value[0].isActive = true
+  }
+}
+
 const handleMount = (editor: any) => {
   editorRef.value = editor
 }
@@ -57,13 +79,34 @@ const handleMount = (editor: any) => {
 
 <template>
   <div class="editor-view">
-    <div class="editor-header no-drag">
-      <div class="file-info">
-        <span class="file-name">untitled.js</span>
-        <span class="file-status modified"></span>
+    <!-- Editor Tabs Header -->
+    <div class="editor-tabs-header no-drag">
+      <div class="tabs-scroll-area">
+        <div 
+          v-for="tab in openTabs" 
+          :key="tab.id"
+          class="editor-tab"
+          :class="{ 'active': tab.isActive }"
+          @click="selectTab(tab.id)"
+        >
+          <FileCode2 v-if="tab.language !== 'json'" :size="14" class="tab-icon" :class="tab.language" />
+          <FileJson v-else :size="14" class="tab-icon json" />
+          
+          <span class="tab-title">{{ tab.name }}</span>
+          
+          <div class="tab-actions">
+            <span v-if="tab.isModified" class="modified-dot"></span>
+            <button class="close-tab-btn" @click="(e) => closeTab(tab.id, e)">
+              <X :size="14" />
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="editor-actions">
-        <!-- Actions could go here -->
+      
+      <div class="editor-toolbar">
+        <button class="toolbar-btn run-btn" title="Run Code">
+          <Play :size="14" />
+        </button>
       </div>
     </div>
     
@@ -78,7 +121,6 @@ const handleMount = (editor: any) => {
   </div>
 </template>
 
-<style scoped>
 .editor-view {
   display: flex;
   flex-direction: column;
@@ -87,32 +129,147 @@ const handleMount = (editor: any) => {
   background-color: #1e1e1e; /* VS Code dark theme default background */
 }
 
-.editor-header {
+/* Tabs Header */
+.editor-tabs-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background-color: var(--bg-panel);
+  background-color: #15151e; /* Slightly darker than panel to distinguish tabs */
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  height: 40px;
+  user-select: none;
 }
 
-.file-info {
+.tabs-scroll-area {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tabs-scroll-area::-webkit-scrollbar {
+  height: 0px; /* Hide scrollbar for tabs */
+}
+
+/* Individual Tab */
+.editor-tab {
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 100%;
+  padding: 0 12px 0 16px;
+  background-color: transparent;
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  color: var(--text-muted-dark);
+  transition: all 0.2s ease;
+  min-width: 120px;
+  max-width: 200px;
 }
 
-.file-name {
-  font-size: 0.9em;
+.editor-tab:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+}
+
+.editor-tab.active {
+  background-color: #1e1e1e; /* Matches editor background */
   color: var(--text-main);
-  font-family: monospace;
+  border-top: 1px solid var(--accent); /* Thin highlight at top */
 }
 
-.file-status.modified {
+/* Tab Icon Colors */
+.tab-icon {
+  opacity: 0.7;
+}
+.tab-icon.javascript { color: #f1e05a; }
+.tab-icon.typescript { color: #3178c6; }
+.tab-icon.html { color: #e34c26; }
+.tab-icon.json { color: #cb3837; }
+.editor-tab.active .tab-icon {
+  opacity: 1;
+}
+
+/* Tab Title */
+.tab-title {
+  font-family: var(--font-primary);
+  font-size: 0.85em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* Tab Actions */
+.tab-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.modified-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background-color: #4A90E2;
+}
+
+.close-tab-btn {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Only show close button on hover, or hide dot on hover to show close button */
+.editor-tab:hover .modified-dot {
+  display: none;
+}
+.editor-tab:hover .close-tab-btn,
+.editor-tab.active .close-tab-btn {
+  display: flex;
+}
+
+/* Toolbar (Right side of tabs) */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+.toolbar-btn.run-btn:hover {
+  color: var(--accent-green);
+  background-color: rgba(8, 195, 113, 0.1);
 }
 
 .editor-container {
