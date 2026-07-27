@@ -109,8 +109,18 @@ const handleKeydown = (e: KeyboardEvent) => {
   <div class="layout">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="logo-text">Kraken</span>
+      <div class="sidebar-header" style="-webkit-app-region: drag;">
+        <div class="header-actions">
+          <button class="icon-btn sidebar-toggle-btn no-drag" title="Toggle Sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          </button>
+          <button class="icon-btn nav-btn no-drag" title="Back">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
+          </button>
+          <button class="icon-btn nav-btn no-drag" title="Forward">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
       </div>
       
       <div class="sidebar-content">
@@ -132,6 +142,18 @@ const handleKeydown = (e: KeyboardEvent) => {
 
     <!-- Main Content -->
     <main class="main-content">
+      
+      <!-- Top Header -->
+      <header class="main-header" style="-webkit-app-region: drag;">
+        <div class="breadcrumbs">
+          <span class="muted">Kraken</span>
+          <span class="muted divider">/</span>
+          <span class="active">New Conversation</span>
+        </div>
+        <div class="header-right no-drag">
+          <!-- Placeholder right controls -->
+        </div>
+      </header>
       
       <!-- Settings Modal via component -->
       <SettingsModal 
@@ -202,17 +224,29 @@ const handleKeydown = (e: KeyboardEvent) => {
 }
 
 .sidebar-header {
-  height: 48px;
+  height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  /* Leave room for Mac traffic lights (~70px) */
+  padding-left: 76px;
+  padding-right: 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.logo-text {
-  font-weight: 600;
-  font-size: 0.9em;
-  color: var(--text-main);
-  letter-spacing: 0.5px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-btn {
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
 .sidebar-content {
@@ -286,6 +320,37 @@ const handleKeydown = (e: KeyboardEvent) => {
   flex-direction: column;
   position: relative;
   min-width: 0;
+}
+
+.main-header {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-dark);
+  z-index: 5;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.breadcrumbs .muted {
+  color: var(--text-muted);
+}
+
+.breadcrumbs .active {
+  color: var(--text-main);
+}
+
+.breadcrumbs .divider {
+  opacity: 0.5;
 }
 
 /* Chat History */
