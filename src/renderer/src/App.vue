@@ -81,19 +81,7 @@ onMounted(async () => {
         @close="isSettingsOpen = false" 
       />
 
-      <!-- Top View Navigation -->
-      <header class="view-tabs">
-        <button 
-          v-for="(view, key) in views" 
-          :key="key"
-          class="tab-btn"
-          :class="{ active: projectsStore.activeView === key }"
-          @click="projectsStore.activeView = key"
-        >
-          <component :is="view.icon" :size="14" />
-          <span>{{ view.label }}</span>
-        </button>
-      </header>
+
 
       <!-- Dynamic View Component -->
       <div class="view-container">
@@ -112,6 +100,21 @@ onMounted(async () => {
             <span>{{ views[projectsStore.activeView].label }}</span>
           </div>
         </div>
+
+        <!-- View Toggles (Center) -->
+        <div class="bottom-view-toggles">
+          <button 
+            v-for="(view, key) in views" 
+            :key="key"
+            class="bottom-tab-btn"
+            :class="{ active: projectsStore.activeView === key }"
+            @click="projectsStore.activeView = key"
+            :title="view.label"
+          >
+            <component :is="view.icon" :size="16" />
+          </button>
+        </div>
+
         <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
           <PanelRight :size="16" />
         </button>
@@ -292,39 +295,34 @@ onMounted(async () => {
   position: relative; /* For absolute composer */
 }
 
-.view-tabs {
+.bottom-view-toggles {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  background-color: var(--bg-panel);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  -webkit-app-region: drag;
-  flex-shrink: 0;
+  gap: 8px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.tab-btn {
-  -webkit-app-region: no-drag;
+.bottom-tab-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  justify-content: center;
+  padding: 6px;
   border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
   border: none;
-  font-size: 0.85em;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.tab-btn:hover {
+.bottom-tab-btn:hover {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
 }
 
-.tab-btn.active {
+.bottom-tab-btn.active {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
 }
