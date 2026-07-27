@@ -93,7 +93,7 @@ onUnmounted(() => {
 
 .model-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px); /* Open upwards to prevent clipping */
   left: 0;
   background-color: var(--bg-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -108,7 +108,7 @@ onUnmounted(() => {
 }
 
 @keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(4px); } /* Slide up slightly on appear */
   to { opacity: 1; transform: translateY(0); }
 }
 
