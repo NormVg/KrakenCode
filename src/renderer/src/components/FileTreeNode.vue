@@ -152,6 +152,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
   position: relative;
   min-height: 24px;
   gap: 0;
+  width: max-content;
+  min-width: 100%;
 }
 
 .tree-item:hover {
@@ -170,10 +172,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
 .item-name {
   font-size: 0.82em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   flex: 1;
-  min-width: 0;
 }
 
 /* 3-dot button */

@@ -155,6 +155,13 @@ const handleRenameItem = async (node: any) => {
   display: flex;
   flex-direction: column;
   gap: 0;
+  overflow: auto;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.file-tree::-webkit-scrollbar {
+  display: none;
 }
 
 .tree-node {
