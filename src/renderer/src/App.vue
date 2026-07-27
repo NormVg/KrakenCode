@@ -112,7 +112,8 @@ const closeWindow = () => window.api.closeWindow()
 </script>
 
 <template>
-  <div class="layout-container" style="-webkit-app-region: drag;">
+  <div class="layout-container">
+    <div class="invisible-drag-area"></div>
     <div class="layout">
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
@@ -209,6 +210,17 @@ const closeWindow = () => window.api.closeWindow()
   height: 100vh;
   width: 100vw;
   background-color: var(--bg-dark); /* #0A0D18 */
+  position: relative;
+}
+
+.invisible-drag-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  -webkit-app-region: drag;
+  z-index: 9999;
 }
 
 .layout {
