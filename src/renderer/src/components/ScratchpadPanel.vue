@@ -53,11 +53,11 @@ onMounted(() => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
           const files = Array.from(event.dataTransfer.files)
           const images = files.filter(file => file.type.startsWith('image/'))
-          
+
           if (images.length > 0) {
             event.preventDefault()
             const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
-            
+
             images.forEach(image => {
               const reader = new FileReader()
               reader.onload = (e) => {
@@ -78,7 +78,7 @@ onMounted(() => {
         if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
           const files = Array.from(event.clipboardData.files)
           const images = files.filter(file => file.type.startsWith('image/'))
-          
+
           if (images.length > 0) {
             event.preventDefault()
             images.forEach(image => {
@@ -106,17 +106,17 @@ onMounted(() => {
     recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = false
-    
+
     recognition.onstart = () => {
       isListening.value = true
     }
-    
+
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results)
         .slice(event.resultIndex)
         .map((result: any) => result[0].transcript)
         .join('')
-        
+
       if (transcript && editor.value) {
         const textToInsert = transcript + ' '
         if (!editor.value.isFocused) {
@@ -128,12 +128,12 @@ onMounted(() => {
         }
       }
     }
-    
+
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error)
       isListening.value = false
     }
-    
+
     recognition.onend = () => {
       isListening.value = false
     }
@@ -148,7 +148,7 @@ const toggleListening = () => {
     alert("Speech recognition is not supported in this environment.")
     return
   }
-  
+
   if (isListening.value) {
     recognition.stop()
   } else {
@@ -171,14 +171,14 @@ onBeforeUnmount(() => {
     <div class="panel-header">
       <h3>Scratchpad</h3>
     </div>
-    
+
     <div class="scratchpad-content">
       <editor-content :editor="editor" class="editor-container" />
 
       <!-- Speech to Text Floating Button -->
-      <button 
-        class="stt-btn" 
-        :class="{ 'is-listening': isListening }" 
+      <button
+        class="stt-btn"
+        :class="{ 'is-listening': isListening }"
         @click="toggleListening"
         :title="isListening ? 'Stop listening' : 'Start dictation'"
       >
@@ -232,8 +232,8 @@ onBeforeUnmount(() => {
 /* STT Button */
 .stt-btn {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: 24px;
+  right: 8px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
