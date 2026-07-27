@@ -10,8 +10,9 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { SlashCommands } from './tiptap/SlashCommands'
 import { slashSuggestion } from './tiptap/suggestion'
 import { AtMention, atMentionSuggestion } from './tiptap/AtMention'
-import { Plus, Mic, FileText, Code, Wrench, File, Terminal, Zap, Folder, Sparkles, X } from 'lucide-vue-next'
+import { Plus, Mic } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
+import CommandList from './tiptap/CommandList.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -23,6 +24,42 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   'submit': []
 }>()
+
+const suggestionState = ref({
+  isOpen: false,
+  items: [],
+  command: null as any,
+  mode: 'slash' as 'slash' | 'mention'
+})
+
+const commandListRef = ref()
+
+const handleSuggestionState = (mode: 'slash' | 'mention') => {
+  return {
+    onStart: (props: any) => {
+      suggestionState.value = {
+        isOpen: true,
+        items: props.items,
+        command: props.command,
+        mode
+      }
+    },
+    onUpdate: (props: any) => {
+      suggestionState.value.items = props.items
+      suggestionState.value.command = props.command
+    },
+    onKeyDown: (props: any) => {
+      if (props.event.key === 'Escape') {
+        suggestionState.value.isOpen = false
+        return true
+      }
+      return commandListRef.value?.onKeyDown(props.event) ?? false
+    },
+    onExit: () => {
+      suggestionState.value.isOpen = false
+    }
+  }
+}
 
 // Tiptap editor — plain text, no markdown rendering, just raw input
 const editor = useEditor({
@@ -37,10 +74,16 @@ const editor = useEditor({
       showOnlyCurrent: true,
     }),
     SlashCommands.configure({
-      suggestion: slashSuggestion,
+      suggestion: {
+        ...slashSuggestion,
+        render: () => handleSuggestionState('slash')
+      },
     }),
     AtMention.configure({
-      suggestion: atMentionSuggestion,
+      suggestion: {
+        ...atMentionSuggestion,
+        render: () => handleSuggestionState('mention')
+      },
     }),
   ],
   editable: !props.disabled,
@@ -80,18 +123,6 @@ const handleSubmit = () => {
 
 const isFocused = computed(() => editor.value?.isFocused ?? false)
 
-const isDrawerOpen = ref(false)
-const toggleDrawer = () => {
-  isDrawerOpen.value = !isDrawerOpen.value
-}
-
-const insertTextAtCursor = (text: string) => {
-  if (!editor.value) return
-  // If the editor is focused, insert at current selection, otherwise insert at end
-  editor.value.chain().focus().insertContent(text + ' ').run()
-  isDrawerOpen.value = false
-}
-
 onBeforeUnmount(() => {
   editor.value?.destroy()
 })
@@ -99,88 +130,16 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="chat-input-wrapper">
-    <!-- Backdrop to close drawer when clicking outside -->
-    <div class="drawer-backdrop" v-if="isDrawerOpen" @click="isDrawerOpen = false"></div>
-
-    <!-- Expanding Command Space -->
-    <div class="actions-drawer" :class="{ 'is-open': isDrawerOpen }">
-      <div class="drawer-header">
-        <h3>Command Space</h3>
-        <button class="close-btn" @click="isDrawerOpen = false">
-          <X :size="16" />
-        </button>
-      </div>
-
-      <div class="drawer-content-grid">
-        <!-- Agent Actions Section -->
-        <div class="command-section">
-          <h4>Agent Actions</h4>
-          <div class="command-grid">
-            <button class="action-card" @click="insertTextAtCursor('/plan')">
-              <div class="icon-wrapper plan-icon"><FileText :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Plan</span>
-                <span class="card-desc">Create a structured plan</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('/build')">
-              <div class="icon-wrapper build-icon"><Code :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Build</span>
-                <span class="card-desc">Write new code features</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('/fix')">
-              <div class="icon-wrapper fix-icon"><Wrench :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Fix</span>
-                <span class="card-desc">Debug and resolve errors</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('/explain')">
-              <div class="icon-wrapper explain-icon"><Sparkles :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Explain</span>
-                <span class="card-desc">Break down how code works</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Context Mentions Section -->
-        <div class="command-section">
-          <h4>Context Mentions</h4>
-          <div class="command-grid">
-            <button class="action-card" @click="insertTextAtCursor('@file')">
-              <div class="icon-wrapper context-icon"><File :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">File</span>
-                <span class="card-desc">Reference a specific file</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('@folder')">
-              <div class="icon-wrapper context-icon"><Folder :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Folder</span>
-                <span class="card-desc">Include entire directories</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('@terminal')">
-              <div class="icon-wrapper context-icon"><Terminal :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Terminal</span>
-                <span class="card-desc">Attach recent shell output</span>
-              </div>
-            </button>
-            <button class="action-card" @click="insertTextAtCursor('@git')">
-              <div class="icon-wrapper context-icon"><Zap :size="16" /></div>
-              <div class="card-text">
-                <span class="card-title">Git Diff</span>
-                <span class="card-desc">Add uncommitted changes</span>
-              </div>
-            </button>
-          </div>
-        </div>
+    <!-- Sliding Action Drawer (Now houses CommandList natively) -->
+    <div class="actions-drawer" :class="{ 'is-open': suggestionState.isOpen }">
+      <div class="drawer-content">
+        <CommandList 
+          v-if="suggestionState.isOpen"
+          ref="commandListRef"
+          :items="suggestionState.items"
+          :command="suggestionState.command"
+          :mode="suggestionState.mode"
+        />
       </div>
     </div>
 
@@ -191,7 +150,7 @@ onBeforeUnmount(() => {
       <!-- Toolbar -->
       <div class="composer-toolbar">
         <div class="toolbar-left">
-          <button class="add-btn" title="Quick Actions" :class="{ active: isDrawerOpen }" @click="toggleDrawer">
+          <button class="add-btn" title="Attach file">
             <Plus :size="14" />
           </button>
           <ModelSelector />
@@ -334,161 +293,59 @@ onBeforeUnmount(() => {
   transform: scale(0.96);
 }
 
-/* Backdrop */
-.drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-}
-
-/* Sliding Command Space Styles */
+/* Sliding Drawer Styles */
 .actions-drawer {
   position: absolute;
   bottom: 100%;
-  left: 0;
-  right: 0;
+  left: 6px;
+  right: 6px;
   background-color: var(--bg-dark);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 8px; /* Float slightly above input container */
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.03);
-  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 0;
+  margin-bottom: -12px; /* Hide bottom padding behind input container */
   z-index: -1;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
-  transform: translateY(20px) scale(0.98);
+  transform: translateY(100%);
   opacity: 0;
   pointer-events: none;
+  max-height: 300px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-height: 60vh;
-  overflow-y: auto;
 }
 
 .actions-drawer.is-open {
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
 }
 
-.drawer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px; /* Space for the overlap with input */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.drawer-header h3 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: 0.02em;
+.drawer-content::-webkit-scrollbar {
+  width: 6px;
 }
-
-.close-btn {
+.drawer-content::-webkit-scrollbar-track {
   background: transparent;
-  border: none;
-  color: rgba(255,255,255,0.4);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
 }
-
-.close-btn:hover {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-}
-
-.drawer-content-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.command-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.command-section h4 {
-  margin: 0;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
-  font-weight: 600;
-  padding-left: 2px;
-}
-
-.command-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+.drawer-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.action-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.action-card:active {
-  transform: translateY(0);
-}
-
-.icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-}
-
-.plan-icon { background: rgba(59, 130, 246, 0.15); color: #60A5FA; }
-.build-icon { background: rgba(16, 185, 129, 0.15); color: #34D399; }
-.fix-icon { background: rgba(245, 158, 11, 0.15); color: #FBBF24; }
-.explain-icon { background: rgba(168, 85, 247, 0.15); color: #C084FC; }
-.context-icon { background: rgba(255, 255, 255, 0.08); color: #E2E8F0; }
-
-.card-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.card-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.card-desc {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.4);
+/* CommandList styling override for drawer */
+:deep(.command-list) {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 8px;
 }
 </style>
