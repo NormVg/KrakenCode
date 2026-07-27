@@ -32,6 +32,34 @@ const isSettingsOpen = ref(false)
 const isRightSidebarOpen = ref(true)
 const isLeftSidebarOpen = ref(true)
 
+// Sidebar Resizing
+const rightSidebarWidth = ref(300)
+const isResizingRight = ref(false)
+
+const startResizeRight = (e: MouseEvent) => {
+  isResizingRight.value = true
+  document.addEventListener('mousemove', handleResizeRight)
+  document.addEventListener('mouseup', stopResizeRight)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const handleResizeRight = (e: MouseEvent) => {
+  if (!isResizingRight.value) return
+  const newWidth = document.body.clientWidth - e.clientX - 8 // 8px for layout gap/padding
+  if (newWidth > 200 && newWidth < 800) {
+    rightSidebarWidth.value = newWidth
+  }
+}
+
+const stopResizeRight = () => {
+  isResizingRight.value = false
+  document.removeEventListener('mousemove', handleResizeRight)
+  document.removeEventListener('mouseup', stopResizeRight)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
 // Ensure Settings opens if we somehow lose setup state
 watch(isSetup, (newVal) => {
   if (!newVal) isSettingsOpen.value = true
@@ -126,7 +154,8 @@ onMounted(async () => {
 
     <!-- Right Sidebar -->
     <Transition name="slide-right">
-      <aside class="right-sidebar" v-if="isRightSidebarOpen">
+      <aside class="right-sidebar" v-if="isRightSidebarOpen" :style="{ width: `${rightSidebarWidth}px` }">
+        <div class="resizer" :class="{ active: isResizingRight }" @mousedown="startResizeRight"></div>
         <RightSidebar />
       </aside>
     </Transition>
@@ -357,11 +386,27 @@ onMounted(async () => {
 
 /* Right Sidebar wrapper */
 .right-sidebar {
-  width: 300px;
+  /* width is bound inline */
   background-color: transparent; /* Blends with layout-container bg-dark */
   display: flex;
   flex-direction: column;
   z-index: 10;
+  position: relative;
+}
+
+.resizer {
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: col-resize;
+  z-index: 100;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover, .resizer.active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Sidebar Animations */
