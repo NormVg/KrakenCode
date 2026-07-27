@@ -6,7 +6,8 @@ import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
-import { PanelLeft, PanelRight, Settings2, ChevronRight, Plus, Lock, Mic, Github, ChevronDown } from 'lucide-vue-next'
+import ModelSelector from './components/ModelSelector.vue'
+import { Plus, Mic, Github } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -139,9 +140,7 @@ const closeWindow = () => window.api.closeWindow()
               <button class="add-btn">
                 <Plus :size="14" />
               </button>
-              <button class="model-badge" @click="isSettingsOpen = true">
-                {{ model || 'Select Model' }} <ChevronDown :size="12" class="model-icon" />
-              </button>
+              <ModelSelector />
             </div>
             <div class="toolbar-right">
               <button class="mic-btn">
@@ -370,29 +369,6 @@ const closeWindow = () => window.api.closeWindow()
 .add-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
-}
-
-.model-badge {
-  background: transparent;
-  border: none;
-  font-size: 0.85em;
-  font-weight: 500;
-  color: #B4B9EB; /* Soft purple matching the screenshot */
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.model-badge:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.model-icon {
-  opacity: 0.7;
 }
 
 .mic-btn {
