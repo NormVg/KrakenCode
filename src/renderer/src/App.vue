@@ -5,7 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
-import { PanelLeft, PanelRight, Settings2 } from 'lucide-vue-next'
+import { PanelLeft, PanelRight, Settings2, ChevronRight, Plus, Lock, Mic, Github } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -45,16 +45,6 @@ onMounted(async () => {
       console.error("Auto-init failed", e)
       isSettingsOpen.value = true
     }
-  }
-})
-
-// Default greeting when setup completes for the first time
-watch(isSetup, (newVal) => {
-  if (newVal && messages.value.length === 0) {
-    messages.value.push({ 
-      role: 'agent', 
-      content: `Hello! I am your AI agent running on \`${provider.value}\` with \`${model.value}\`. How can I help you code today?` 
-    })
   }
 })
 
@@ -134,14 +124,51 @@ const closeWindow = () => window.api.closeWindow()
         @close="isSettingsOpen = false" 
       />
 
+      <!-- Empty Conversation State -->
+      <div v-if="isSetup && messages.length === 0" class="empty-conversation-state">
+        <div class="breadcrumbs">
+          <span>voice-line</span>
+          <ChevronRight :size="14" />
+          <span>master</span>
+          <ChevronRight :size="14" />
+          <span>This Mac</span>
+          <ChevronRight :size="14" />
+        </div>
+        <div class="centered-composer">
+          <textarea 
+            v-model="prompt" 
+            placeholder="Plan, Build, / for skills, @ for context"
+            rows="3"
+            @keydown="handleKeydown"
+            :disabled="!isSetup || isLoading"
+          ></textarea>
+          <div class="composer-toolbar">
+            <div class="toolbar-left">
+              <button class="add-btn">
+                <Plus :size="14" />
+              </button>
+              <span class="model-badge">Composer 2.5 Fast <Lock :size="10" class="lock-icon" /></span>
+            </div>
+            <div class="toolbar-right">
+              <button class="mic-btn">
+                <Mic :size="14" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="connect-repos-btn">
+          <Github :size="14" /> Connect Your Repos
+        </button>
+      </div>
+
       <!-- Chat History -->
-      <div class="chat-history" ref="chatHistoryRef">
+      <div class="chat-history" ref="chatHistoryRef" v-else>
         <div class="chat-container">
           <div v-if="!isSetup" class="welcome-screen">
             <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
             <p>Please configure the agent to start.</p>
           </div>
-          <template v-else>
+          <template v-else-if="messages.length > 0">
             <!-- Spacer to push content down below traffic lights -->
             <div class="top-spacer" style="height: 60px;"></div>
             <ChatMessage 
@@ -161,7 +188,7 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Agent Input Pill (Floating above focus bar) -->
-      <div class="floating-input-container">
+      <div class="floating-input-container" v-if="isSetup && messages.length > 0">
         <div class="input-pill no-drag">
           <textarea 
             v-model="prompt" 
@@ -313,6 +340,137 @@ const closeWindow = () => window.api.closeWindow()
 
 .welcome-banner:hover {
   opacity: 0.5;
+}
+
+/* Empty Conversation State */
+.empty-conversation-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.8em;
+  margin-bottom: 8px;
+}
+
+.centered-composer {
+  width: 90%;
+  max-width: 650px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.centered-composer textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  resize: none;
+  outline: none;
+  font-size: 0.95em;
+  line-height: 1.5;
+  padding: 16px;
+  min-height: 80px;
+}
+
+.centered-composer textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.composer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: var(--text-muted);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.model-badge {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lock-icon {
+  opacity: 0.6;
+}
+
+.mic-btn {
+  background: #fff;
+  border: none;
+  color: #000;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.mic-btn:hover {
+  transform: scale(1.05);
+}
+
+.connect-repos-btn {
+  margin-top: 16px;
+  background-color: #fff;
+  color: #000;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.85em;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.connect-repos-btn:hover {
+  transform: scale(1.05);
 }
 
 /* Floating Input Area */
