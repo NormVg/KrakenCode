@@ -273,7 +273,6 @@ onUnmounted(() => {
   background-color: var(--bg-dark);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
-  -webkit-app-region: drag;
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -281,12 +280,6 @@ onUnmounted(() => {
 /* Hide scrollbar for the address bar for a cleaner look */
 .address-bar::-webkit-scrollbar {
   display: none;
-}
-
-.nav-group,
-.url-bar-wrapper,
-.toolbar-group {
-  -webkit-app-region: no-drag;
 }
 
 .nav-group {
