@@ -9,7 +9,7 @@ import './assets/main.css'
 // Configuration State via Pinia
 const configStore = useConfigStore()
 const { isSetup, provider, model } = storeToRefs(configStore)
-const isSettingsOpen = ref(!isSetup.value)
+const isSettingsOpen = ref(false)
 
 // Ensure Settings opens if we somehow lose setup state
 watch(isSetup, (newVal) => {
@@ -32,9 +32,13 @@ const messages = ref<ChatMsg[]>([])
 onMounted(async () => {
   if (!isSetup.value) {
     try {
-      await configStore.initializeAgent()
+      const success = await configStore.initializeAgent()
+      if (!success) {
+        isSettingsOpen.value = true
+      }
     } catch (e) {
       console.error("Auto-init failed", e)
+      isSettingsOpen.value = true
     }
   }
 })
