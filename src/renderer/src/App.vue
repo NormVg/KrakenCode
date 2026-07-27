@@ -348,20 +348,25 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 24px;
+  position: relative; /* For absolute composer */
 }
 
 .empty-banner {
   width: 240px;
   max-width: 100%;
   opacity: 0.8;
-  margin: auto 0; /* Pushes composer to bottom and centers banner */
+  /* Centered perfectly in the container */
 }
 
 .centered-composer {
+  position: absolute;
+  bottom: 24px;
   width: 100%;
   max-width: 800px;
   padding: 0 40px; /* Match chat-container padding */
+  z-index: 10;
 }
 
 /* Floating Input Area */
