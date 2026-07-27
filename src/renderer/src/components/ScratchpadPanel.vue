@@ -170,21 +170,20 @@ onBeforeUnmount(() => {
   <div class="scratchpad-panel">
     <div class="panel-header">
       <h3>Scratchpad</h3>
-    </div>
-    
-    <div class="scratchpad-content">
-      <editor-content :editor="editor" class="editor-container" />
-      
-      <!-- Speech to Text Floating Button -->
+      <!-- Speech to Text Button -->
       <button 
         class="stt-btn" 
         :class="{ 'is-listening': isListening }" 
         @click="toggleListening"
         :title="isListening ? 'Stop listening' : 'Start dictation'"
       >
-        <Mic v-if="!isListening" :size="16" />
-        <MicOff v-else :size="16" />
+        <Mic v-if="!isListening" :size="14" />
+        <MicOff v-else :size="14" />
       </button>
+    </div>
+    
+    <div class="scratchpad-content">
+      <editor-content :editor="editor" class="editor-container" />
     </div>
   </div>
 </template>
@@ -231,39 +230,35 @@ onBeforeUnmount(() => {
 
 /* STT Button */
 .stt-btn {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #ffffff;
-  border: none;
-  color: #11111b;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .stt-btn:hover {
-  background: #f0f0f0;
-  color: #000000;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-main);
 }
 
 .stt-btn.is-listening {
-  background: #f38ba8;
-  color: #11111b;
+  background: rgba(243, 139, 168, 0.2);
+  border-color: rgba(243, 139, 168, 0.4);
+  color: #f38ba8;
   animation: pulse-red 1.5s infinite;
 }
 
 @keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(243, 139, 168, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(243, 139, 168, 0); }
   100% { box-shadow: 0 0 0 0 rgba(243, 139, 168, 0); }
 }
 
