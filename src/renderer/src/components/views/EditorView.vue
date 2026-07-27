@@ -182,7 +182,8 @@ const handleMount = (editor: any) => {
   align-items: center;
   justify-content: space-between;
   background-color: transparent;
-  padding: 4px 12px;
+  padding: 0 8px; /* Removed vertical padding, reduced horizontal */
+  height: 36px; /* Fixed height to accommodate tabs */
   user-select: none;
   -webkit-app-region: drag;
 }
