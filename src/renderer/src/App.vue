@@ -126,14 +126,6 @@ const closeWindow = () => window.api.closeWindow()
 
       <!-- Empty Conversation State -->
       <div v-if="isSetup && messages.length === 0" class="empty-conversation-state">
-        <div class="breadcrumbs">
-          <span>voice-line</span>
-          <ChevronRight :size="14" />
-          <span>master</span>
-          <ChevronRight :size="14" />
-          <span>This Mac</span>
-          <ChevronRight :size="14" />
-        </div>
         <div class="centered-composer">
           <textarea 
             v-model="prompt" 
@@ -351,15 +343,6 @@ const closeWindow = () => window.api.closeWindow()
   justify-content: center;
   gap: 16px;
   width: 100%;
-}
-
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: 0.8em;
-  margin-bottom: 8px;
 }
 
 .centered-composer {
