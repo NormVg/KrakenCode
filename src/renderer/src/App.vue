@@ -9,6 +9,7 @@ import RightSidebar from './components/RightSidebar.vue'
 import ModelSelector from './components/ModelSelector.vue'
 import ChatInput from './components/ChatInput.vue'
 import QueuedMessages from './components/QueuedMessages.vue'
+import { PanelLeft, PanelRight } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -157,13 +158,21 @@ const closeWindow = () => window.api.closeWindow()
         </div>
       </div>
 
-      <!-- Chat History -->
-      <div class="chat-header no-drag" v-if="isSetup && messages.length > 0">
-        <div class="chat-breadcrumbs">
-          <span class="muted">kraken</span>
-          <span class="divider">/</span>
-          <span>Codebase And Skills Analysis</span>
+      <!-- Chat Header -->
+      <div class="chat-header no-drag" v-if="isSetup">
+        <div class="header-left-group">
+          <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+            <PanelLeft :size="16" />
+          </button>
+          <div class="chat-breadcrumbs">
+            <span class="muted">kraken</span>
+            <span class="divider">/</span>
+            <span>Codebase And Skills Analysis</span>
+          </div>
         </div>
+        <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+          <PanelRight :size="16" />
+        </button>
       </div>
 
       <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && messages.length > 0">
@@ -288,6 +297,30 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
 }
 
 .chat-breadcrumbs .muted {
