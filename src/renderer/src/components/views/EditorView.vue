@@ -171,6 +171,11 @@ const handleMount = (editor: any) => {
   background-color: #1C1C2A; /* Same as editor background */
   padding: 8px 12px;
   user-select: none;
+  -webkit-app-region: drag;
+}
+
+:global(.left-sidebar-closed) .editor-tabs-header {
+  padding-left: 80px; /* Make room for traffic lights */
 }
 
 .tabs-scroll-area {
@@ -182,6 +187,7 @@ const handleMount = (editor: any) => {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; /* Firefox */
   flex: 1;
+  -webkit-app-region: no-drag;
 }
 
 .tabs-scroll-area::-webkit-scrollbar {

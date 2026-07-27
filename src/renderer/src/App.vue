@@ -61,7 +61,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="layout-container">
+  <div class="layout-container" :class="{ 'left-sidebar-closed': !isLeftSidebarOpen }">
     <div class="layout">
       
       <!-- Left Sidebar (Projects) -->
