@@ -5,6 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
+import RightSidebar from './components/RightSidebar.vue'
 import { PanelLeft, PanelRight, Settings2, ChevronRight, Plus, Lock, Mic, Github, ChevronDown } from 'lucide-vue-next'
 import './assets/main.css'
 
@@ -14,7 +15,6 @@ const { isSetup, provider, model } = storeToRefs(configStore)
 const isSettingsOpen = ref(false)
 const isRightSidebarOpen = ref(true)
 const isLeftSidebarOpen = ref(true)
-const activeSidebarTab = ref('tools')
 
 // Ensure Settings opens if we somehow lose setup state
 watch(isSetup, (newVal) => {
@@ -194,19 +194,7 @@ const closeWindow = () => window.api.closeWindow()
 
     <!-- Right Sidebar -->
     <aside class="right-sidebar" v-if="isRightSidebarOpen">
-      <div class="sidebar-content no-drag">
-        <div class="sidebar-placeholder">
-          <h3>Tools</h3>
-          <p class="muted">Agent tools will appear here.</p>
-        </div>
-      </div>
-      
-      <div class="sidebar-tabs no-drag">
-        <div 
-          :class="['sidebar-tab', { active: activeSidebarTab === 'tools' }]"
-          @click="activeSidebarTab = 'tools'"
-        >Tools</div>
-      </div>
+      <RightSidebar />
     </aside>
     </div>
   </div>
@@ -484,82 +472,13 @@ const closeWindow = () => window.api.closeWindow()
   color: var(--text-muted);
 }
 
-/* Right Sidebar */
+/* Right Sidebar wrapper */
 .right-sidebar {
   width: 300px;
   background-color: transparent; /* Blends with layout-container bg-dark */
   display: flex;
   flex-direction: column;
   z-index: 10;
-}
-
-.sidebar-content {
-  flex: 1;
-  padding: 24px 0;
-  overflow-y: auto;
-}
-
-.sidebar-placeholder {
-  text-align: center;
-  margin-top: 50px;
-}
-.sidebar-placeholder h3 {
-  font-size: 1.1em;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--text-main);
-}
-.sidebar-placeholder .muted {
-  font-size: 0.85em;
-  color: var(--text-muted);
-}
-
-.sidebar-tabs {
-  display: flex;
-  padding: 12px 0 24px 0;
-  gap: 16px;
-  justify-content: center;
-}
-
-.sidebar-tab {
-  font-size: 0.85em;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding-bottom: 4px;
-  position: relative;
-  /* Maya-design */
-  transition: color 0.3s ease;
-}
-
-.sidebar-tab::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  width: 0%;
-  height: 2px;
-  background-color: var(--text-main);
-  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  border-radius: 2px;
-}
-
-.sidebar-tab:hover {
-  color: var(--text-main);
-}
-
-.sidebar-tab:hover::after {
-  width: 40%;
-  left: 30%;
-}
-
-.sidebar-tab.active {
-  color: var(--text-main);
-  font-weight: 500;
-}
-
-.sidebar-tab.active::after {
-  width: 100%;
-  left: 0;
 }
 
 /* Loading */
