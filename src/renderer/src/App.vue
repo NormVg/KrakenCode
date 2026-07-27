@@ -138,9 +138,6 @@ const closeWindow = () => window.api.closeWindow()
           <span class="divider">/</span>
           <span>Codebase And Skills Analysis</span>
         </div>
-        <button class="install-ide-btn">
-          <span class="icon">◭</span> Install IDE
-        </button>
       </div>
 
       <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && messages.length > 0">
@@ -270,28 +267,6 @@ const closeWindow = () => window.api.closeWindow()
 .chat-breadcrumbs .divider {
   color: var(--text-muted);
   opacity: 0.5;
-}
-
-.install-ide-btn {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.8em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.install-ide-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.install-ide-btn .icon {
-  color: #3b82f6; /* Fake Cursor blue triangle */
 }
 
 /* Chat History */

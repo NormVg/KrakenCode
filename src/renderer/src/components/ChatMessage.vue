@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MarkdownRender from 'markstream-vue'
-import { Copy, ThumbsUp, ThumbsDown, ChevronRight, FileCode } from 'lucide-vue-next'
+import { Copy, ChevronRight, FileCode } from 'lucide-vue-next'
 import 'markstream-vue/index.css'
 
 const props = defineProps<{
@@ -20,8 +20,6 @@ const props = defineProps<{
       
       <div class="message-actions">
         <button class="action-btn" title="Copy"><Copy :size="14" /></button>
-        <button class="action-btn" title="Thumbs Up"><ThumbsUp :size="14" /></button>
-        <button class="action-btn" title="Thumbs Down"><ThumbsDown :size="14" /></button>
       </div>
     </div>
     
@@ -58,8 +56,6 @@ const props = defineProps<{
       
       <div class="message-actions agent-actions">
         <button class="action-btn" title="Copy"><Copy :size="14" /></button>
-        <button class="action-btn" title="Thumbs Up"><ThumbsUp :size="14" /></button>
-        <button class="action-btn" title="Thumbs Down"><ThumbsDown :size="14" /></button>
       </div>
     </div>
   </div>
