@@ -114,7 +114,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0 16px;
+  padding: 16px 16px 0;
 }
 
 .panel-header {
