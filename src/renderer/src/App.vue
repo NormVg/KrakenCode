@@ -195,12 +195,6 @@ onMounted(async () => {
   position: relative;
   overflow: hidden;
   padding: var(--titlebar-height) var(--chrome-gap) var(--chrome-gap) var(--chrome-gap);
-  transition: padding-left 0.25s ease;
-}
-
-/* When sidebar is closed, widen the left frame so the panel starts past the traffic lights */
-.left-sidebar-closed .layout {
-  padding-left: 74px;
 }
 
 /* Left Sidebar */
@@ -229,6 +223,13 @@ onMounted(async () => {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04),
     0 4px 20px rgba(0, 0, 0, 0.28);
+  transition: padding-top 0.25s ease;
+}
+
+/* When sidebar is closed, push content below the macOS traffic lights.
+   Panel bg covers full area; only inner content shifts down. */
+.left-sidebar-closed .main-content {
+  padding-top: 20px;
 }
 
 .floating-bottom-bar {
