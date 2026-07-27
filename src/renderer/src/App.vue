@@ -217,8 +217,8 @@ const closeWindow = () => window.api.closeWindow()
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 16px; /* Margin around the island */
-  gap: 16px;
+  padding: 8px; /* Reduced margin so traffic lights sit fully on the island */
+  gap: 8px;
 }
 
 /* Main Content (The Island) */
@@ -301,12 +301,21 @@ const closeWindow = () => window.api.closeWindow()
   width: 90%;
   max-width: 650px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.02); 
-  transition: all 0.3s ease;
+  /* Maya-design: segmented animation for feel */
+  transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.4s ease-out,
+              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.input-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), 0 0 35px rgba(255, 255, 255, 0.04);
 }
 
 .input-pill:focus-within {
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 40px rgba(255, 255, 255, 0.08);
 }
 
 .input-pill textarea {
@@ -365,17 +374,20 @@ const closeWindow = () => window.api.closeWindow()
   font-size: 0.8em;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
+  /* Maya-design: break down animation */
+  transition: background-color 0.3s ease, color 0.2s ease-in-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .focus-tab:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
+  transform: scale(1.03);
 }
 
 .focus-tab.active {
   background-color: var(--accent-purple);
   color: #fff;
+  transform: scale(1.05);
 }
 
 .tab-close-btn {
@@ -409,12 +421,14 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  /* Maya-design: multi-layered transition */
+  transition: background-color 0.4s ease, color 0.2s linear, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .focus-icon-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
+  transform: rotate(5deg) scale(1.1);
 }
 
 /* Right Sidebar */
@@ -458,19 +472,41 @@ const closeWindow = () => window.api.closeWindow()
   font-size: 0.85em;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
   padding-bottom: 4px;
-  border-bottom: 2px solid transparent;
+  position: relative;
+  /* Maya-design */
+  transition: color 0.3s ease;
+}
+
+.sidebar-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0%;
+  height: 2px;
+  background-color: var(--text-main);
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  border-radius: 2px;
 }
 
 .sidebar-tab:hover {
   color: var(--text-main);
 }
 
+.sidebar-tab:hover::after {
+  width: 40%;
+  left: 30%;
+}
+
 .sidebar-tab.active {
   color: var(--text-main);
-  border-bottom: 2px solid var(--text-main);
   font-weight: 500;
+}
+
+.sidebar-tab.active::after {
+  width: 100%;
+  left: 0;
 }
 
 /* Loading */
