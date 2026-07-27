@@ -161,6 +161,57 @@ app.whenReady().then(() => {
     }
   })
 
+  // File System Operations
+  ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true })
+      const items = entries.map(dirent => ({
+        name: dirent.name,
+        path: join(dirPath, dirent.name),
+        type: dirent.isDirectory() ? 'folder' : 'file'
+      }))
+      
+      // Sort folders first, then alphabetically
+      items.sort((a, b) => {
+        if (a.type === b.type) return a.name.localeCompare(b.name)
+        return a.type === 'folder' ? -1 : 1
+      })
+      
+      return items
+    } catch (error: any) {
+      console.error('Failed to read directory:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle('fs:readFile', async (_, filePath: string) => {
+    return await fs.readFile(filePath, 'utf-8')
+  })
+
+  ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
+    await fs.writeFile(filePath, content, 'utf-8')
+    return true
+  })
+
+  ipcMain.handle('fs:createItem', async (_, itemPath: string, type: 'file' | 'folder') => {
+    if (type === 'folder') {
+      await fs.mkdir(itemPath, { recursive: true })
+    } else {
+      await fs.writeFile(itemPath, '', 'utf-8')
+    }
+    return true
+  })
+
+  ipcMain.handle('fs:deleteItem', async (_, itemPath: string) => {
+    await fs.rm(itemPath, { recursive: true, force: true })
+    return true
+  })
+
+  ipcMain.handle('fs:renameItem', async (_, oldPath: string, newPath: string) => {
+    await fs.rename(oldPath, newPath)
+    return true
+  })
+
   createWindow()
 
   app.on('activate', function () {

@@ -15,6 +15,15 @@ export interface ChatSession {
   messages: ChatMessage[];
 }
 
+export interface OpenFile {
+  id: string;      // The absolute path acts as ID
+  name: string;
+  path: string;
+  language: string;
+  isModified: boolean;
+  content: string; // Current unsaved content, or empty if not loaded yet
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -29,6 +38,11 @@ export const useProjectsStore = defineStore('projects', () => {
   const activeProjectId = ref<string | null>(null)
   const activeChatId = ref<string | null>(null)
   const activeView = ref<ViewType>('agent')
+  
+  // Editor state
+  const openFiles = ref<OpenFile[]>([])
+  const activeFileId = ref<string | null>(null)
+  
   const isLoaded = ref(false)
 
   // Getters
@@ -187,6 +201,69 @@ export const useProjectsStore = defineStore('projects', () => {
     saveData()
   }
 
+  // --- File Editor Actions ---
+  const getLanguageFromExtension = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase()
+    switch (ext) {
+      case 'ts': case 'tsx': return 'typescript'
+      case 'js': case 'jsx': return 'javascript'
+      case 'vue': case 'html': return 'html'
+      case 'json': return 'json'
+      case 'md': return 'markdown'
+      case 'css': return 'css'
+      case 'py': return 'python'
+      default: return 'plaintext'
+    }
+  }
+
+  const openFile = async (node: { name: string, path: string }) => {
+    const existing = openFiles.value.find(f => f.id === node.path)
+    if (existing) {
+      activeFileId.value = existing.id
+      activeView.value = 'editor'
+      return
+    }
+
+    // Read content
+    const content = await window.api.fs.readFile(node.path)
+    
+    const newFile: OpenFile = {
+      id: node.path,
+      name: node.name,
+      path: node.path,
+      language: getLanguageFromExtension(node.name),
+      isModified: false,
+      content: content
+    }
+    
+    openFiles.value.push(newFile)
+    activeFileId.value = newFile.id
+    activeView.value = 'editor'
+  }
+
+  const closeFile = (id: string) => {
+    openFiles.value = openFiles.value.filter(f => f.id !== id)
+    if (activeFileId.value === id) {
+      activeFileId.value = openFiles.value.length > 0 ? openFiles.value[0].id : null
+    }
+  }
+
+  const updateFileContent = (id: string, newContent: string) => {
+    const file = openFiles.value.find(f => f.id === id)
+    if (file) {
+      file.content = newContent
+      file.isModified = true
+    }
+  }
+
+  const saveFile = async (id: string) => {
+    const file = openFiles.value.find(f => f.id === id)
+    if (file) {
+      await window.api.fs.writeFile(file.path, file.content)
+      file.isModified = false
+    }
+  }
+
   return {
     projects,
     activeProjectId,
@@ -194,6 +271,8 @@ export const useProjectsStore = defineStore('projects', () => {
     activeView,
     activeProject,
     activeChat,
+    openFiles,
+    activeFileId,
     isLoaded,
     loadData,
     saveData,
@@ -205,6 +284,10 @@ export const useProjectsStore = defineStore('projects', () => {
     addMessageToActiveChat,
     updateActiveChatStreamingMessage,
     endActiveChatStreamingMessage,
-    appendErrorToActiveChat
+    appendErrorToActiveChat,
+    openFile,
+    closeFile,
+    updateFileContent,
+    saveFile
   }
 })

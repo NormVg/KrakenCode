@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
-import ToolsPanel from './ToolsPanel.vue'
 import ChatSessionsPanel from './ChatSessionsPanel.vue'
 import FileExplorerPanel from './FileExplorerPanel.vue'
 

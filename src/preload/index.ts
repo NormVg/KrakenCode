@@ -25,7 +25,15 @@ const api = {
   dialogOpenDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
   storeRead: (filename: string) => ipcRenderer.invoke('store:read', filename),
   storeWrite: (filename: string, data: any) => ipcRenderer.invoke('store:write', filename, data),
-  setModel: (config: { provider: string, model: string, baseURL?: string }) => ipcRenderer.invoke('agent:setModel', config)
+  setModel: (config: { provider: string, model: string, baseURL?: string }) => ipcRenderer.invoke('agent:setModel', config),
+  fs: {
+    readDirectory: (dirPath: string) => ipcRenderer.invoke('fs:readDirectory', dirPath),
+    readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
+    writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
+    createItem: (itemPath: string, type: 'file' | 'folder') => ipcRenderer.invoke('fs:createItem', itemPath, type),
+    deleteItem: (itemPath: string) => ipcRenderer.invoke('fs:deleteItem', itemPath),
+    renameItem: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:renameItem', oldPath, newPath)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

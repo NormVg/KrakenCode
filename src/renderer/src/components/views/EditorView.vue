@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, watch, computed } from 'vue'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
 import { X, FileCode2, FileJson } from 'lucide-vue-next'
+import { useProjectsStore } from '../../stores/projects'
+import { storeToRefs } from 'pinia'
+
+const projectsStore = useProjectsStore()
+const { openFiles, activeFileId } = storeToRefs(projectsStore)
 
 // Configure Vite Web Workers for Monaco
 import editorWorker from 'monaco-editor/editor/editor.worker.js?worker'
@@ -35,30 +40,14 @@ monaco.editor.defineTheme('kraken-theme', {
     { token: 'type', foreground: 'FED31D' },
     { token: 'class', foreground: 'FED31D', fontStyle: 'bold' },
     { token: 'function', foreground: 'AA205A' },
-    { token: 'method', foreground: 'AA205A' },
-    { token: 'identifier.function', foreground: 'AA205A' },
-    { token: 'entity.name.function', foreground: 'AA205A' },
-    { token: 'support.function', foreground: 'AA205A' },
-    { token: 'meta.function-call', foreground: 'AA205A' },
-    { token: 'variable', foreground: 'FFFFFF' },
-    { token: 'identifier', foreground: 'FFFFFF' },
-    { token: 'operator', foreground: '9DA1D3' },
-    { token: 'property', foreground: '9DA1D3' }
   ],
   colors: {
-    'editor.background': '#1C1C2A',
-    'editor.foreground': '#FFFFFF',
-    'editor.lineHighlightBackground': '#272A29',
-    'editorCursor.foreground': '#FF5F5F',
-    'editorWhitespace.foreground': '#53556E',
-    'editorIndentGuide.background': '#53556E',
-    'editorIndentGuide.activeBackground': '#9DA1D3',
-    'editorLineNumber.foreground': '#53556E',
-    'editorLineNumber.activeForeground': '#9DA1D3',
-    'editorWidget.background': '#1C1C2A',
-    'editorSuggestWidget.background': '#272A29',
-    'editorSuggestWidget.border': '#53556E',
-    'editorSuggestWidget.selectedBackground': '#53556E'
+    'editor.background': '#11131e',
+    'editor.foreground': '#cdd6f4',
+    'editorLineNumber.foreground': '#45475a',
+    'editorCursor.foreground': '#f5e0dc',
+    'editor.selectionBackground': '#313244',
+    'editor.lineHighlightBackground': '#181825',
   }
 })
 
@@ -66,7 +55,6 @@ const MONACO_EDITOR_OPTIONS = {
   automaticLayout: true,
   formatOnType: true,
   formatOnPaste: true,
-  'semanticHighlighting.enabled': true,
   minimap: { enabled: false },
   theme: 'kraken-theme',
   fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
@@ -79,40 +67,60 @@ const MONACO_EDITOR_OPTIONS = {
   cursorSmoothCaretAnimation: 'on'
 }
 
-const code = ref(`// Welcome to Kraken Editor
-// You can start typing here...
-
-function helloWorld() {
-  console.log("Hello, Kraken!");
-}
-`)
-
-const language = ref('javascript')
 const editorRef = shallowRef()
 
-// Mock open tabs
-const openTabs = ref([
-  { id: '1', name: 'untitled.js', language: 'javascript', isModified: true, isActive: true },
-  { id: '2', name: 'App.vue', language: 'html', isModified: false, isActive: false },
-  { id: '3', name: 'package.json', language: 'json', isModified: false, isActive: false }
-])
+// Local code state bindings
+const code = ref('')
+const language = ref('plaintext')
+
+const activeFile = computed(() => openFiles.value.find(f => f.id === activeFileId.value))
+
+// When active file changes, load its content into the editor
+watch(activeFile, (newFile) => {
+  if (newFile) {
+    if (code.value !== newFile.content) {
+      code.value = newFile.content
+    }
+    language.value = newFile.language
+  } else {
+    code.value = ''
+    language.value = 'plaintext'
+  }
+}, { immediate: true })
+
+let saveTimeout: any = null
+
+// When user types in the editor, update store and auto-save
+const handleEditorChange = (value: string) => {
+  if (!activeFileId.value) return
+  
+  projectsStore.updateFileContent(activeFileId.value, value)
+  
+  // Debounced Auto-Save
+  if (saveTimeout) clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(() => {
+    projectsStore.saveFile(activeFileId.value as string)
+  }, 1000)
+}
 
 const selectTab = (id: string) => {
-  openTabs.value.forEach(tab => {
-    tab.isActive = (tab.id === id)
-  })
+  activeFileId.value = id
 }
 
 const closeTab = (id: string, event: Event) => {
   event.stopPropagation()
-  openTabs.value = openTabs.value.filter(tab => tab.id !== id)
-  if (openTabs.value.length > 0 && !openTabs.value.some(t => t.isActive)) {
-    openTabs.value[0].isActive = true
-  }
+  projectsStore.closeFile(id)
 }
 
 const handleMount = (editor: any) => {
   editorRef.value = editor
+  
+  // Add Cmd+S save hotkey
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+    if (activeFileId.value) {
+      projectsStore.saveFile(activeFileId.value)
+    }
+  })
 }
 </script>
 
@@ -122,10 +130,10 @@ const handleMount = (editor: any) => {
     <div class="editor-tabs-header no-drag">
       <div class="tabs-scroll-area">
         <div 
-          v-for="tab in openTabs" 
+          v-for="tab in openFiles" 
           :key="tab.id"
           class="editor-tab"
-          :class="{ 'active': tab.isActive, 'is-modified': tab.isModified }"
+          :class="{ 'active': activeFileId === tab.id, 'is-modified': tab.isModified }"
           @click="selectTab(tab.id)"
         >
           <FileCode2 v-if="tab.language !== 'json'" :size="14" class="tab-icon" :class="tab.language" />
@@ -145,11 +153,16 @@ const handleMount = (editor: any) => {
     
     <div class="editor-container no-drag">
       <vue-monaco-editor
+        v-if="activeFileId"
         v-model:value="code"
         :language="language"
         :options="MONACO_EDITOR_OPTIONS"
         @mount="handleMount"
+        @update:value="handleEditorChange"
       />
+      <div v-else class="empty-editor-state">
+        <span class="muted">No file opened. Double click a file in the explorer.</span>
+      </div>
     </div>
   </div>
 </template>
@@ -289,6 +302,16 @@ const handleMount = (editor: any) => {
   flex: 1;
   position: relative;
   overflow: hidden;
+}
+
+.empty-editor-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 0.9em;
 }
 
 /* Ensure Monaco takes full height */
