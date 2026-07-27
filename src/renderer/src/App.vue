@@ -114,7 +114,9 @@ onMounted(async () => {
 
       <!-- Dynamic View Component -->
       <div class="view-container">
-        <component :is="views[projectsStore.activeView].component" />
+        <KeepAlive>
+          <component :is="views[projectsStore.activeView].component" />
+        </KeepAlive>
       </div>
 
       <!-- Global Bottom Bar -->
