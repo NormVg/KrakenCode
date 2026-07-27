@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { FileCode2, Folder, ChevronRight, ChevronDown, MoreHorizontal, FilePlus, FolderPlus, Pencil, Trash2 } from 'lucide-vue-next'
+import { File, Folder, FolderOpen, ChevronRight, ChevronDown, MoreHorizontal, FilePlus, FolderPlus, Pencil, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   node: any
@@ -71,10 +71,11 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
         <template v-if="node.type === 'folder'">
           <ChevronDown v-if="node.isOpen" :size="13" class="folder-chevron" />
           <ChevronRight v-else :size="13" class="folder-chevron" />
-          <Folder :size="13" class="text-blue" />
+          <FolderOpen v-if="node.isOpen" :size="14" class="icon-folder" />
+          <Folder v-else :size="14" class="icon-folder" />
         </template>
         <template v-else>
-          <FileCode2 :size="13" class="text-gray" />
+          <File :size="13" class="icon-file" />
         </template>
       </div>
 
@@ -300,4 +301,14 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
 .folder-chevron { color: var(--text-muted); }
 .text-blue { color: #4A90E2; }
 .text-gray { color: var(--text-muted); }
+
+.icon-folder {
+  color: #60a5fa;
+  fill: rgba(96, 165, 250, 0.2);
+}
+
+.icon-file {
+  color: #94a3b8;
+  fill: rgba(148, 163, 184, 0.15);
+}
 </style>
