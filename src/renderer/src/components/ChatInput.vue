@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { Plus, Mic } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
 
@@ -22,6 +23,29 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+const adjustHeight = () => {
+  const el = textareaRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
+const handleInput = (e: Event) => {
+  emit('update:modelValue', (e.target as HTMLTextAreaElement).value)
+  adjustHeight()
+}
+
+watch(() => props.modelValue, () => {
+  nextTick(() => {
+    adjustHeight()
+  })
+})
+
+onMounted(() => {
+  adjustHeight()
+})
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,8 +58,9 @@ const handleKeydown = (e: KeyboardEvent) => {
 <template>
   <div class="chat-input-container">
     <textarea 
+      ref="textareaRef"
       :value="modelValue"
-      @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+      @input="handleInput"
       :placeholder="placeholder"
       :rows="rows"
       @keydown="handleKeydown"
@@ -86,7 +111,8 @@ textarea {
   line-height: 1.5;
   padding: 12px 16px;
   min-height: 24px;
-  max-height: 300px;
+  max-height: 204px; /* ~8 lines */
+  overflow-y: auto;
 }
 
 textarea::placeholder {

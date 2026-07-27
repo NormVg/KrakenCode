@@ -126,7 +126,6 @@ const closeWindow = () => window.api.closeWindow()
             v-model="prompt"
             @submit="handleChat"
             :disabled="!isSetup || isLoading"
-            :rows="3"
             placeholder="Plan, Build, / for skills, @ for context"
           />
         </div>
