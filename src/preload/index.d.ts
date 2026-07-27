@@ -13,6 +13,9 @@ declare global {
       minimizeWindow: () => void
       maximizeWindow: () => void
       closeWindow: () => void
+      dialogOpenDirectory: () => Promise<{ path: string, name: string } | null>
+      storeRead: (filename: string) => Promise<any>
+      storeWrite: (filename: string, data: any) => Promise<boolean>
       setModel: (config: { provider: string, model: string, baseURL?: string, apiKey?: string }) => Promise<{ success: boolean, error?: string }>
     }
   }

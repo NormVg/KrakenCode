@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { SlidersHorizontal, FolderPlus, Folder } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
+import { SlidersHorizontal, FolderPlus, Folder, Plus, Trash2 } from 'lucide-vue-next'
+import { useProjectsStore } from '../stores/projects'
 
-const projects = ref([])
+const projectsStore = useProjectsStore()
+const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
 </script>
 
 <template>
@@ -11,10 +13,10 @@ const projects = ref([])
     <header class="projects-header">
       <h2 class="title">Projects</h2>
       <div class="header-actions">
-        <button class="icon-btn">
+        <button class="icon-btn" title="Settings">
           <SlidersHorizontal :size="16" stroke-width="2" />
         </button>
-        <button class="icon-btn">
+        <button class="icon-btn" title="Add Project" @click="projectsStore.addProject()">
           <FolderPlus :size="16" stroke-width="2" />
         </button>
       </div>
@@ -25,23 +27,34 @@ const projects = ref([])
       <div class="projects-list">
         <div v-for="project in projects" :key="project.id" class="project-group">
           <!-- Project Folder -->
-          <div class="project-folder">
-            <Folder :size="16" stroke-width="2" />
-            <span class="folder-name">{{ project.name }}</span>
+          <div class="project-folder" :class="{ 'active-folder': activeProjectId === project.id }" @click="projectsStore.activeProjectId = project.id; projectsStore.saveData()">
+            <div class="folder-title">
+              <Folder :size="16" stroke-width="2" />
+              <span class="folder-name">{{ project.name }}</span>
+            </div>
+            <button class="icon-btn add-chat-btn" title="New Chat" @click.stop="projectsStore.createChat(project.id)">
+              <Plus :size="14" stroke-width="2" />
+            </button>
           </div>
         
-        <!-- Project Items -->
-        <div class="project-items">
-          <div 
-            v-for="item in project.items" 
-            :key="item.id" 
-            :class="['project-item', { active: item.active }]"
-          >
-            <span class="item-title">{{ item.title }}</span>
-            <span class="item-time">{{ item.time }}</span>
+          <!-- Project Items -->
+          <div class="project-items" v-show="project.items.length > 0">
+            <div 
+              v-for="item in project.items" 
+              :key="item.id" 
+              :class="['project-item', { active: activeChatId === item.id }]"
+              @click="projectsStore.selectChat(project.id, item.id)"
+            >
+              <span class="item-title">{{ item.title || 'New Chat' }}</span>
+              <span class="item-time">{{ item.time }}</span>
+            </div>
           </div>
         </div>
-      </div>
+        
+        <div v-if="projects.length === 0" class="empty-state">
+          <p>No projects yet.</p>
+          <button class="btn-primary" @click="projectsStore.addProject()">Add Project</button>
+        </div>
     </div>
   </div>
   </div>
@@ -134,15 +147,67 @@ const projects = ref([])
 .project-folder {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   padding: 4px 8px;
   color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.project-folder:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.active-folder {
+  color: var(--text-main);
+}
+
+.folder-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-chat-btn {
+  opacity: 0;
+  padding: 2px;
+}
+
+.project-folder:hover .add-chat-btn {
+  opacity: 1;
 }
 
 .folder-name {
   font-size: 0.9em;
   font-weight: 500;
   letter-spacing: 0.2px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
 }
 
 .project-items {

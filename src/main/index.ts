@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import * as fs from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/apple-icon-squircle.png?asset'
 import { createOllama } from 'ai-sdk-ollama'
@@ -119,6 +120,45 @@ app.whenReady().then(() => {
       event.sender.send(`agent:chat:error:${id}`, err.message);
     }
   });
+
+  ipcMain.handle('dialog:openDirectory', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (canceled || filePaths.length === 0) {
+      return null
+    }
+    const path = filePaths[0]
+    // Get the folder name from the path (cross-platform compatible)
+    const name = path.replace(/\\/g, '/').split('/').pop() || 'Unnamed Project'
+    return { path, name }
+  })
+
+  ipcMain.handle('store:read', async (_, filename: string) => {
+    try {
+      const userDataPath = app.getPath('userData')
+      const filePath = join(userDataPath, `${filename}.json`)
+      const data = await fs.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return null // File doesn't exist yet
+      }
+      throw error
+    }
+  })
+
+  ipcMain.handle('store:write', async (_, filename: string, data: any) => {
+    try {
+      const userDataPath = app.getPath('userData')
+      const filePath = join(userDataPath, `${filename}.json`)
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
+      return true
+    } catch (error) {
+      console.error('Failed to write store', error)
+      return false
+    }
+  })
 
   createWindow()
 

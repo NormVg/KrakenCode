@@ -2,6 +2,7 @@
 import { ref, nextTick, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from './stores/config'
+import { useProjectsStore } from './stores/projects'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
@@ -29,16 +30,12 @@ const prompt = ref('')
 const isLoading = ref(false)
 const queuedMessages = ref<string[]>([])
 
-interface ChatMsg {
-  id?: string;
-  role: 'user' | 'agent';
-  content: string;
-  isStreaming?: boolean;
-}
-const messages = ref<ChatMsg[]>([])
+// Projects State
+const projectsStore = useProjectsStore()
 
 // Auto-initialize if possible
 onMounted(async () => {
+  await projectsStore.loadData()
   if (!isSetup.value) {
     try {
       const success = await configStore.initializeAgent()
@@ -71,29 +68,45 @@ const processNextMessage = async () => {
 }
 
 const executeMessage = async (text: string) => {
-  messages.value.push({ role: 'user', content: text })
+  // If no project exists, create a default one
+  if (projectsStore.projects.length === 0) {
+    const proj = {
+      id: crypto.randomUUID(),
+      name: 'Default Project',
+      path: '',
+      items: []
+    }
+    projectsStore.projects.push(proj)
+    projectsStore.activeProjectId = proj.id
+    projectsStore.saveData()
+  }
+  
+  // If no chat is active, create one
+  if (!projectsStore.activeChat) {
+    projectsStore.createChat(projectsStore.activeProjectId!)
+  }
+  
+  projectsStore.addMessageToActiveChat({ role: 'user', content: text })
   scrollToBottom()
   
   isLoading.value = true
   const msgId = Date.now().toString()
-  const agentMsg = { id: msgId, role: 'agent', content: '', isStreaming: true } as ChatMsg
-  messages.value.push(agentMsg)
+  projectsStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
   
   window.api.onChatChunk(msgId, (chunk) => {
-    agentMsg.content += chunk
+    projectsStore.updateActiveChatStreamingMessage(chunk)
     scrollToBottom()
   })
 
   window.api.onChatEnd(msgId, () => {
-    agentMsg.isStreaming = false
+    projectsStore.endActiveChatStreamingMessage()
     isLoading.value = false
     window.api.removeChatListeners(msgId)
     processNextMessage()
   })
 
   window.api.onChatError(msgId, (err) => {
-    agentMsg.content += `\n**Error:** ${err}`
-    agentMsg.isStreaming = false
+    projectsStore.appendErrorToActiveChat(err)
     isLoading.value = false
     window.api.removeChatListeners(msgId)
     processNextMessage()
@@ -146,7 +159,7 @@ const closeWindow = () => window.api.closeWindow()
       />
 
       <!-- Empty Conversation State -->
-      <div v-if="isSetup && messages.length === 0" class="empty-conversation-state">
+      <div v-if="isSetup && (!projectsStore.activeChat || projectsStore.activeChat.messages.length === 0)" class="empty-conversation-state">
         <img src="./assets/banner.png" alt="Kraken Logo" class="empty-banner" />
         <div class="centered-composer">
           <ChatInput 
@@ -161,9 +174,9 @@ const closeWindow = () => window.api.closeWindow()
                 <PanelLeft :size="16" />
               </button>
               <div class="chat-breadcrumbs">
-                <span class="muted">kraken</span>
+                <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
                 <span class="divider">/</span>
-                <span>Codebase And Skills Analysis</span>
+                <span>{{ projectsStore.activeChat?.title || 'New Chat' }}</span>
               </div>
             </div>
             <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
@@ -173,17 +186,17 @@ const closeWindow = () => window.api.closeWindow()
         </div>
       </div>
 
-      <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && messages.length > 0">
+      <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
         <div class="chat-container">
           <div v-if="!isSetup" class="welcome-screen">
             <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
             <p>Please configure the agent to start.</p>
           </div>
-          <template v-else-if="messages.length > 0">
+          <template v-else-if="projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
             <!-- Spacer to push content down below traffic lights -->
             <div class="top-spacer" style="height: 60px;"></div>
             <ChatMessage 
-              v-for="(msg, index) in messages" 
+              v-for="(msg, index) in projectsStore.activeChat.messages" 
               :key="msg.id || index" 
               :role="msg.role" 
               :content="msg.content"
@@ -199,7 +212,7 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Agent Input (Floating at bottom) -->
-      <div class="floating-input-container" v-if="isSetup && messages.length > 0">
+      <div class="floating-input-container" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
         <div class="floating-composer-wrapper no-drag">
           <QueuedMessages 
             :messages="queuedMessages"
@@ -218,9 +231,9 @@ const closeWindow = () => window.api.closeWindow()
                 <PanelLeft :size="16" />
               </button>
               <div class="chat-breadcrumbs">
-                <span class="muted">kraken</span>
+                <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
                 <span class="divider">/</span>
-                <span>Codebase And Skills Analysis</span>
+                <span>{{ projectsStore.activeChat?.title || 'New Chat' }}</span>
               </div>
             </div>
             <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">

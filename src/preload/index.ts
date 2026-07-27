@@ -22,6 +22,9 @@ const api = {
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),
+  dialogOpenDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+  storeRead: (filename: string) => ipcRenderer.invoke('store:read', filename),
+  storeWrite: (filename: string, data: any) => ipcRenderer.invoke('store:write', filename, data),
   setModel: (config: { provider: string, model: string, baseURL?: string }) => ipcRenderer.invoke('agent:setModel', config)
 }
 
