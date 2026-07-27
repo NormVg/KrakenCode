@@ -154,6 +154,14 @@ onUnmounted(() => {
   overflow: hidden;
   box-sizing: border-box;
   padding: 4px 12px; /* Small inset so text doesn't hit the physical window edges, but allows max width */
+  display: flex;
+  justify-content: center;
+}
+
+:deep(.terminal-wrapper > *) {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 :deep(canvas) {
