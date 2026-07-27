@@ -385,6 +385,14 @@ onUnmounted(() => {
   padding: 2px 4px;
   border-radius: 4px;
 }
+.dim-input::-webkit-inner-spin-button,
+.dim-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dim-input {
+  -moz-appearance: textfield;
+}
 .dim-input:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.1);
 }
