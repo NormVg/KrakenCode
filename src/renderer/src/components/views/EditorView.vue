@@ -2,7 +2,7 @@
 import { ref, shallowRef } from 'vue'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
-import { X, FileCode2, FileJson, Play } from 'lucide-vue-next'
+import { X, FileCode2, FileJson } from 'lucide-vue-next'
 
 // Configure Vite Web Workers for Monaco
 import editorWorker from 'monaco-editor/editor/editor.worker.js?worker'
@@ -101,12 +101,6 @@ const handleMount = (editor: any) => {
             </button>
           </div>
         </div>
-      </div>
-      
-      <div class="editor-toolbar">
-        <button class="toolbar-btn run-btn" title="Run Code">
-          <Play :size="14" />
-        </button>
       </div>
     </div>
     
@@ -243,36 +237,6 @@ const handleMount = (editor: any) => {
 .editor-tab:hover .close-tab-btn,
 .editor-tab.active .close-tab-btn {
   display: flex;
-}
-
-/* Toolbar (Right side of tabs) */
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  gap: 8px;
-}
-
-.toolbar-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.toolbar-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-}
-.toolbar-btn.run-btn:hover {
-  color: var(--accent-green);
-  background-color: rgba(8, 195, 113, 0.1);
 }
 
 .editor-container {
