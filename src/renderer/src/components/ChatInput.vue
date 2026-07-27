@@ -118,7 +118,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  overflow: hidden;
 }
 
 .chat-input-container.focused {
