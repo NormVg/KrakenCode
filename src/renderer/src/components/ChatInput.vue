@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { SlashCommands } from './tiptap/SlashCommands'
 import { slashSuggestion } from './tiptap/suggestion'
 import { AtMention, atMentionSuggestion } from './tiptap/AtMention'
-import { Plus, Mic } from 'lucide-vue-next'
+import { Plus, Mic, FileText, Code, Wrench, File, Terminal } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
 
 const props = defineProps<{
@@ -80,34 +80,81 @@ const handleSubmit = () => {
 
 const isFocused = computed(() => editor.value?.isFocused ?? false)
 
+const isDrawerOpen = ref(false)
+const toggleDrawer = () => {
+  isDrawerOpen.value = !isDrawerOpen.value
+}
+
+const insertTextAtCursor = (text: string) => {
+  if (!editor.value) return
+  // If the editor is focused, insert at current selection, otherwise insert at end
+  editor.value.chain().focus().insertContent(text + ' ').run()
+  isDrawerOpen.value = false
+}
+
 onBeforeUnmount(() => {
   editor.value?.destroy()
 })
 </script>
 
 <template>
-  <div class="chat-input-container" :class="{ focused: isFocused, disabled }">
-    <!-- Tiptap Editor Area -->
-    <EditorContent :editor="editor" class="editor-wrapper" />
-
-    <!-- Toolbar -->
-    <div class="composer-toolbar">
-      <div class="toolbar-left">
-        <button class="add-btn" title="Attach file">
-          <Plus :size="14" />
+  <div class="chat-input-wrapper">
+    <!-- Sliding Action Drawer -->
+    <div class="actions-drawer" :class="{ 'is-open': isDrawerOpen }">
+      <div class="drawer-content">
+        <button class="action-btn" @click="insertTextAtCursor('/plan')">
+          <FileText :size="14" />
+          <span>Plan</span>
         </button>
-        <ModelSelector />
+        <button class="action-btn" @click="insertTextAtCursor('/build')">
+          <Code :size="14" />
+          <span>Build</span>
+        </button>
+        <button class="action-btn" @click="insertTextAtCursor('/fix')">
+          <Wrench :size="14" />
+          <span>Fix</span>
+        </button>
+        <div class="divider"></div>
+        <button class="action-btn" @click="insertTextAtCursor('@file')">
+          <File :size="14" />
+          <span>File</span>
+        </button>
+        <button class="action-btn" @click="insertTextAtCursor('@terminal')">
+          <Terminal :size="14" />
+          <span>Terminal</span>
+        </button>
       </div>
-      <div class="toolbar-right">
-        <button class="mic-btn" title="Voice input">
-          <Mic :size="14" />
-        </button>
+    </div>
+
+    <div class="chat-input-container" :class="{ focused: isFocused, disabled }">
+      <!-- Tiptap Editor Area -->
+      <EditorContent :editor="editor" class="editor-wrapper" />
+
+      <!-- Toolbar -->
+      <div class="composer-toolbar">
+        <div class="toolbar-left">
+          <button class="add-btn" title="Quick Actions" :class="{ active: isDrawerOpen }" @click="toggleDrawer">
+            <Plus :size="14" />
+          </button>
+          <ModelSelector />
+        </div>
+        <div class="toolbar-right">
+          <button class="mic-btn" title="Voice input">
+            <Mic :size="14" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.chat-input-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+}
+
 .chat-input-container {
   width: 100%;
   background-color: var(--bg-dark); /* #0A0D18 */
@@ -189,23 +236,20 @@ onBeforeUnmount(() => {
 }
 
 .add-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
   border: none;
-  color: var(--text-muted);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  color: var(--text-main);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .add-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
 }
 
 
@@ -230,5 +274,75 @@ onBeforeUnmount(() => {
 
 .mic-btn:active {
   transform: scale(0.96);
+}
+
+/* Sliding Drawer Styles */
+.actions-drawer {
+  position: absolute;
+  bottom: 100%;
+  left: 6px;
+  right: 6px;
+  background-color: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 8px 12px 20px;
+  margin-bottom: -12px; /* Hide bottom padding behind input container */
+  z-index: -1;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.actions-drawer.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.drawer-content::-webkit-scrollbar {
+  display: none;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 4px;
 }
 </style>
