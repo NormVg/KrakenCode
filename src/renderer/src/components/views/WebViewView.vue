@@ -53,6 +53,13 @@ const onDidNavigate = (e: any) => {
 
 const setViewMode = (mode: DeviceMode) => {
   viewMode.value = mode
+  
+  if (mode === 'responsive' && stageRef.value) {
+    const rect = stageRef.value.getBoundingClientRect()
+    customWidth.value = Math.max(320, Math.floor(rect.width - 48))
+    customHeight.value = Math.max(480, Math.floor(rect.height - 48))
+  }
+
   if (webviewRef.value) {
     if (mode === 'mobile') {
       webviewRef.value.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1')
@@ -89,6 +96,49 @@ const frameStyle = computed(() => {
     height: `${customHeight.value}px`,
     transform: `scale(${zoomLevel.value / 100})`,
     transformOrigin: 'top center'
+  }
+})
+
+import { onMounted, onUnmounted } from 'vue'
+
+const stageRef = ref<HTMLElement | null>(null)
+const frameRef = ref<HTMLElement | null>(null)
+let frameResizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  // Initialize responsive size to fit the stage (minus padding)
+  if (stageRef.value) {
+    const rect = stageRef.value.getBoundingClientRect()
+    // Stage has 24px padding on all sides, so subtract 48px
+    customWidth.value = Math.max(320, Math.floor(rect.width - 48))
+    customHeight.value = Math.max(480, Math.floor(rect.height - 48))
+  }
+
+  // Observe the frame so CSS `resize: both` updates the Vue state
+  if (frameRef.value) {
+    frameResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (viewMode.value === 'responsive') {
+          // Update state when user drags the CSS resize handle
+          // Avoid infinite loops by checking if it actually changed
+          const newW = entry.contentRect.width
+          const newH = entry.contentRect.height
+          if (Math.abs(newW - customWidth.value) > 2) {
+            customWidth.value = Math.round(newW)
+          }
+          if (Math.abs(newH - customHeight.value) > 2) {
+            customHeight.value = Math.round(newH)
+          }
+        }
+      }
+    })
+    frameResizeObserver.observe(frameRef.value)
+  }
+})
+
+onUnmounted(() => {
+  if (frameResizeObserver) {
+    frameResizeObserver.disconnect()
   }
 })
 </script>
@@ -182,8 +232,8 @@ const frameStyle = computed(() => {
     </div>
 
     <!-- 3. Workspace Stage -->
-    <div class="webview-stage" :class="viewMode">
-      <div class="device-frame" :class="viewMode" :style="frameStyle">
+    <div class="webview-stage" :class="viewMode" ref="stageRef">
+      <div class="device-frame" :class="viewMode" :style="frameStyle" ref="frameRef">
         <webview
           ref="webviewRef"
           class="webview-element"
