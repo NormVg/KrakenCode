@@ -5,6 +5,7 @@ import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Text from '@tiptap/extension-text'
 import History from '@tiptap/extension-history'
+import HardBreak from '@tiptap/extension-hard-break'
 import Placeholder from '@tiptap/extension-placeholder'
 import { SlashCommands } from './tiptap/SlashCommands'
 import { slashSuggestion } from './tiptap/suggestion'
@@ -30,6 +31,7 @@ const editor = useEditor({
     Paragraph,
     Text,
     History,
+    HardBreak,
     Placeholder.configure({
       placeholder: props.placeholder ?? 'Plan, Build, / for skills, @ for context',
       showOnlyCurrent: true,
