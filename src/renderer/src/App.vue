@@ -5,7 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
-import { PanelLeft, PanelRight, Settings2, ChevronRight, Plus, Lock, Mic, Github } from 'lucide-vue-next'
+import { PanelLeft, PanelRight, Settings2, ChevronRight, Plus, Lock, Mic, Github, ChevronDown } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -139,7 +139,9 @@ const closeWindow = () => window.api.closeWindow()
               <button class="add-btn">
                 <Plus :size="14" />
               </button>
-              <span class="model-badge">Composer 2.5 Fast <Lock :size="10" class="lock-icon" /></span>
+              <button class="model-badge" @click="isSettingsOpen = true">
+                {{ model || 'Select Model' }} <ChevronDown :size="12" class="model-icon" />
+              </button>
             </div>
             <div class="toolbar-right">
               <button class="mic-btn">
@@ -407,15 +409,26 @@ const closeWindow = () => window.api.closeWindow()
 }
 
 .model-badge {
-  font-size: 0.8em;
-  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #B4B9EB; /* Soft purple matching the screenshot */
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
 }
 
-.lock-icon {
-  opacity: 0.6;
+.model-badge:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.model-icon {
+  opacity: 0.7;
 }
 
 .mic-btn {
