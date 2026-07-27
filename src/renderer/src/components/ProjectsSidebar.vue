@@ -330,7 +330,8 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   transition: opacity 0.2s;
 }
 
-.item-time.hidden {
+.item-time.hidden,
+.project-item:hover .item-time {
   opacity: 0;
   pointer-events: none;
 }
