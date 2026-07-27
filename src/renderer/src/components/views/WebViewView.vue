@@ -48,6 +48,8 @@ const onDidNavigate = (e: any) => {
   if (webviewRef.value) {
     canGoBack.value = webviewRef.value.canGoBack()
     canGoForward.value = webviewRef.value.canGoForward()
+    // Force reset any cached internal browser zoom (e.g., from pinch-to-zoom)
+    webviewRef.value.setZoomLevel(0)
   }
 }
 
@@ -69,6 +71,8 @@ const applyUserAgent = () => {
     } else {
       webviewRef.value.setUserAgent(currentUserAgent.value)
     }
+    // Force reset any cached internal browser zoom
+    webviewRef.value.setZoomLevel(0)
     webviewRef.value.reload()
   }
 }
