@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { File, Folder, FolderOpen, ChevronRight, ChevronDown, MoreHorizontal, FilePlus, FolderPlus, Pencil, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -14,6 +14,9 @@ const isMenuOpen = ref(false)
 const isLoading = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const isDragOver = ref(false)
+const isRenaming = ref(false)
+const renameValue = ref('')
+const renameInputRef = ref<HTMLInputElement | null>(null)
 
 const toggleFolder = async () => {
   if (props.node.type === 'folder') {
@@ -60,8 +63,28 @@ const handleAction = (action: string, type?: string) => {
   } else if (action === 'delete') {
     emit('deleteItem', props.node)
   } else if (action === 'rename') {
-    emit('renameItem', props.node)
+    startRename()
   }
+}
+
+const startRename = async () => {
+  isMenuOpen.value = false
+  renameValue.value = props.node.name
+  isRenaming.value = true
+  await nextTick()
+  renameInputRef.value?.select()
+}
+
+const commitRename = async () => {
+  const newName = renameValue.value.trim()
+  if (newName && newName !== props.node.name) {
+    emit('renameItem', { node: props.node, newName })
+  }
+  isRenaming.value = false
+}
+
+const cancelRename = () => {
+  isRenaming.value = false
 }
 
 const onDragStart = (e: DragEvent) => {
@@ -153,8 +176,19 @@ onUnmounted(() => {
         </template>
       </div>
 
-      <!-- Name -->
-      <span class="item-name">{{ node.name }}</span>
+      <!-- Name (or inline rename input) -->
+      <template v-if="isRenaming">
+        <input
+          ref="renameInputRef"
+          v-model="renameValue"
+          class="rename-input"
+          @keydown.enter.stop="commitRename"
+          @keydown.esc.stop="cancelRename"
+          @blur="cancelRename"
+          @click.stop
+        />
+      </template>
+      <span v-else class="item-name">{{ node.name }}</span>
 
       <!-- 3-dot menu button (always occupies space, only visible on hover) -->
       <div class="menu-wrapper" ref="menuRef">
@@ -202,7 +236,7 @@ onUnmounted(() => {
           :node="child"
           :depth="depth + 1"
           @open-file="$emit('openFile', $event)"
-          @create-item="$emit('createItem', $event.node, $event.type)"
+          @create-item="$emit('createItem', $event)"
           @delete-item="$emit('deleteItem', $event)"
           @rename-item="$emit('renameItem', $event)"
           @refresh-tree="$emit('refreshTree')"
@@ -394,5 +428,26 @@ onUnmounted(() => {
   background-color: rgba(255, 255, 255, 0.08);
   outline: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 4px;
+}
+
+/* Inline rename input */
+.rename-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  color: var(--text-main);
+  font-size: 12px;
+  font-family: var(--font-primary);
+  padding: 1px 5px;
+  outline: none;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+  pointer-events: all;
+}
+
+.rename-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
 }
 </style>
