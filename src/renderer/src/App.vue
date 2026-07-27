@@ -90,6 +90,8 @@ onMounted(async () => {
 
 <template>
   <div class="layout-container" :class="{ 'left-sidebar-closed': !isLeftSidebarOpen }">
+    <!-- Dedicated top drag region -->
+    <div class="titlebar-drag-region"></div>
     <div class="layout">
 
       <!-- Left Sidebar (Projects) -->
@@ -174,7 +176,16 @@ onMounted(async () => {
   width: 100vw;
   background-color: var(--bg-dark); /* #0A0D18 */
   position: relative;
+}
+
+.titlebar-drag-region {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
   -webkit-app-region: drag;
+  z-index: 5000;
 }
 
 .layout {
@@ -196,7 +207,6 @@ onMounted(async () => {
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 12px;
-  -webkit-app-region: no-drag;
 }
 
 /* Main Content (The Island) */
@@ -210,7 +220,6 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  -webkit-app-region: no-drag;
 }
 
 .floating-bottom-bar {
