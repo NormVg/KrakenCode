@@ -8,8 +8,8 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Link } from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import SlashCommands from './tiptap/SlashCommands'
-import { suggestion } from './tiptap/suggestion'
+import { SlashCommands } from './tiptap/SlashCommands'
+import { scratchpadSuggestion } from './tiptap/scratchpadSuggestion'
 import { Mic, MicOff } from 'lucide-vue-next'
 
 const content = ref(`
@@ -39,7 +39,7 @@ onMounted(() => {
         allowBase64: true,
       }),
       SlashCommands.configure({
-        suggestion,
+        suggestion: scratchpadSuggestion,
       }),
     ],
     onUpdate: ({ editor }) => {
