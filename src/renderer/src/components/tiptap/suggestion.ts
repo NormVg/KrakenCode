@@ -63,6 +63,34 @@ export const suggestion = {
         },
       },
       {
+        title: 'Add Row Above',
+        icon: 'ArrowUp',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).addRowBefore().run()
+        },
+      },
+      {
+        title: 'Add Row Below',
+        icon: 'ArrowDown',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).addRowAfter().run()
+        },
+      },
+      {
+        title: 'Add Column Before',
+        icon: 'ArrowLeft',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).addColumnBefore().run()
+        },
+      },
+      {
+        title: 'Add Column After',
+        icon: 'ArrowRight',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).addColumnAfter().run()
+        },
+      },
+      {
         title: 'Delete Row',
         icon: 'Trash2',
         command: ({ editor, range }: any) => {

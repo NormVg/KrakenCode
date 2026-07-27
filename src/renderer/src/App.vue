@@ -47,7 +47,7 @@ const startResizeRight = (e: MouseEvent) => {
 const handleResizeRight = (e: MouseEvent) => {
   if (!isResizingRight.value) return
   const newWidth = document.body.clientWidth - e.clientX - 8 // 8px for layout gap/padding
-  if (newWidth > 200 && newWidth < 800) {
+  if (newWidth > 200 && newWidth < 450) {
     rightSidebarWidth.value = newWidth
   }
 }
@@ -91,7 +91,7 @@ onMounted(async () => {
 <template>
   <div class="layout-container" :class="{ 'left-sidebar-closed': !isLeftSidebarOpen }">
     <div class="layout">
-      
+
       <!-- Left Sidebar (Projects) -->
       <Transition name="slide-left">
         <aside class="left-sidebar no-drag" v-if="isLeftSidebarOpen">
@@ -101,11 +101,11 @@ onMounted(async () => {
 
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
-      
+
       <!-- Settings Modal via component -->
-      <SettingsModal 
-        v-if="isSettingsOpen" 
-        @close="isSettingsOpen = false" 
+      <SettingsModal
+        v-if="isSettingsOpen"
+        @close="isSettingsOpen = false"
       />
 
 
@@ -131,8 +131,8 @@ onMounted(async () => {
         <!-- View Toggles & Right Sidebar (Right Aligned) -->
         <div class="header-right-group">
           <div class="bottom-view-toggles">
-            <button 
-              v-for="(view, key) in views" 
+            <button
+              v-for="(view, key) in views"
               :key="key"
               class="bottom-tab-btn"
               :class="{ active: projectsStore.activeView === key }"
@@ -270,7 +270,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 140px; 
+  padding-bottom: 140px;
 }
 
 .chat-container {
