@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChevronUp, ChevronDown, Trash2, ArrowRight } from 'lucide-vue-next'
+import { ChevronUp, ChevronDown, Trash2, ArrowRight, Pencil } from 'lucide-vue-next'
 
 const props = defineProps<{
   messages: string[]
@@ -40,12 +40,13 @@ const toggleExpand = () => {
         class="queued-item"
       >
         <div class="thumbnail">
-          <div class="mock-logo"></div>
+          <span class="mock-model-text">b-cloud</span>
         </div>
         <span class="msg-text">{{ msg }}</span>
         
         <div class="item-actions">
-          <button class="action-btn" title="Run Now (Mock)"><ArrowRight :size="14" /></button>
+          <button class="action-btn" title="Run Now"><ArrowRight :size="14" /></button>
+          <button class="action-btn" title="Edit"><Pencil :size="14" /></button>
           <button class="action-btn delete-btn" title="Remove" @click.stop="emit('remove', index)"><Trash2 :size="14" /></button>
         </div>
       </div>
@@ -92,12 +93,13 @@ const toggleExpand = () => {
 }
 
 .badge {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #1c1c2a; /* Darker badge */
   color: var(--text-main);
   font-size: 0.75em;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
   font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .subtitle {
@@ -114,21 +116,15 @@ const toggleExpand = () => {
 .queued-list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .queued-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 16px;
   gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
   transition: background-color 0.2s;
   position: relative;
-}
-
-.queued-item:last-child {
-  border-bottom: none;
 }
 
 .queued-item:hover {
@@ -139,20 +135,19 @@ const toggleExpand = () => {
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  background-color: #1a1b26;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #12121a; /* Even darker square */
+  border: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.mock-logo {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background-color: #3b82f6; /* Mock blue logo */
-  opacity: 0.8;
+.mock-model-text {
+  font-size: 0.45em;
+  color: #3b82f6;
+  font-weight: bold;
 }
 
 .msg-text {
