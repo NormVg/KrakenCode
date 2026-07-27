@@ -132,7 +132,18 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Chat History -->
-      <div class="chat-history" ref="chatHistoryRef" v-else>
+      <div class="chat-header no-drag" v-if="isSetup && messages.length > 0">
+        <div class="chat-breadcrumbs">
+          <span class="muted">kraken</span>
+          <span class="divider">/</span>
+          <span>Codebase And Skills Analysis</span>
+        </div>
+        <button class="install-ide-btn">
+          <span class="icon">◭</span> Install IDE
+        </button>
+      </div>
+
+      <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && messages.length > 0">
         <div class="chat-container">
           <div v-if="!isSetup" class="welcome-screen">
             <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
@@ -230,10 +241,57 @@ const closeWindow = () => window.api.closeWindow()
   flex-direction: column;
   position: relative;
   min-width: 0;
-  background-color: var(--bg-panel); /* #1C1C2A */
+  background-color: var(--bg-dark);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-breadcrumbs {
+  font-size: 0.85em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-breadcrumbs .muted {
+  color: var(--text-muted);
+}
+
+.chat-breadcrumbs .divider {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.install-ide-btn {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.install-ide-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.install-ide-btn .icon {
+  color: #3b82f6; /* Fake Cursor blue triangle */
 }
 
 /* Chat History */
