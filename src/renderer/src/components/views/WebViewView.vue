@@ -474,8 +474,6 @@ onUnmounted(() => {
 /* Desktop mode has no padding, fills stage */
 .webview-stage.desktop {
   padding: 0;
-  background-image: none;
-  background-color: transparent;
   align-items: stretch;
 }
 
