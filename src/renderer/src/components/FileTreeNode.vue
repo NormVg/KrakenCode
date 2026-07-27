@@ -190,7 +190,7 @@ onUnmounted(() => {
     <div 
       class="tree-item" 
       draggable="true"
-      :style="{ paddingLeft: `${depth * 8 + 6}px` }"
+      :style="{ paddingLeft: `${depth * 12 + 8}px` }"
       :class="{ 'drag-over': isDragOver }"
       @click.stop="toggleFolder"
       @mouseenter="isHovered = true"
@@ -264,35 +264,35 @@ onUnmounted(() => {
     
     <!-- Children -->
     <div v-if="node.type === 'folder' && node.isOpen" class="tree-children">
-      <div class="indent-guide" :style="{ marginLeft: `${depth * 8 + 11}px` }"></div>
-      <div class="children-content">
-        <!-- Inline creation input inside this folder -->
-        <div v-if="inlineCreateType" class="inline-create-row" :style="{ paddingLeft: `${(depth + 1) * 8 + 6}px` }">
-          <FilePlus v-if="inlineCreateType === 'file'" :size="13" class="inline-create-icon" />
-          <FolderPlus v-else :size="13" class="inline-create-icon" />
-          <input
-            ref="inlineCreateInputRef"
-            v-model="inlineCreateName"
-            class="inline-create-input"
-            :placeholder="`New ${inlineCreateType} name…`"
-            @keydown.enter.stop="commitInlineCreate"
-            @keydown.esc.stop="cancelInlineCreate"
-            @blur="cancelInlineCreate"
-            @click.stop
-          />
-        </div>
-        <FileTreeNode 
-          v-for="(child, index) in node.children" 
-          :key="index"
-          :node="child"
-          :depth="depth + 1"
-          @open-file="$emit('openFile', $event)"
-          @create-item="$emit('createItem', $event)"
-          @delete-item="$emit('deleteItem', $event)"
-          @rename-item="$emit('renameItem', $event)"
-          @refresh-tree="$emit('refreshTree')"
+      <div class="indent-guide" :style="{ left: `${depth * 12 + 13}px` }"></div>
+      
+      <!-- Inline creation input inside this folder -->
+      <div v-if="inlineCreateType" class="inline-create-row" :style="{ paddingLeft: `${(depth + 1) * 12 + 8}px` }">
+        <FilePlus v-if="inlineCreateType === 'file'" :size="13" class="inline-create-icon" />
+        <FolderPlus v-else :size="13" class="inline-create-icon" />
+        <input
+          ref="inlineCreateInputRef"
+          v-model="inlineCreateName"
+          class="inline-create-input"
+          :placeholder="`New ${inlineCreateType} name…`"
+          @keydown.enter.stop="commitInlineCreate"
+          @keydown.esc.stop="cancelInlineCreate"
+          @blur="cancelInlineCreate"
+          @click.stop
         />
       </div>
+      
+      <FileTreeNode 
+        v-for="(child, index) in node.children" 
+        :key="index"
+        :node="child"
+        :depth="depth + 1"
+        @open-file="$emit('openFile', $event)"
+        @create-item="$emit('createItem', $event)"
+        @delete-item="$emit('deleteItem', $event)"
+        @rename-item="$emit('renameItem', $event)"
+        @refresh-tree="$emit('refreshTree')"
+      />
     </div>
   </div>
 </template>
@@ -436,28 +436,24 @@ onUnmounted(() => {
 
 /* Indent guide */
 .tree-children {
+  position: relative;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
 }
 
 .indent-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 1px;
   background-color: rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-  border-radius: 1px;
-  margin-right: 0;
+  pointer-events: none;
+  z-index: 1;
   transition: background-color 0.15s ease;
 }
 
 .tree-children:hover > .indent-guide {
   background-color: rgba(255, 255, 255, 0.18);
-}
-
-.children-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 
 .folder-chevron { color: var(--text-muted); }
