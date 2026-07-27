@@ -422,6 +422,8 @@ onMounted(async () => {
 
 .resizer:hover, .resizer.active {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Sidebar Animations */
 .left-sidebar {
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);

@@ -28,7 +28,7 @@ onMounted(() => {
   editor.value = new Editor({
     content: content.value,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false }),
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
