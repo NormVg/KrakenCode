@@ -5,6 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
+import { PanelLeft, PanelRight, Settings2 } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -181,14 +182,14 @@ const closeWindow = () => window.api.closeWindow()
           </div>
         </div>
         <div class="focus-actions">
-          <button class="focus-icon-btn" title="Toggle Left Sidebar" @click="isLeftSidebarOpen = !isLeftSidebarOpen">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          <button class="focus-icon-btn" title="Toggle Projects Sidebar" @click="isLeftSidebarOpen = !isLeftSidebarOpen">
+            <PanelLeft :size="18" stroke-width="2" />
           </button>
           <button class="focus-icon-btn" title="Settings" @click="isSettingsOpen = true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <Settings2 :size="18" stroke-width="2" />
           </button>
-          <button class="focus-icon-btn" title="Toggle Right Sidebar" @click="isRightSidebarOpen = !isRightSidebarOpen">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+          <button class="focus-icon-btn" title="Toggle Tools Sidebar" @click="isRightSidebarOpen = !isRightSidebarOpen">
+            <PanelRight :size="18" stroke-width="2" />
           </button>
         </div>
       </div>
@@ -445,7 +446,8 @@ const closeWindow = () => window.api.closeWindow()
 .focus-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 16px; /* Spaced out beautifully */
+  padding-right: 8px;
 }
 
 .focus-icon-btn {
@@ -453,20 +455,17 @@ const closeWindow = () => window.api.closeWindow()
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Maya-design: multi-layered transition */
-  transition: background-color 0.4s ease, color 0.2s linear, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Maya-design: single-layered smooth transition */
+  transition: color 0.2s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .focus-icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-  transform: rotate(5deg) scale(1.1);
+  background-color: transparent;
+  color: #fff;
+  transform: scale(1.1);
 }
 
 /* Right Sidebar */

@@ -23,6 +23,9 @@ importers:
       eve:
         specifier: latest
         version: 0.27.6(ai@7.0.37(zod@4.4.3))(dotenv@16.6.1)(jiti@2.7.0)(rollup@4.62.3)(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0))
+      lucide-vue-next:
+        specifier: ^1.0.0
+        version: 1.0.0(vue@3.5.40(typescript@5.9.3))
       markstream-vue:
         specifier: ^1.0.0
         version: 1.0.7(stream-diffs@0.0.2(@shikijs/themes@4.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vue@3.5.40(typescript@5.9.3)))(stream-markdown@0.0.16(react@19.2.8)(shiki@4.3.1)(vue@3.5.40(typescript@5.9.3)))(vue@3.5.40(typescript@5.9.3))
@@ -2137,6 +2140,12 @@ packages:
 
   lru_map@0.4.1:
     resolution: {integrity: sha512-I+lBvqMMFfqaV8CJCISjI3wbjmwVu/VyOoU7+qtu9d7ioW5klMgsTTiUOUp+DJvfTTzKXoPbyC6YfgkNcyPSOg==}
+
+  lucide-vue-next@1.0.0:
+    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
+    deprecated: Package deprecated. Please use @lucide/vue instead.
+    peerDependencies:
+      vue: '>=3.0.1'
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -5167,6 +5176,10 @@ snapshots:
       yallist: 4.0.0
 
   lru_map@0.4.1: {}
+
+  lucide-vue-next@1.0.0(vue@3.5.40(typescript@5.9.3)):
+    dependencies:
+      vue: 3.5.40(typescript@5.9.3)
 
   magic-string@0.30.21:
     dependencies:

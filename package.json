@@ -23,13 +23,14 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "eve": "latest",
     "ai": "latest",
     "ai-sdk-ollama": "latest",
+    "eve": "latest",
+    "lucide-vue-next": "^1.0.0",
     "markstream-vue": "^1.0.0",
     "pinia": "^2.2.0",
-    "stream-diffs": "latest",
     "shiki": "latest",
+    "stream-diffs": "latest",
     "stream-markdown": "latest"
   },
   "devDependencies": {
