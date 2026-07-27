@@ -171,14 +171,16 @@ onUnmounted(() => {
 <template>
   <div class="webview-container">
     
-    <!-- 1. Top Address Bar (Browser Chrome) -->
+    <!-- Unified Top Toolbar -->
     <div class="address-bar">
+      <!-- Navigation -->
       <div class="nav-group">
         <button class="nav-btn" :disabled="!canGoBack" @click="goBack"><ArrowLeft :size="16" /></button>
         <button class="nav-btn" :disabled="!canGoForward" @click="goForward"><ArrowRight :size="16" /></button>
         <button class="nav-btn" @click="reload"><RotateCw :size="14" /></button>
       </div>
       
+      <!-- URL Bar -->
       <div class="url-bar-wrapper">
         <input 
           v-model="url" 
@@ -189,57 +191,29 @@ onUnmounted(() => {
           spellcheck="false"
         />
       </div>
-    </div>
 
-    <!-- 2. DevTools Device Toolbar -->
-    <div class="device-toolbar">
+      <div class="toolbar-divider"></div>
+
+      <!-- Mode Toggles -->
       <div class="toolbar-group">
-        <button 
-          class="tool-btn" 
-          :class="{ 'active': viewMode === 'desktop' }" 
-          @click="setViewMode('desktop')"
-          title="Desktop"
-        >
+        <button class="tool-btn" :class="{ 'active': viewMode === 'desktop' }" @click="setViewMode('desktop')" title="Desktop">
           <Monitor :size="14" />
-          <span>Desktop</span>
         </button>
-        <button 
-          class="tool-btn" 
-          :class="{ 'active': viewMode === 'responsive' }" 
-          @click="setViewMode('responsive')"
-          title="Responsive"
-        >
+        <button class="tool-btn" :class="{ 'active': viewMode === 'responsive' }" @click="setViewMode('responsive')" title="Responsive">
           <Layout :size="14" />
-          <span>Responsive</span>
         </button>
-        <button 
-          class="tool-btn" 
-          :class="{ 'active': viewMode === 'mobile' }" 
-          @click="setViewMode('mobile')"
-          title="Mobile"
-        >
+        <button class="tool-btn" :class="{ 'active': viewMode === 'mobile' }" @click="setViewMode('mobile')" title="Mobile">
           <Smartphone :size="14" />
-          <span>iPhone SE</span>
         </button>
       </div>
 
       <div class="toolbar-divider"></div>
 
-      <!-- Dimensions (only show in Responsive mode) -->
+      <!-- Dimensions -->
       <div class="toolbar-group dimensions-group" :class="{ 'disabled': viewMode !== 'responsive' }">
-        <input 
-          type="number" 
-          v-model="customWidth" 
-          class="dim-input" 
-          :disabled="viewMode !== 'responsive'"
-        />
+        <input type="number" v-model="customWidth" class="dim-input" :disabled="viewMode !== 'responsive'"/>
         <span class="dim-separator">×</span>
-        <input 
-          type="number" 
-          v-model="customHeight" 
-          class="dim-input" 
-          :disabled="viewMode !== 'responsive'"
-        />
+        <input type="number" v-model="customHeight" class="dim-input" :disabled="viewMode !== 'responsive'"/>
       </div>
 
       <div class="toolbar-divider"></div>
@@ -260,9 +234,7 @@ onUnmounted(() => {
       <!-- User Agent -->
       <div class="toolbar-group">
         <select v-model="currentUserAgent" @change="applyUserAgent" class="toolbar-select user-agent-select">
-          <option v-for="agent in userAgents" :key="agent.label" :value="agent.value">
-            {{ agent.label }}
-          </option>
+          <option v-for="agent in userAgents" :key="agent.label" :value="agent.value">{{ agent.label }}</option>
         </select>
       </div>
     </div>
@@ -298,10 +270,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background-color: #1a1a24;
-  border-bottom: 1px solid var(--border-color);
-  -webkit-app-region: drag;
+  background-color: var(--bg-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  flex-wrap: wrap;
+  -webkit-app-region: drag;
+}
+
+.nav-group,
+.url-bar-wrapper,
+.toolbar-group {
+  -webkit-app-region: no-drag;
 }
 
 .nav-group {
@@ -313,18 +292,17 @@ onUnmounted(() => {
 .nav-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-main);
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  -webkit-app-region: no-drag;
+  transition: all 0.2s ease;
 }
 .nav-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 .nav-btn:disabled {
   opacity: 0.3;
@@ -333,45 +311,38 @@ onUnmounted(() => {
 
 .url-bar-wrapper {
   flex: 1;
-  max-width: 600px;
-  margin: 0 auto;
-  -webkit-app-region: no-drag;
+  min-width: 200px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+.url-bar-wrapper:focus-within {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .url-input {
   width: 100%;
-  background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  border: none;
   color: var(--text-main);
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-family: var(--font-primary);
   font-size: 13px;
+  font-family: inherit;
   outline: none;
-  text-align: center;
-  transition: all 0.2s ease;
-}
-.url-input:focus {
-  border-color: rgba(255, 255, 255, 0.2);
-  background-color: rgba(0, 0, 0, 0.4);
-  text-align: left;
-}
-
-/* ─── Device Toolbar (DevTools Style) ────────────────────────────────────── */
-.device-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 16px;
-  background-color: #232333;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.toolbar-group.disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .toolbar-divider {
@@ -386,34 +357,23 @@ onUnmounted(() => {
   gap: 6px;
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
-
 .tool-btn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+.tool-btn.active {
+  background-color: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
 }
 
-.tool-btn.active {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--accent);
-}
-
 /* Dimensions Input */
-.dimensions-group {
-  transition: opacity 0.2s ease;
-}
-.dimensions-group.disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
 .dim-input {
   width: 60px;
   background: transparent;
@@ -473,11 +433,13 @@ onUnmounted(() => {
   overflow: auto;
   position: relative;
   padding: 24px;
+  padding-bottom: var(--bottom-bar-clearance, 80px);
 }
 
 /* Desktop mode has no padding, fills stage */
 .webview-stage.desktop {
   padding: 0;
+  padding-bottom: var(--bottom-bar-clearance, 80px);
   align-items: stretch;
 }
 
@@ -507,6 +469,7 @@ onUnmounted(() => {
 
 /* Desktop Frame Styling */
 .device-frame.desktop {
+  flex: 1;
   border: none;
   border-radius: 0;
   transition: none;
