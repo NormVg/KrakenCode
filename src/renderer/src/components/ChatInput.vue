@@ -79,9 +79,6 @@ const handleKeydown = (e: KeyboardEvent) => {
         </button>
       </div>
     </div>
-    <div class="composer-footer" v-if="$slots.footer">
-      <slot name="footer"></slot>
-    </div>
   </div>
 </template>
 
@@ -126,14 +123,7 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 12px 8px 12px;
-}
-
-.composer-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 8px 12px;
-  display: flex;
-  align-items: center;
 }
 
 .toolbar-left, .toolbar-right {

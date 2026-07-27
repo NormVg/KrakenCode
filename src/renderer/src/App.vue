@@ -154,25 +154,22 @@ const closeWindow = () => window.api.closeWindow()
             @submit="handleChat"
             :disabled="!isSetup || isLoading"
             placeholder="Plan, Build, / for skills, @ for context"
-          >
-            <template #footer>
-              <div class="chat-header-inner">
-                <div class="header-left-group">
-                  <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
-                    <PanelLeft :size="16" />
-                  </button>
-                  <div class="chat-breadcrumbs">
-                    <span class="muted">kraken</span>
-                    <span class="divider">/</span>
-                    <span>Codebase And Skills Analysis</span>
-                  </div>
-                </div>
-                <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-                  <PanelRight :size="16" />
-                </button>
+          />
+          <div class="floating-bottom-bar">
+            <div class="header-left-group">
+              <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+                <PanelLeft :size="16" />
+              </button>
+              <div class="chat-breadcrumbs">
+                <span class="muted">kraken</span>
+                <span class="divider">/</span>
+                <span>Codebase And Skills Analysis</span>
               </div>
-            </template>
-          </ChatInput>
+            </div>
+            <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+              <PanelRight :size="16" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -214,25 +211,22 @@ const closeWindow = () => window.api.closeWindow()
             :disabled="!isSetup"
             :rows="1"
             placeholder="Ask a follow-up question..."
-          >
-            <template #footer>
-              <div class="chat-header-inner">
-                <div class="header-left-group">
-                  <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
-                    <PanelLeft :size="16" />
-                  </button>
-                  <div class="chat-breadcrumbs">
-                    <span class="muted">kraken</span>
-                    <span class="divider">/</span>
-                    <span>Codebase And Skills Analysis</span>
-                  </div>
-                </div>
-                <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-                  <PanelRight :size="16" />
-                </button>
+          />
+          <div class="floating-bottom-bar">
+            <div class="header-left-group">
+              <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
+                <PanelLeft :size="16" />
+              </button>
+              <div class="chat-breadcrumbs">
+                <span class="muted">kraken</span>
+                <span class="divider">/</span>
+                <span>Codebase And Skills Analysis</span>
               </div>
-            </template>
-          </ChatInput>
+            </div>
+            <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+              <PanelRight :size="16" />
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -302,11 +296,15 @@ const closeWindow = () => window.api.closeWindow()
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.chat-header-inner {
+.floating-bottom-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  background-color: var(--bg-dark); /* #0A0D18 */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 8px 12px;
 }
 
 .chat-breadcrumbs {
@@ -418,6 +416,9 @@ const closeWindow = () => window.api.closeWindow()
   max-width: 800px;
   padding: 0 40px; /* Match chat-container padding */
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Floating Input Area */
