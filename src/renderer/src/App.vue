@@ -7,7 +7,7 @@ import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
 import ModelSelector from './components/ModelSelector.vue'
-import { Plus, Mic, Github } from 'lucide-vue-next'
+import ChatInput from './components/ChatInput.vue'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -93,13 +93,6 @@ const handleChat = async () => {
   window.api.streamChat(msgId, text)
 }
 
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    handleChat()
-  }
-}
-
 // Window Controls
 const minimizeWindow = () => window.api.minimizeWindow()
 const maximizeWindow = () => window.api.maximizeWindow()
@@ -128,26 +121,13 @@ const closeWindow = () => window.api.closeWindow()
       <!-- Empty Conversation State -->
       <div v-if="isSetup && messages.length === 0" class="empty-conversation-state">
         <div class="centered-composer">
-          <textarea 
-            v-model="prompt" 
-            placeholder="Plan, Build, / for skills, @ for context"
-            rows="3"
-            @keydown="handleKeydown"
+          <ChatInput 
+            v-model="prompt"
+            @submit="handleChat"
             :disabled="!isSetup || isLoading"
-          ></textarea>
-          <div class="composer-toolbar">
-            <div class="toolbar-left">
-              <button class="add-btn">
-                <Plus :size="14" />
-              </button>
-              <ModelSelector />
-            </div>
-            <div class="toolbar-right">
-              <button class="mic-btn">
-                <Mic :size="14" />
-              </button>
-            </div>
-          </div>
+            :rows="3"
+            placeholder="Plan, Build, / for skills, @ for context"
+          />
         </div>
       </div>
 
@@ -177,16 +157,16 @@ const closeWindow = () => window.api.closeWindow()
         </div>
       </div>
 
-      <!-- Agent Input Pill (Floating above focus bar) -->
+      <!-- Agent Input (Floating at bottom) -->
       <div class="floating-input-container" v-if="isSetup && messages.length > 0">
-        <div class="input-pill no-drag">
-          <textarea 
-            v-model="prompt" 
-            placeholder="Can you code me a multi threaded logger"
-            rows="1"
-            @keydown="handleKeydown"
+        <div class="floating-composer-wrapper no-drag">
+          <ChatInput 
+            v-model="prompt"
+            @submit="handleChat"
             :disabled="!isSetup || isLoading"
-          ></textarea>
+            :rows="1"
+            placeholder="Ask a follow-up question..."
+          />
         </div>
       </div>
     </main>
@@ -313,139 +293,23 @@ const closeWindow = () => window.api.closeWindow()
 .centered-composer {
   width: 90%;
   max-width: 650px;
-  background-color: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
-
-.centered-composer textarea {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
-  resize: none;
-  outline: none;
-  font-size: 0.95em;
-  line-height: 1.5;
-  padding: 16px;
-  min-height: 80px;
-}
-
-.centered-composer textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.composer-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.02);
-}
-
-.toolbar-left, .toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.add-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: var(--text-muted);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-}
-
-.mic-btn {
-  background: #fff;
-  border: none;
-  color: #000;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.mic-btn:hover {
-  transform: scale(1.05);
 }
 
 /* Floating Input Area */
 .floating-input-container {
   position: absolute;
-  bottom: 70px; /* Above focus bar */
-  left: 0;
-  right: 0;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
   display: flex;
   justify-content: center;
-  pointer-events: none;
-  z-index: 20;
+  z-index: 10;
 }
 
-.input-pill {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  background-color: rgba(10, 13, 24, 0.6); /* Translucent dark #0A0D18 */
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 30px;
-  padding: 12px 24px;
-  width: 90%;
-  max-width: 650px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.02); 
-  /* Maya-design: segmented animation for feel */
-  transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.4s ease-out,
-              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.input-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35), 0 0 35px rgba(255, 255, 255, 0.04);
-}
-
-.input-pill:focus-within {
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 40px rgba(255, 255, 255, 0.08);
-}
-
-.input-pill textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
-  resize: none;
-  outline: none;
-  font-size: 0.95em;
-  line-height: 1.5;
-  max-height: 200px;
-  min-height: 24px;
-  padding: 0;
-}
-
-.input-pill textarea::placeholder {
-  color: var(--text-muted);
+.floating-composer-wrapper {
+  width: 100%;
 }
 
 /* Right Sidebar wrapper */
