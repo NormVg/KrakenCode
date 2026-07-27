@@ -256,8 +256,7 @@ const closeWindow = () => window.api.closeWindow()
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  /* Push content down to avoid native traffic lights (which sit at x:16, y:18) */
-  padding-top: 36px;
+  padding-top: 12px;
 }
 
 /* Main Content (The Island) */
