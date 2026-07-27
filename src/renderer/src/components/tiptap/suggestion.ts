@@ -91,6 +91,28 @@ export const suggestion = {
         },
       },
       {
+        title: 'Image',
+        icon: 'Image',
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).run()
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = () => {
+            if (input.files && input.files[0]) {
+              const reader = new FileReader()
+              reader.onload = (e) => {
+                if (e.target?.result) {
+                  editor.chain().focus().setImage({ src: e.target.result as string }).run()
+                }
+              }
+              reader.readAsDataURL(input.files[0])
+            }
+          }
+          input.click()
+        },
+      },
+      {
         title: 'Delete Row',
         icon: 'Trash2',
         command: ({ editor, range }: any) => {

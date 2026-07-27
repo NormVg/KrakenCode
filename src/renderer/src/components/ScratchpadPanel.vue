@@ -7,6 +7,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Link } from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 import SlashCommands from './tiptap/SlashCommands'
 import { suggestion } from './tiptap/suggestion'
 import { Mic, MicOff } from 'lucide-vue-next'
@@ -15,8 +16,9 @@ const content = ref(`
 <h2>Scratchpad</h2>
 <p>Dump your thoughts, notes, and scratchpad context here...</p>
 <ul>
+  <li>Type <code>/</code> for a menu to add Headings, Tables, Lists, Images...</li>
   <li>Supports Markdown shortcuts (e.g. <code>#</code>, <code>*</code>, <code>&gt;</code>)</li>
-  <li>Rich text formatting</li>
+  <li>Drag and drop images directly into this space!</li>
 </ul>
 `)
 
@@ -32,6 +34,10 @@ onMounted(() => {
       TableHeader,
       TableCell,
       Link.configure({ openOnClick: false }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
       SlashCommands.configure({
         suggestion,
       }),
@@ -43,6 +49,54 @@ onMounted(() => {
       attributes: {
         class: 'tiptap-editor',
       },
+      handleDrop: function(view, event: DragEvent, slice, moved) {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+          const files = Array.from(event.dataTransfer.files)
+          const images = files.filter(file => file.type.startsWith('image/'))
+          
+          if (images.length > 0) {
+            event.preventDefault()
+            const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
+            
+            images.forEach(image => {
+              const reader = new FileReader()
+              reader.onload = (e) => {
+                if (e.target?.result && coordinates) {
+                  const node = view.state.schema.nodes.image.create({ src: e.target.result })
+                  const transaction = view.state.tr.insert(coordinates.pos, node)
+                  view.dispatch(transaction)
+                }
+              }
+              reader.readAsDataURL(image)
+            })
+            return true
+          }
+        }
+        return false
+      },
+      handlePaste: function(view, event: ClipboardEvent, slice) {
+        if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+          const files = Array.from(event.clipboardData.files)
+          const images = files.filter(file => file.type.startsWith('image/'))
+          
+          if (images.length > 0) {
+            event.preventDefault()
+            images.forEach(image => {
+              const reader = new FileReader()
+              reader.onload = (e) => {
+                if (e.target?.result) {
+                  const node = view.state.schema.nodes.image.create({ src: e.target.result })
+                  const transaction = view.state.tr.replaceSelectionWith(node)
+                  view.dispatch(transaction)
+                }
+              }
+              reader.readAsDataURL(image)
+            })
+            return true
+          }
+        }
+        return false
+      }
     },
   })
 
@@ -251,6 +305,14 @@ onBeforeUnmount(() => {
   margin-bottom: 0.5em;
   font-weight: 600;
   line-height: 1.2;
+}
+
+:deep(.tiptap-editor img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.tiptap-editor h1:first-child),
