@@ -5,7 +5,7 @@ import { useConfigStore } from './stores/config'
 import ChatMessage from './components/ChatMessage.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
-import { Settings2 } from 'lucide-vue-next'
+import { PanelLeft, PanelRight, Settings2 } from 'lucide-vue-next'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -182,8 +182,14 @@ const closeWindow = () => window.api.closeWindow()
           </div>
         </div>
         <div class="focus-actions">
+          <button class="focus-icon-btn" title="Toggle Projects Sidebar" @click="isLeftSidebarOpen = !isLeftSidebarOpen">
+            <PanelLeft :size="18" stroke-width="2" />
+          </button>
           <button class="focus-icon-btn" title="Settings" @click="isSettingsOpen = true">
             <Settings2 :size="18" stroke-width="2" />
+          </button>
+          <button class="focus-icon-btn" title="Toggle Tools Sidebar" @click="isRightSidebarOpen = !isRightSidebarOpen">
+            <PanelRight :size="18" stroke-width="2" />
           </button>
         </div>
       </div>
@@ -446,19 +452,20 @@ const closeWindow = () => window.api.closeWindow()
 .focus-icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--accent-purple);
+  opacity: 0.7;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Maya-design: single-layered smooth transition */
   transition: color 0.2s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .focus-icon-btn:hover {
   background-color: transparent;
-  color: #fff;
-  transform: scale(1.1);
+  color: var(--accent-purple);
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 /* Right Sidebar */
