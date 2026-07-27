@@ -125,7 +125,7 @@ const handleMount = (editor: any) => {
           v-for="tab in openTabs" 
           :key="tab.id"
           class="editor-tab"
-          :class="{ 'active': tab.isActive }"
+          :class="{ 'active': tab.isActive, 'is-modified': tab.isModified }"
           @click="selectTab(tab.id)"
         >
           <FileCode2 v-if="tab.language !== 'json'" :size="14" class="tab-icon" :class="tab.language" />
@@ -269,12 +269,13 @@ const handleMount = (editor: any) => {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Only show close button on hover, or hide dot on hover to show close button */
+/* Only show close button on hover, or when active AND not modified. Always hide dot on hover. */
 .editor-tab:hover .modified-dot {
   display: none;
 }
+
 .editor-tab:hover .close-tab-btn,
-.editor-tab.active .close-tab-btn {
+.editor-tab.active:not(.is-modified) .close-tab-btn {
   display: flex;
 }
 
