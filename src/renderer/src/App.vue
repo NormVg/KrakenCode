@@ -182,7 +182,7 @@ onMounted(async () => {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 8px; /* Reduced margin so traffic lights sit fully on the island */
+  padding: 24px 8px 8px 8px; /* Increased top padding for easier dragging */
   gap: 8px;
 }
 

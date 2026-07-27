@@ -42,7 +42,7 @@ monaco.editor.defineTheme('kraken-theme', {
     { token: 'function', foreground: 'AA205A' },
   ],
   colors: {
-    'editor.background': '#11131e',
+    'editor.background': '#1C1C2A',
     'editor.foreground': '#cdd6f4',
     'editorLineNumber.foreground': '#45475a',
     'editorCursor.foreground': '#f5e0dc',
@@ -60,7 +60,7 @@ const MONACO_EDITOR_OPTIONS = {
   fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
   fontSize: 14,
   lineHeight: 24,
-  padding: { top: 16, bottom: 16 },
+  padding: { top: 8, bottom: 8 },
   scrollBeyondLastLine: false,
   smoothScrolling: true,
   cursorBlinking: 'smooth',
@@ -173,7 +173,7 @@ const handleMount = (editor: any) => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: #1C1C2A; /* Matches kraken-theme background */
+  background-color: transparent;
 }
 
 /* Tabs Header */
@@ -181,8 +181,8 @@ const handleMount = (editor: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #1C1C2A; /* Same as editor background */
-  padding: 8px 12px;
+  background-color: transparent;
+  padding: 4px 12px;
   user-select: none;
   -webkit-app-region: drag;
 }
