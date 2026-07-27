@@ -96,6 +96,7 @@ const projects = ref([
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <style scoped>
