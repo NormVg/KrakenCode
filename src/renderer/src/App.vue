@@ -113,13 +113,6 @@ const closeWindow = () => window.api.closeWindow()
 
 <template>
   <div class="layout" style="-webkit-app-region: drag;">
-    
-    <!-- Custom Window Controls (Top Right) -->
-    <div class="window-controls no-drag">
-      <button class="win-btn close" @click="closeWindow"></button>
-      <button class="win-btn minimize" @click="minimizeWindow"></button>
-      <button class="win-btn maximize" @click="maximizeWindow"></button>
-    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -216,44 +209,6 @@ const closeWindow = () => window.api.closeWindow()
   background-color: var(--bg-dark);
   position: relative;
 }
-
-/* Window Controls */
-.window-controls {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 8px;
-  z-index: 50;
-}
-
-.win-btn {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px; /* Squircle hexagon-like shape approximation for now */
-  border: none;
-  cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.2s, transform 0.1s;
-}
-
-.win-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.win-btn.close {
-  background-color: var(--accent); /* Red */
-}
-
-.win-btn.minimize {
-  background-color: var(--accent-green); /* Green */
-}
-
-.win-btn.maximize {
-  background-color: #FACC15; /* Yellow */
-}
-
 
 /* Main Content */
 .main-content {

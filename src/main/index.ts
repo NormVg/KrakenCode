@@ -16,7 +16,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: -100, y: -100 }, // Hides native controls off-screen
+    trafficLightPosition: { x: 16, y: 18 },
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
