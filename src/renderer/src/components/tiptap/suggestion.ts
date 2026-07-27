@@ -1,139 +1,107 @@
 import { VueRenderer } from '@tiptap/vue-3'
 import tippy, { type Instance } from 'tippy.js'
 import CommandList from './CommandList.vue'
-import { Editor } from '@tiptap/core'
+import type { Editor } from '@tiptap/core'
 
-export const suggestion = {
-  items: ({ query }: { query: string }) => {
-    return [
-      {
-        title: 'Heading 1',
-        icon: 'Type',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run()
-        },
-      },
-      {
-        title: 'Heading 2',
-        icon: 'Type',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run()
-        },
-      },
-      {
-        title: 'Heading 3',
-        icon: 'Type',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
-        },
-      },
-      {
-        title: 'Bullet List',
-        icon: 'List',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).toggleBulletList().run()
-        },
-      },
-      {
-        title: 'Numbered List',
-        icon: 'ListOrdered',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).toggleOrderedList().run()
-        },
-      },
-      {
-        title: 'Blockquote',
-        icon: 'Quote',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).setBlockquote().run()
-        },
-      },
-      {
-        title: 'Code Block',
-        icon: 'Code',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).setCodeBlock().run()
-        },
-      },
-      {
-        title: 'Table',
-        icon: 'Table',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-        },
-      },
-      {
-        title: 'Add Row Above',
-        icon: 'ArrowUp',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).addRowBefore().run()
-        },
-      },
-      {
-        title: 'Add Row Below',
-        icon: 'ArrowDown',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).addRowAfter().run()
-        },
-      },
-      {
-        title: 'Add Column Before',
-        icon: 'ArrowLeft',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).addColumnBefore().run()
-        },
-      },
-      {
-        title: 'Add Column After',
-        icon: 'ArrowRight',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).addColumnAfter().run()
-        },
-      },
-      {
-        title: 'Image',
-        icon: 'Image',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).run()
-          const input = document.createElement('input')
-          input.type = 'file'
-          input.accept = 'image/*'
-          input.onchange = () => {
-            if (input.files && input.files[0]) {
-              const reader = new FileReader()
-              reader.onload = (e) => {
-                if (e.target?.result) {
-                  editor.chain().focus().setImage({ src: e.target.result as string }).run()
-                }
-              }
-              reader.readAsDataURL(input.files[0])
-            }
-          }
-          input.click()
-        },
-      },
-      {
-        title: 'Delete Row',
-        icon: 'Trash2',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).deleteRow().run()
-        },
-      },
-      {
-        title: 'Delete Column',
-        icon: 'Trash2',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).deleteColumn().run()
-        },
-      },
-      {
-        title: 'Delete Table',
-        icon: 'Trash2',
-        command: ({ editor, range }: any) => {
-          editor.chain().focus().deleteRange(range).deleteTable().run()
-        },
-      }
-    ].filter(item => item.title.toLowerCase().includes(query.toLowerCase())).slice(0, 15)
+export interface SlashCommandItem {
+  title: string
+  description: string
+  icon: string
+  command: (props: { editor: Editor; range: any }) => void
+}
+
+const commands: SlashCommandItem[] = [
+  {
+    title: 'Plan',
+    description: 'Ask the agent to plan a task',
+    icon: 'map',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Plan: ').run()
+    },
+  },
+  {
+    title: 'Build',
+    description: 'Ask the agent to build something',
+    icon: 'hammer',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Build: ').run()
+    },
+  },
+  {
+    title: 'Fix',
+    description: 'Ask the agent to fix a bug',
+    icon: 'wrench',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Fix: ').run()
+    },
+  },
+  {
+    title: 'Explain',
+    description: 'Ask the agent to explain code',
+    icon: 'book-open',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Explain: ').run()
+    },
+  },
+  {
+    title: 'Review',
+    description: 'Ask the agent to review code',
+    icon: 'eye',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Review: ').run()
+    },
+  },
+  {
+    title: 'Refactor',
+    description: 'Ask the agent to refactor code',
+    icon: 'git-branch',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Refactor: ').run()
+    },
+  },
+  {
+    title: 'Test',
+    description: 'Ask the agent to write tests',
+    icon: 'check-circle',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Write tests for: ').run()
+    },
+  },
+  {
+    title: 'Document',
+    description: 'Ask the agent to write docs',
+    icon: 'file-text',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Document: ').run()
+    },
+  },
+  {
+    title: 'Optimize',
+    description: 'Ask the agent to optimize code',
+    icon: 'zap',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Optimize: ').run()
+    },
+  },
+  {
+    title: 'Debug',
+    description: 'Ask the agent to debug an issue',
+    icon: 'bug',
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertContent('Debug: ').run()
+    },
+  },
+]
+
+export const slashSuggestion = {
+  items: ({ query }: { query: string }): SlashCommandItem[] => {
+    if (!query) return commands
+    return commands
+      .filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.description.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 8)
   },
 
   render: () => {
@@ -143,40 +111,29 @@ export const suggestion = {
     return {
       onStart: (props: any) => {
         component = new VueRenderer(CommandList, {
-          props,
+          props: { ...props, mode: 'slash' },
           editor: props.editor as Editor,
         })
 
-        if (!props.clientRect) {
-          return
-        }
-
-        const element = component.element
-        if (!element) {
-          return
-        }
+        if (!props.clientRect) return
 
         popup = tippy(document.body, {
           getReferenceClientRect: props.clientRect,
           appendTo: () => document.body,
-          content: element,
+          content: component.element!,
           showOnCreate: true,
           interactive: true,
           trigger: 'manual',
-          placement: 'bottom-start',
+          placement: 'top-start',
+          animation: 'shift-away',
+          duration: [120, 80],
         })
       },
 
       onUpdate(props: any) {
-        component.updateProps(props)
-
-        if (!props.clientRect) {
-          return
-        }
-
-        popup?.setProps({
-          getReferenceClientRect: props.clientRect,
-        })
+        component.updateProps({ ...props, mode: 'slash' })
+        if (!props.clientRect) return
+        popup?.setProps({ getReferenceClientRect: props.clientRect })
       },
 
       onKeyDown(props: any) {

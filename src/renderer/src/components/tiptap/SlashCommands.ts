@@ -1,7 +1,15 @@
 import { Extension } from '@tiptap/core'
 import Suggestion from '@tiptap/suggestion'
+import type { SuggestionOptions } from '@tiptap/suggestion'
 
-export default Extension.create({
+export interface SlashCommandItem {
+  title: string
+  description: string
+  icon: string
+  command: (props: { editor: any; range: any }) => void
+}
+
+export const SlashCommands = Extension.create({
   name: 'slashCommands',
 
   addOptions() {
@@ -11,7 +19,7 @@ export default Extension.create({
         command: ({ editor, range, props }: any) => {
           props.command({ editor, range })
         },
-      },
+      } as Partial<SuggestionOptions>,
     }
   },
 
