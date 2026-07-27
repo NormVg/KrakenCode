@@ -21,41 +21,28 @@ const viewMode = ref<'split' | 'unified'>('split')
 
 // Mock data — will be replaced by real file diffs from the agent later
 const originalCode = ref(`import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createStore } from 'vuex'
 import App from './App.vue'
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: () => import('./views/Home.vue') },
-    { path: '/about', component: () => import('./views/About.vue') },
-  ]
+const store = createStore({
+  state() {
+    return { count: 0 }
+  }
 })
 
 const app = createApp(App)
-app.use(router)
+app.use(store)
 app.mount('#app')
 `)
 
 const modifiedCode = ref(`import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 
 const pinia = createPinia()
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: () => import('./views/Home.vue') },
-    { path: '/about', component: () => import('./views/About.vue') },
-    { path: '/settings', component: () => import('./views/Settings.vue') },
-  ]
-})
-
 const app = createApp(App)
 app.use(pinia)
-app.use(router)
 app.mount('#app')
 `)
 
