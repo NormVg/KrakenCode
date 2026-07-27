@@ -12,7 +12,7 @@ const configStore = useConfigStore()
 const { isSetup, provider, model } = storeToRefs(configStore)
 const isSettingsOpen = ref(false)
 const isSidebarOpen = ref(true)
-const activeSidebarTab = ref('projects')
+const activeSidebarTab = ref('tools')
 
 // Ensure Settings opens if we somehow lose setup state
 watch(isSetup, (newVal) => {
@@ -117,6 +117,12 @@ const closeWindow = () => window.api.closeWindow()
   <div class="layout-container">
     <div class="invisible-drag-area"></div>
     <div class="layout">
+      
+      <!-- Left Sidebar (Projects) -->
+      <aside class="left-sidebar no-drag">
+        <ProjectsSidebar />
+      </aside>
+
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
       
@@ -187,18 +193,13 @@ const closeWindow = () => window.api.closeWindow()
     <!-- Right Sidebar -->
     <aside class="right-sidebar" v-if="isSidebarOpen">
       <div class="sidebar-content no-drag">
-        <ProjectsSidebar v-if="activeSidebarTab === 'projects'" />
-        <div v-else class="sidebar-placeholder">
+        <div class="sidebar-placeholder">
           <h3>Tools</h3>
           <p class="muted">Agent tools will appear here.</p>
         </div>
       </div>
       
       <div class="sidebar-tabs no-drag">
-        <div 
-          :class="['sidebar-tab', { active: activeSidebarTab === 'projects' }]"
-          @click="activeSidebarTab = 'projects'"
-        >Projects</div>
         <div 
           :class="['sidebar-tab', { active: activeSidebarTab === 'tools' }]"
           @click="activeSidebarTab = 'tools'"
@@ -240,6 +241,18 @@ const closeWindow = () => window.api.closeWindow()
   overflow: hidden;
   padding: 8px; /* Reduced margin so traffic lights sit fully on the island */
   gap: 8px;
+}
+
+/* Left Sidebar */
+.left-sidebar {
+  width: 260px;
+  background-color: var(--bg-dark);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  /* Push content down to avoid native traffic lights (which sit at x:16, y:18) */
+  padding-top: 36px;
 }
 
 /* Main Content (The Island) */
