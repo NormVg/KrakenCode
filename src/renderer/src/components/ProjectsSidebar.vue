@@ -195,19 +195,25 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
 }
 
 .btn-primary {
-  background-color: #3b82f6;
-  color: #fff;
-  border: none;
-  padding: 6px 16px;
-  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 0.9em;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
-  background-color: #2563eb;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
 }
 
 .project-items {
