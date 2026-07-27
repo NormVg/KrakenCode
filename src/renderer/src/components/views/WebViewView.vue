@@ -273,8 +273,14 @@ onUnmounted(() => {
   background-color: var(--bg-dark);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
-  flex-wrap: wrap;
   -webkit-app-region: drag;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Hide scrollbar for the address bar for a cleaner look */
+.address-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-group,
