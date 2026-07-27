@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-
+import { RotateCw } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
 import FileTreeNode from './FileTreeNode.vue'
@@ -87,7 +87,7 @@ const handleRenameItem = async (node: any) => {
     <div class="panel-header">
       <h3>File Explorer</h3>
       <button class="icon-btn" @click="loadTree" title="Refresh">
-        <!-- Optional refresh icon, omitting for clean UI -->
+        <RotateCw :size="14" />
       </button>
     </div>
 
@@ -114,24 +114,41 @@ const handleRenameItem = async (node: any) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 12px 8px;
+  padding: 0 16px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  padding: 0 4px;
+  margin-bottom: 16px;
 }
 
 .panel-header h3 {
-  font-size: 11px;
+  font-size: 0.85em;
   font-weight: 600;
-  color: var(--text-muted-dark);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.5px;
   margin: 0;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
 }
 
 .file-tree {
