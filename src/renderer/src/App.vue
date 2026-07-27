@@ -8,6 +8,7 @@ import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
 import ModelSelector from './components/ModelSelector.vue'
 import ChatInput from './components/ChatInput.vue'
+import QueuedMessages from './components/QueuedMessages.vue'
 import './assets/main.css'
 
 // Configuration State via Pinia
@@ -25,6 +26,7 @@ watch(isSetup, (newVal) => {
 // Chat State
 const prompt = ref('')
 const isLoading = ref(false)
+const queuedMessages = ref<string[]>([])
 
 interface ChatMsg {
   id?: string;
@@ -59,12 +61,16 @@ const scrollToBottom = async () => {
   }
 }
 
-const handleChat = async () => {
-  const text = prompt.value.trim()
-  if (!text || isLoading.value || !isSetup.value) return
-  
+const processNextMessage = async () => {
+  if (queuedMessages.value.length === 0 || isLoading.value || !isSetup.value) return
+  const text = queuedMessages.value.shift()
+  if (text) {
+    await executeMessage(text)
+  }
+}
+
+const executeMessage = async (text: string) => {
   messages.value.push({ role: 'user', content: text })
-  prompt.value = ''
   scrollToBottom()
   
   isLoading.value = true
@@ -81,6 +87,7 @@ const handleChat = async () => {
     agentMsg.isStreaming = false
     isLoading.value = false
     window.api.removeChatListeners(msgId)
+    processNextMessage()
   })
 
   window.api.onChatError(msgId, (err) => {
@@ -88,9 +95,28 @@ const handleChat = async () => {
     agentMsg.isStreaming = false
     isLoading.value = false
     window.api.removeChatListeners(msgId)
+    processNextMessage()
   })
 
   window.api.streamChat(msgId, text)
+}
+
+const handleChat = async () => {
+  const text = prompt.value.trim()
+  if (!text || !isSetup.value) return
+  
+  if (isLoading.value) {
+    queuedMessages.value.push(text)
+    prompt.value = ''
+    return
+  }
+
+  prompt.value = ''
+  await executeMessage(text)
+}
+
+const removeQueuedMessage = (index: number) => {
+  queuedMessages.value.splice(index, 1)
 }
 
 // Window Controls
@@ -168,10 +194,14 @@ const closeWindow = () => window.api.closeWindow()
       <!-- Agent Input (Floating at bottom) -->
       <div class="floating-input-container" v-if="isSetup && messages.length > 0">
         <div class="floating-composer-wrapper no-drag">
+          <QueuedMessages 
+            :messages="queuedMessages"
+            @remove="removeQueuedMessage"
+          />
           <ChatInput 
             v-model="prompt"
             @submit="handleChat"
-            :disabled="!isSetup || isLoading"
+            :disabled="!isSetup"
             :rows="1"
             placeholder="Ask a follow-up question..."
           />
@@ -350,6 +380,9 @@ const closeWindow = () => window.api.closeWindow()
 
 .floating-composer-wrapper {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Right Sidebar wrapper */
