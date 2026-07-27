@@ -195,6 +195,7 @@ const closeWindow = () => window.api.closeWindow()
         <div class="sidebar-tab">Tools</div>
       </div>
     </aside>
+    </div>
   </div>
 </template>
 
