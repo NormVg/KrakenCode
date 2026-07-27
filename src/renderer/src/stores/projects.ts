@@ -114,8 +114,14 @@ export const useProjectsStore = defineStore('projects', () => {
   
   const addMessageToActiveChat = (msg: ChatMessage) => {
     if (!activeChat.value) return
+    
+    // Auto-update title on first user message
+    if (activeChat.value.messages.length === 0 && msg.role === 'user' && activeChat.value.title === 'New Chat') {
+      const firstLine = msg.content.split('\n')[0].trim()
+      activeChat.value.title = firstLine.length > 30 ? firstLine.substring(0, 30) + '...' : firstLine
+    }
+    
     activeChat.value.messages.push(msg)
-    // Update time if needed, though 'Just now' might be fine for a simple implementation
     saveData()
   }
   
