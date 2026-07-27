@@ -182,7 +182,7 @@ onMounted(async () => {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 24px 8px 8px 8px; /* Increased top padding for easier dragging */
+  padding: 14px 8px 8px 8px; /* Slightly increased top padding for easier dragging */
   gap: 8px;
 }
 
