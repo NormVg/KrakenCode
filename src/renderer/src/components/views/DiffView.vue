@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, onBeforeUnmount } from 'vue'
 import { VueMonacoDiffEditor } from '@guolao/vue-monaco-editor'
 
 const originalValue = ref(`function hello() {
@@ -19,9 +19,25 @@ const modifiedValue = ref(`function hello(name: string) {
 `)
 
 const diffEditorRef = shallowRef()
+
 const handleMount = (diffEditorInstance: any) => {
   diffEditorRef.value = diffEditorInstance
 }
+
+// Dispose the Monaco diff editor before the component unmounts.
+// Without this, Vue's cleanup of the reactive models triggers a race where
+// TextModel.dispose() fires while DiffEditorWidget still holds a reference,
+// producing "TextModel got disposed before DiffEditorWidget model got reset".
+onBeforeUnmount(() => {
+  if (diffEditorRef.value) {
+    try {
+      diffEditorRef.value.dispose()
+    } catch {
+      // Already disposed — safe to ignore
+    }
+    diffEditorRef.value = undefined
+  }
+})
 
 const MONACO_DIFF_OPTIONS = {
   automaticLayout: true,
