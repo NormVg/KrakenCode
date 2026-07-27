@@ -2,59 +2,7 @@
 import { ref } from 'vue'
 import { SlidersHorizontal, FolderPlus, Folder } from 'lucide-vue-next'
 
-const projects = ref([
-  {
-    id: 1,
-    name: 'kraken',
-    items: [
-      { id: 101, title: 'Codebase And Skills Ana...', time: 'now', active: true }
-    ]
-  },
-  {
-    id: 2,
-    name: 'intelligent-bardeen',
-    items: [
-      { id: 201, title: 'Astro Vercel Docs Site', time: '2d', active: false }
-    ]
-  },
-  {
-    id: 3,
-    name: 'voice-line',
-    items: [
-      { id: 301, title: 'Download Project Sourc...', time: '2d', active: false }
-    ]
-  },
-  {
-    id: 4,
-    name: 'bubbles.space',
-    items: [
-      { id: 401, title: 'Setup Nuxt With Ollama', time: '15h', active: false }
-    ]
-  },
-  {
-    id: 5,
-    name: 'www.taohq',
-    items: [
-      { id: 501, title: 'TaoHQ Codebase Overvi...', time: '3d', active: false }
-    ]
-  },
-  {
-    id: 6,
-    name: 'web-have-sound',
-    items: [
-      { id: 601, title: 'Developing A New Skill', time: '4d', active: false },
-      { id: 602, title: 'Understanding New Mod...', time: '4d', active: false },
-      { id: 603, title: 'Technical Documentatio...', time: '5d', active: false }
-    ]
-  },
-  {
-    id: 7,
-    name: 'v2.taohq',
-    items: [
-      { id: 701, title: 'Modern Portfolio Design ...', time: '6d', active: false }
-    ]
-  }
-])
+const projects = ref([])
 </script>
 
 <template>
