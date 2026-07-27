@@ -216,7 +216,7 @@ const handleSave = async () => {
 .scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 32px;
+  padding: 64px 32px 32px 32px;
 }
 
 .settings-card {
