@@ -1,5 +1,5 @@
 import { VueRenderer } from '@tiptap/vue-3'
-import tippy from 'tippy.js'
+import tippy, { type Instance } from 'tippy.js'
 import CommandList from './CommandList.vue'
 import { Editor } from '@tiptap/core'
 
@@ -138,7 +138,7 @@ export const suggestion = {
 
   render: () => {
     let component: VueRenderer
-    let popup: any[]
+    let popup: Instance | undefined
 
     return {
       onStart: (props: any) => {
@@ -151,10 +151,15 @@ export const suggestion = {
           return
         }
 
-        popup = tippy('body', {
+        const element = component.element
+        if (!element) {
+          return
+        }
+
+        popup = tippy(document.body, {
           getReferenceClientRect: props.clientRect,
           appendTo: () => document.body,
-          content: component.element,
+          content: element,
           showOnCreate: true,
           interactive: true,
           trigger: 'manual',
@@ -169,26 +174,22 @@ export const suggestion = {
           return
         }
 
-        popup[0].setProps({
+        popup?.setProps({
           getReferenceClientRect: props.clientRect,
         })
       },
 
       onKeyDown(props: any) {
         if (props.event.key === 'Escape') {
-          popup[0].hide()
+          popup?.hide()
           return true
         }
         return component.ref?.onKeyDown(props.event)
       },
 
       onExit() {
-        if (popup && popup[0]) {
-          popup[0].destroy()
-        }
-        if (component) {
-          component.destroy()
-        }
+        popup?.destroy()
+        component?.destroy()
       },
     }
   },

@@ -84,12 +84,9 @@ const handleRenameItem = async (node: any) => {
 
 <template>
   <div class="file-explorer-panel">
-    <div class="panel-header">
-      <h3>File Explorer</h3>
-      <button class="icon-btn" @click="loadTree" title="Refresh">
-        <RotateCw :size="14" />
-      </button>
-    </div>
+    <button class="panel-action-btn no-drag" @click="loadTree" title="Refresh">
+      <RotateCw :size="13" />
+    </button>
 
     <div class="file-tree" v-if="files.length">
       <FileTreeNode 
@@ -114,41 +111,34 @@ const handleRenameItem = async (node: any) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px 16px 0;
+  padding: 10px 12px 0;
+  position: relative;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.panel-header h3 {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0;
-}
-
-.icon-btn {
+.panel-action-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease-out, background-color 0.15s ease-out;
 }
 
-.icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
+.panel-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.panel-action-btn:active {
+  transform: scale(0.96);
 }
 
 .file-tree {

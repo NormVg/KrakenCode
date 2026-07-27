@@ -36,7 +36,7 @@ const isLeftSidebarOpen = ref(true)
 const rightSidebarWidth = ref(300)
 const isResizingRight = ref(false)
 
-const startResizeRight = (e: MouseEvent) => {
+const startResizeRight = (_e: MouseEvent) => {
   isResizingRight.value = true
   document.addEventListener('mousemove', handleResizeRight)
   document.addEventListener('mouseup', stopResizeRight)
@@ -118,7 +118,7 @@ onMounted(async () => {
       </div>
 
       <!-- Global Bottom Bar -->
-      <div class="global-bottom-bar no-drag">
+      <div class="global-bottom-bar composer-width no-drag">
         <div class="header-left-group">
           <button class="icon-btn" @click="isLeftSidebarOpen = !isLeftSidebarOpen" title="Toggle Sidebar">
             <PanelLeft :size="16" />
@@ -183,7 +183,7 @@ onMounted(async () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: var(--titlebar-height);
   -webkit-app-region: drag;
   z-index: 5000;
 }
@@ -194,19 +194,20 @@ onMounted(async () => {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 40px 8px 8px 8px;
+  padding: var(--titlebar-height) var(--chrome-gap) var(--chrome-gap) var(--chrome-gap);
 }
 
 /* Left Sidebar */
 .left-sidebar {
   width: 260px;
   background-color: var(--bg-dark);
-  border-radius: 12px;
+  border-radius: var(--chrome-radius);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 0;
-  margin-right: 8px;
+  margin-right: var(--chrome-gap);
+  overflow: hidden;
 }
 
 /* Main Content (The Island) */
@@ -217,9 +218,11 @@ onMounted(async () => {
   position: relative;
   min-width: 0;
   background-color: var(--bg-panel);
-  border-radius: 12px;
+  border-radius: var(--chrome-radius);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 4px 20px rgba(0, 0, 0, 0.28);
 }
 
 .floating-bottom-bar {
@@ -234,44 +237,62 @@ onMounted(async () => {
 }
 
 .chat-breadcrumbs {
-  font-size: 0.85em;
+  font-size: 0.78rem;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .header-left-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: color 0.15s ease-out, background-color 0.15s ease-out;
+  flex-shrink: 0;
 }
 
 .icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
 }
 
 .chat-breadcrumbs .muted {
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 
 .chat-breadcrumbs .divider {
+  color: var(--text-muted-dark);
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.chat-breadcrumbs > span:last-child {
   color: var(--text-muted);
-  opacity: 0.5;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Chat History */
@@ -332,42 +353,53 @@ onMounted(async () => {
 .header-right-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .divider-vertical {
   width: 1px;
-  height: 16px;
-  background-color: rgba(255, 255, 255, 0.1);
+  height: 14px;
+  background-color: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .bottom-view-toggles {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .bottom-tab-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease-out, background-color 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
 .bottom-tab-btn:hover {
-  color: var(--text-main);
+  color: var(--text-muted);
   background: rgba(255, 255, 255, 0.05);
+}
+
+.bottom-tab-btn:active {
+  transform: scale(0.96);
 }
 
 .bottom-tab-btn.active {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .view-container {
@@ -380,20 +412,19 @@ onMounted(async () => {
 
 .global-bottom-bar {
   position: absolute;
-  bottom: 12px;
+  bottom: var(--bottom-bar-offset);
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 24px);
-  max-width: 800px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   background-color: var(--bg-dark);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
 }
 
 /* Right Sidebar wrapper */

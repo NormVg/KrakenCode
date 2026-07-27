@@ -13,3 +13,5 @@ Kraken is a Modern Coding Agent interface built with Electron, Vue 3, Vite, and 
 - Modern UI overhaul is complete.
 - Eve integration foundation is set up.
 - Project now enforces auto-commit and strict tracking via `project.md` and `AGENTS.md`.
+- TypeScript typecheck passes cleanly (`pnpm run typecheck`).
+- Dev server runs via `pnpm run dev` (Electron + Vite on port 5173/5174).

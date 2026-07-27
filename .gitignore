@@ -4,5 +4,6 @@ out
 .DS_Store
 .eslintcache
 *.log*
+*.tsbuildinfo
 .agents
 .info2ai

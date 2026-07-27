@@ -162,10 +162,15 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease-out;
+  flex-shrink: 0;
 }
 
 .mic-btn:hover {
   transform: scale(1.05);
+}
+
+.mic-btn:active {
+  transform: scale(0.96);
 }
 </style>

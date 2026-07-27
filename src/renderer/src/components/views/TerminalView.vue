@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Ghostty, Terminal, FitAddon } from 'ghostty-web'
-import { Terminal as TerminalIcon } from 'lucide-vue-next'
 import ghosttyWasmUrl from 'ghostty-web/ghostty-vt.wasm?url'
 import { useProjectsStore } from '../../stores/projects'
 
@@ -131,12 +130,6 @@ onUnmounted(() => {
 
 <template>
   <div class="terminal-view-container">
-    <div class="terminal-header">
-      <div class="header-title">
-        <TerminalIcon :size="14" />
-        <span>Terminal</span>
-      </div>
-    </div>
     <div class="terminal-wrapper" ref="terminalContainer"></div>
   </div>
 </template>
@@ -148,29 +141,14 @@ onUnmounted(() => {
   height: 100%;
   width: 100%;
   background-color: transparent;
-}
-
-.terminal-header {
-  display: flex;
-  align-items: center;
-  padding: 4px 12px;
-  background-color: transparent;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
+  box-sizing: border-box;
+  padding-bottom: var(--bottom-bar-clearance);
 }
 
 .terminal-wrapper {
   flex: 1;
   width: 100%;
-  height: 100%;
+  min-height: 0;
   padding: 8px;
   position: relative;
   overflow: hidden;

@@ -59,9 +59,6 @@ const MONACO_DIFF_OPTIONS = {
 
 <template>
   <div class="diff-container">
-    <div class="diff-header">
-      <div class="header-title">Changes</div>
-    </div>
     <div class="diff-editor-wrapper">
       <vue-monaco-diff-editor
         :original="originalValue"
@@ -81,21 +78,6 @@ const MONACO_DIFF_OPTIONS = {
   height: 100%;
   width: 100%;
   background-color: transparent;
-}
-
-.diff-header {
-  display: flex;
-  align-items: center;
-  padding: 4px 12px;
-  background-color: transparent;
-  border-bottom: 1px solid var(--border-color);
-  -webkit-app-region: drag;
-}
-
-.header-title {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
 }
 
 .diff-editor-wrapper {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount, onMounted } from 'vue'
+import { ref, shallowRef, onBeforeUnmount, onMounted } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { Table } from '@tiptap/extension-table'
@@ -22,10 +22,10 @@ const content = ref(`
 </ul>
 `)
 
-const editor = ref<Editor | null>(null)
+const tiptapEditor = shallowRef<Editor>()
 
 onMounted(() => {
-  editor.value = new Editor({
+  tiptapEditor.value = new Editor({
     content: content.value,
     extensions: [
       StarterKit.configure({ link: false }),
@@ -49,7 +49,7 @@ onMounted(() => {
       attributes: {
         class: 'tiptap-editor',
       },
-      handleDrop: function(view, event: DragEvent, slice, moved) {
+      handleDrop: function(view, event: DragEvent, _slice, moved) {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
           const files = Array.from(event.dataTransfer.files)
           const images = files.filter(file => file.type.startsWith('image/'))
@@ -74,7 +74,7 @@ onMounted(() => {
         }
         return false
       },
-      handlePaste: function(view, event: ClipboardEvent, slice) {
+      handlePaste: function(view, event: ClipboardEvent, _slice) {
         if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
           const files = Array.from(event.clipboardData.files)
           const images = files.filter(file => file.type.startsWith('image/'))
@@ -117,14 +117,14 @@ onMounted(() => {
         .map((result: any) => result[0].transcript)
         .join('')
 
-      if (transcript && editor.value) {
+      if (transcript && tiptapEditor.value) {
         const textToInsert = transcript + ' '
-        if (!editor.value.isFocused) {
+        if (!tiptapEditor.value.isFocused) {
           // If not focused, append to the end on a new line or just at the very end
-          editor.value.chain().focus('end').insertContent(textToInsert).run()
+          tiptapEditor.value.chain().focus('end').insertContent(textToInsert).run()
         } else {
           // If focused, insert at cursor
-          editor.value.chain().insertContent(textToInsert).run()
+          tiptapEditor.value.chain().insertContent(textToInsert).run()
         }
       }
     }
@@ -157,8 +157,8 @@ const toggleListening = () => {
 }
 
 onBeforeUnmount(() => {
-  if (editor.value) {
-    editor.value.destroy()
+  if (tiptapEditor.value) {
+    tiptapEditor.value.destroy()
   }
   if (recognition && isListening.value) {
     recognition.stop()
@@ -168,12 +168,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="scratchpad-panel">
-    <div class="panel-header">
-      <h3>Scratchpad</h3>
-    </div>
-
     <div class="scratchpad-content">
-      <editor-content :editor="editor" class="editor-container" />
+      <editor-content v-if="tiptapEditor" :editor="tiptapEditor" class="editor-container" />
 
       <!-- Speech to Text Floating Button -->
       <button
@@ -194,23 +190,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px 16px 0;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.panel-header h3 {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0;
+  padding: 10px 12px 0;
 }
 
 .scratchpad-content {
@@ -229,34 +209,37 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* STT Button */
+/* STT Button — matches ChatInput mic-btn */
 .stt-btn {
   position: absolute;
   bottom: 24px;
   right: 8px;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-muted);
+  background: #fff;
+  border: none;
+  color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
 }
 
 .stt-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--text-main);
+  transform: scale(1.05);
+}
+
+.stt-btn:active {
+  transform: scale(0.96);
 }
 
 .stt-btn.is-listening {
-  background: rgba(243, 139, 168, 0.2);
-  border-color: rgba(243, 139, 168, 0.4);
-  color: #f38ba8;
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 95, 95, 0.35);
   animation: pulse-red 1.5s infinite;
 }
 

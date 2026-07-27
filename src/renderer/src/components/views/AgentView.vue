@@ -101,7 +101,7 @@ const removeQueuedMessage = (index: number) => {
     <!-- Empty Conversation State -->
     <div v-if="isSetup && (!projectsStore.activeChat || projectsStore.activeChat.messages.length === 0)" class="empty-conversation-state">
       <img src="../../assets/banner.png" alt="Kraken Logo" class="empty-banner" />
-      <div class="centered-composer">
+      <div class="centered-composer composer-width">
         <ChatInput 
           v-model="prompt"
           @submit="handleChat"
@@ -133,7 +133,10 @@ const removeQueuedMessage = (index: number) => {
     </div>
 
     <!-- Floating Input Container -->
-    <div class="floating-input-container" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
+    <div
+      v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0"
+      class="floating-input-container composer-width no-drag"
+    >
       <div class="floating-composer-wrapper no-drag">
         <QueuedMessages 
           :messages="queuedMessages"
@@ -182,13 +185,13 @@ const removeQueuedMessage = (index: number) => {
 
 .centered-composer {
   position: absolute;
-  bottom: 60px; /* Offset to leave room for global bottom bar */
-  width: calc(100% - 24px);
-  max-width: 800px; 
+  bottom: calc(var(--bottom-bar-clearance) + var(--composer-stack-gap));
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--composer-stack-gap);
 }
 
 .chat-history {
@@ -198,7 +201,7 @@ const removeQueuedMessage = (index: number) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 140px; 
+  padding-bottom: 140px;
 }
 
 .chat-container {
@@ -228,11 +231,9 @@ const removeQueuedMessage = (index: number) => {
 
 .floating-input-container {
   position: absolute;
-  bottom: 60px; /* Offset for global bottom bar */
+  bottom: calc(var(--bottom-bar-clearance) + var(--composer-stack-gap));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 24px);
-  max-width: 800px; 
   display: flex;
   justify-content: center;
   z-index: 10;

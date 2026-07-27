@@ -53,10 +53,10 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 <template>
   <div class="projects-sidebar">
-    <!-- Header -->
+    <!-- Header — sits in titlebar row beside traffic lights -->
     <header class="projects-header">
-      <h2 class="title">Projects</h2>
-      <div class="header-actions">
+      <span class="title">Projects</span>
+      <div class="header-actions no-drag">
         <button class="icon-btn" title="Settings" @click="emit('open-settings')">
           <Settings :size="16" stroke-width="2" />
         </button>
@@ -154,39 +154,47 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 12px 12px 12px;
+  padding: 22px 12px 8px;
   flex-shrink: 0;
+  -webkit-app-region: drag;
 }
 
 .title {
-  font-size: 0.95em;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin: 0;
+  user-select: none;
 }
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 2px;
+  -webkit-app-region: no-drag;
 }
 
 .icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-muted-dark);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease-out, background-color 0.15s ease-out;
 }
 
 .icon-btn:hover {
-  background-color: transparent;
-  color: var(--text-main);
-  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
 }
 
 .projects-list-wrapper {
@@ -259,15 +267,16 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 .empty-state {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 12px;
-  padding: 32px 12px;
+  padding: 8px 12px 24px;
   text-align: center;
   color: var(--text-muted);
   font-size: 0.9em;
 }
 
 .btn-primary {
+  width: 100%;
   background-color: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.05);
