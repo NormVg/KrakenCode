@@ -114,9 +114,12 @@ onMounted(async () => {
 
       <!-- Dynamic View Component -->
       <div class="view-container">
-        <KeepAlive>
-          <component :is="views[projectsStore.activeView].component" />
-        </KeepAlive>
+        <component 
+          v-for="(view, key) in views"
+          :key="key"
+          :is="view.component"
+          v-show="projectsStore.activeView === key"
+        />
       </div>
 
       <!-- Global Bottom Bar -->
