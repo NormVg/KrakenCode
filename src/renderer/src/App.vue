@@ -95,9 +95,11 @@ onMounted(async () => {
     <div class="layout">
 
       <!-- Left Sidebar (Projects) -->
-      <aside class="left-sidebar no-drag" :class="{ 'is-closed': !isLeftSidebarOpen }">
-        <ProjectsSidebar @open-settings="isSettingsOpen = true" />
-      </aside>
+      <Transition name="sidebar-left">
+        <aside v-if="isLeftSidebarOpen" class="left-sidebar no-drag">
+          <ProjectsSidebar @open-settings="isSettingsOpen = true" />
+        </aside>
+      </Transition>
 
       <!-- Main Content (Island) -->
       <main class="main-content no-drag">
@@ -192,8 +194,9 @@ onMounted(async () => {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  padding: 10px 8px 8px 8px; /* Slightly increased top padding for easier dragging */
-  gap: 8px;
+  padding: 10px 8px 8px 8px;
+  /* No gap — spacing is handled by margin-right on .left-sidebar
+     so it collapses to zero when the sidebar is removed from DOM */
 }
 
 /* Left Sidebar */
@@ -206,6 +209,9 @@ onMounted(async () => {
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 12px;
+  /* Space between sidebar and main island — owned by sidebar,
+     so it disappears when the sidebar is removed from DOM */
+  margin-right: 8px;
 }
 
 /* Main Content (The Island) */
@@ -219,11 +225,6 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.layout-container.left-sidebar-closed .main-content {
-  margin-left: 72px; /* Space for the macOS traffic lights */
 }
 
 .floating-bottom-bar {
@@ -425,23 +426,21 @@ onMounted(async () => {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Sidebar Animations */
-.left-sidebar {
+/* Left Sidebar - Enter/Leave Transition via v-if */
+.sidebar-left-enter-active,
+.sidebar-left-leave-active {
   transition:
-    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    min-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    margin 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease;
   overflow: hidden;
+  max-width: 260px;
 }
-.left-sidebar.is-closed {
-  width: 0 !important;
-  min-width: 0 !important;
+.sidebar-left-enter-from,
+.sidebar-left-leave-to {
+  max-width: 0;
+  margin-right: 0;
   opacity: 0;
-  padding: 0 !important; /* zero ALL padding sides including top */
-  margin-left: 0 !important;
-  margin-right: -8px !important; /* cancel flex gap */
 }
 
 .slide-right-enter-active,
