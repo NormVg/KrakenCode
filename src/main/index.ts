@@ -16,7 +16,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 22 },
+    trafficLightPosition: { x: 16, y: 18 },
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -68,7 +68,7 @@ app.whenReady().then(() => {
         aiModel = ollama(config.model || 'gemma4:31b-cloud');
         return { success: true };
       }
-      
+
       if (config.provider === 'ollama-cloud') {
         const apiKey = config.apiKey || process.env.OLLAMA_API_KEY;
         const ollama = createOllama({
@@ -78,7 +78,7 @@ app.whenReady().then(() => {
         aiModel = ollama(config.model || 'gemma4:31b-cloud');
         return { success: true };
       }
-      
+
       return { success: false, error: 'Provider not supported yet' };
     } catch (err: any) {
       return { success: false, error: err.message };
