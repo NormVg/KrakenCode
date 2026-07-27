@@ -95,6 +95,8 @@ const handleRenameItem = async (payload: { node: any; newName: string }) => {
   segments.push(newName)
   const newPath = segments.join('/')
   await window.api.fs.renameItem(node.path, newPath)
+  // Update any open editor tab that had the old path
+  projectsStore.renameOpenFile(node.path, newPath, newName)
   loadTree()
 }
 

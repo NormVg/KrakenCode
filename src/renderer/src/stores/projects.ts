@@ -264,6 +264,20 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  const renameOpenFile = (oldPath: string, newPath: string, newName: string) => {
+    const file = openFiles.value.find(f => f.path === oldPath)
+    if (file) {
+      file.id = newPath
+      file.path = newPath
+      file.name = newName
+      file.language = getLanguageFromExtension(newName)
+      // If this was the active file, update the active ID too
+      if (activeFileId.value === oldPath) {
+        activeFileId.value = newPath
+      }
+    }
+  }
+
   return {
     projects,
     activeProjectId,
@@ -288,6 +302,7 @@ export const useProjectsStore = defineStore('projects', () => {
     openFile,
     closeFile,
     updateFileContent,
-    saveFile
+    saveFile,
+    renameOpenFile
   }
 })

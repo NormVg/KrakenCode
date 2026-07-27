@@ -59,12 +59,50 @@ const closeMenu = (e: MouseEvent) => {
 const handleAction = (action: string, type?: string) => {
   isMenuOpen.value = false
   if (action === 'create' && type) {
-    emit('createItem', { node: props.node, type })
+    startInlineCreate(type as 'file' | 'folder')
   } else if (action === 'delete') {
     emit('deleteItem', props.node)
   } else if (action === 'rename') {
     startRename()
   }
+}
+
+// Inline creation inside this folder
+const inlineCreateType = ref<'file' | 'folder' | null>(null)
+const inlineCreateName = ref('')
+const inlineCreateInputRef = ref<HTMLInputElement | null>(null)
+
+const startInlineCreate = async (type: 'file' | 'folder') => {
+  // Open the folder if it isn't already
+  if (!props.node.isOpen) {
+    props.node.isOpen = true
+    if (!props.node.childrenLoaded) {
+      await loadChildren()
+    }
+  }
+  inlineCreateType.value = type
+  inlineCreateName.value = ''
+  await nextTick()
+  inlineCreateInputRef.value?.focus()
+}
+
+const commitInlineCreate = async () => {
+  const name = inlineCreateName.value.trim()
+  if (!name || !inlineCreateType.value) {
+    cancelInlineCreate()
+    return
+  }
+  const fullPath = `${props.node.path}/${name}`
+  await window.api.fs.createItem(fullPath, inlineCreateType.value)
+  cancelInlineCreate()
+  // Reload this folder's children
+  props.node.childrenLoaded = false
+  await loadChildren()
+}
+
+const cancelInlineCreate = () => {
+  inlineCreateType.value = null
+  inlineCreateName.value = ''
 }
 
 const startRename = async () => {
@@ -226,10 +264,23 @@ onUnmounted(() => {
     
     <!-- Children -->
     <div v-if="node.type === 'folder' && node.isOpen" class="tree-children">
-      <!-- Optional: Indentation guide line -->
       <div class="indent-guide" :style="{ marginLeft: `${depth * 14 + 11}px` }"></div>
-      
       <div class="children-content">
+        <!-- Inline creation input inside this folder -->
+        <div v-if="inlineCreateType" class="inline-create-row" :style="{ paddingLeft: `${(depth + 1) * 14 + 6}px` }">
+          <FilePlus v-if="inlineCreateType === 'file'" :size="13" class="inline-create-icon" />
+          <FolderPlus v-else :size="13" class="inline-create-icon" />
+          <input
+            ref="inlineCreateInputRef"
+            v-model="inlineCreateName"
+            class="inline-create-input"
+            :placeholder="`New ${inlineCreateType} name…`"
+            @keydown.enter.stop="commitInlineCreate"
+            @keydown.esc.stop="cancelInlineCreate"
+            @blur="cancelInlineCreate"
+            @click.stop
+          />
+        </div>
         <FileTreeNode 
           v-for="(child, index) in node.children" 
           :key="index"
@@ -448,6 +499,41 @@ onUnmounted(() => {
 
 .rename-input:focus {
   border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Inline creation row inside a folder */
+.inline-create-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-right: 6px;
+}
+
+.inline-create-icon {
+  color: var(--text-muted-dark);
+  flex-shrink: 0;
+}
+
+.inline-create-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  color: var(--text-main);
+  font-size: 12px;
+  font-family: var(--font-primary);
+  padding: 2px 6px;
+  outline: none;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+  pointer-events: all;
+}
+
+.inline-create-input:focus {
+  border-color: rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.1);
 }
 </style>
