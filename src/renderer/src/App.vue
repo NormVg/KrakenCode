@@ -150,9 +150,6 @@ const closeWindow = () => window.api.closeWindow()
             </div>
           </div>
         </div>
-        <button class="connect-repos-btn">
-          <Github :size="14" /> Connect Your Repos
-        </button>
       </div>
 
       <!-- Chat History -->
@@ -446,26 +443,6 @@ const closeWindow = () => window.api.closeWindow()
 }
 
 .mic-btn:hover {
-  transform: scale(1.05);
-}
-
-.connect-repos-btn {
-  margin-top: 16px;
-  background-color: #fff;
-  color: #000;
-  border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 0.85em;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.connect-repos-btn:hover {
   transform: scale(1.05);
 }
 
