@@ -180,44 +180,32 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0A0D18; /* Dark backdrop for the stage */
+  background-color: var(--bg-dark); /* Subtle background for the stage */
   overflow: auto;
   position: relative;
+  padding: 24px;
 }
 
 .webview-stage.desktop {
-  /* In desktop mode, we just want the frame to fill everything seamlessly */
+  padding: 0;
   background-color: transparent;
 }
 
 .device-frame {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Mobile Frame Styling */
+/* Mobile Frame Styling - Clean internal frame */
 .device-frame.mobile {
   width: 375px;
   height: 812px;
-  border-radius: 36px;
-  border: 12px solid #111;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  /* Optional: a little top notch fake */
-}
-.device-frame.mobile::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 24px;
-  background-color: #111;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  z-index: 10;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* Desktop Frame Styling */
@@ -229,9 +217,10 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
 }
 
 .webview-element {
+  flex: 1;
   width: 100%;
   height: 100%;
   border: none;
-  display: block; /* Removes bottom spacing issues */
+  display: block;
 }
 </style>
