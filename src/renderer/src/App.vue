@@ -62,7 +62,6 @@ onMounted(async () => {
 
 <template>
   <div class="layout-container">
-    <div class="invisible-drag-area"></div>
     <div class="layout">
       
       <!-- Left Sidebar (Projects) -->
@@ -146,16 +145,6 @@ onMounted(async () => {
   width: 100vw;
   background-color: var(--bg-dark); /* #0A0D18 */
   position: relative;
-}
-
-.invisible-drag-area {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 30px;
-  -webkit-app-region: drag;
-  z-index: 9999;
 }
 
 .layout {

@@ -121,6 +121,7 @@ const handleMount = (editor: any) => {
   </div>
 </template>
 
+<style scoped>
 .editor-view {
   display: flex;
   flex-direction: column;
