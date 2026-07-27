@@ -114,9 +114,6 @@ const closeWindow = () => window.api.closeWindow()
 <template>
   <div class="layout">
     
-    <!-- Invisible drag region at the top -->
-    <div class="draggable-header"></div>
-
     <!-- Main Content -->
     <main class="main-content">
       
@@ -124,17 +121,18 @@ const closeWindow = () => window.api.closeWindow()
       <SettingsModal 
         v-if="isSettingsOpen" 
         @close="isSettingsOpen = false" 
-        class="no-drag"
       />
 
       <!-- Chat History -->
-      <div class="chat-history no-drag" ref="chatHistoryRef">
+      <div class="chat-history" ref="chatHistoryRef">
         <div class="chat-container">
           <div v-if="!isSetup" class="welcome-screen">
             <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
             <p>Please configure the agent to start.</p>
           </div>
           <template v-else>
+            <!-- Spacer to push content down below traffic lights -->
+            <div class="top-spacer" style="height: 60px;"></div>
             <ChatMessage 
               v-for="(msg, index) in messages" 
               :key="msg.id || index" 
@@ -152,7 +150,7 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Agent Input Pill (Floating above focus bar) -->
-      <div class="floating-input-container no-drag">
+      <div class="floating-input-container">
         <div class="input-pill">
           <textarea 
             v-model="prompt" 
@@ -165,7 +163,7 @@ const closeWindow = () => window.api.closeWindow()
       </div>
 
       <!-- Bottom Focus Bar -->
-      <div class="focus-bar no-drag">
+      <div class="focus-bar">
         <div class="focus-tabs">
           <div class="focus-tab active">
             <span>agent_chat</span>
@@ -184,7 +182,7 @@ const closeWindow = () => window.api.closeWindow()
     </main>
 
     <!-- Right Sidebar -->
-    <aside class="right-sidebar no-drag" v-if="isSidebarOpen">
+    <aside class="right-sidebar" v-if="isSidebarOpen">
       <div class="sidebar-content">
         <div class="sidebar-placeholder">
           <h3>File Explorer</h3>
@@ -201,27 +199,13 @@ const closeWindow = () => window.api.closeWindow()
 </template>
 
 <style scoped>
-.no-drag {
-  -webkit-app-region: no-drag;
-}
-
 .layout {
   display: flex;
   height: 100vh;
   width: 100vw;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-panel); /* The main purple-ish background */
   position: relative;
-}
-
-/* Invisible Drag Header */
-.draggable-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 48px;
-  -webkit-app-region: drag;
-  z-index: 100;
+  overflow: hidden;
 }
 
 /* Main Content */
@@ -231,6 +215,7 @@ const closeWindow = () => window.api.closeWindow()
   flex-direction: column;
   position: relative;
   min-width: 0;
+  background-color: var(--bg-panel); /* #1C1C2A */
 }
 
 /* Chat History */
@@ -240,15 +225,13 @@ const closeWindow = () => window.api.closeWindow()
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
-  /* Add padding to bottom to prevent overlap with floating input and focus bar */
   padding-bottom: 140px; 
 }
 
 .chat-container {
   max-width: 800px;
-  margin: 0 auto;
   width: 100%;
-  padding: 40px 20px 20px 20px;
+  padding: 0 40px 20px 40px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -281,7 +264,7 @@ const closeWindow = () => window.api.closeWindow()
 /* Floating Input Area */
 .floating-input-container {
   position: absolute;
-  bottom: 60px; /* Above focus bar */
+  bottom: 70px; /* Above focus bar */
   left: 0;
   right: 0;
   display: flex;
@@ -294,20 +277,20 @@ const closeWindow = () => window.api.closeWindow()
   pointer-events: auto;
   display: flex;
   align-items: center;
-  background-color: rgba(28, 28, 42, 0.85); /* var(--bg-panel) with opacity */
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 10px 24px;
-  width: 100%;
-  max-width: 600px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(147, 116, 190, 0.1); /* Subtle glowing shadow */
-  transition: box-shadow 0.3s, border-color 0.3s;
+  background-color: rgba(10, 13, 24, 0.6); /* Translucent dark #0A0D18 */
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+  padding: 12px 24px;
+  width: 90%;
+  max-width: 650px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.02); 
+  transition: all 0.3s ease;
 }
 
 .input-pill:focus-within {
-  border-color: var(--accent-purple);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 30px rgba(147, 116, 190, 0.2);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 255, 255, 0.05);
 }
 
 .input-pill textarea {
@@ -331,18 +314,22 @@ const closeWindow = () => window.api.closeWindow()
 /* Focus Bar */
 .focus-bar {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  height: 36px;
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 95%;
+  max-width: 1000px;
+  height: 40px;
+  background-color: rgba(10, 13, 24, 0.8); /* #0A0D18 */
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
+  padding: 0 12px;
   z-index: 10;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .focus-tabs {
@@ -416,17 +403,18 @@ const closeWindow = () => window.api.closeWindow()
 
 /* Right Sidebar */
 .right-sidebar {
-  width: 280px;
-  background-color: var(--bg-panel);
-  border-left: 1px solid var(--border-color);
+  width: 320px;
+  background-color: var(--bg-dark); /* #0A0D18 */
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
   display: flex;
   flex-direction: column;
   z-index: 10;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-content {
   flex: 1;
-  padding: 16px;
+  padding: 24px;
   overflow-y: auto;
 }
 
@@ -435,7 +423,8 @@ const closeWindow = () => window.api.closeWindow()
   margin-top: 50px;
 }
 .sidebar-placeholder h3 {
-  font-size: 1em;
+  font-size: 1.1em;
+  font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-main);
 }
@@ -446,30 +435,28 @@ const closeWindow = () => window.api.closeWindow()
 
 .sidebar-tabs {
   display: flex;
-  border-top: 1px solid var(--border-color);
-  padding: 8px;
-  gap: 4px;
+  padding: 12px 24px 24px 24px;
+  gap: 16px;
+  justify-content: center;
 }
 
 .sidebar-tab {
-  flex: 1;
-  text-align: center;
-  padding: 8px 0;
-  font-size: 0.8em;
+  font-size: 0.85em;
   color: var(--text-muted);
   cursor: pointer;
-  border-radius: 6px;
   transition: all 0.2s;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
 }
 
 .sidebar-tab:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
 }
 
 .sidebar-tab.active {
-  background-color: var(--text-main);
-  color: var(--bg-dark);
-  font-weight: 600;
+  color: var(--text-main);
+  border-bottom: 2px solid var(--text-main);
+  font-weight: 500;
 }
 
 /* Loading */
