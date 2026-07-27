@@ -112,7 +112,10 @@ const closeWindow = () => window.api.closeWindow()
 </script>
 
 <template>
-  <div class="layout" style="-webkit-app-region: drag;">
+  <div class="layout">
+    
+    <!-- Invisible drag region at the top -->
+    <div class="draggable-header"></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -208,6 +211,17 @@ const closeWindow = () => window.api.closeWindow()
   width: 100vw;
   background-color: var(--bg-dark);
   position: relative;
+}
+
+/* Invisible Drag Header */
+.draggable-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  -webkit-app-region: drag;
+  z-index: 100;
 }
 
 /* Main Content */
