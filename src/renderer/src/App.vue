@@ -429,7 +429,7 @@ const closeWindow = () => window.api.closeWindow()
 
 .centered-composer {
   position: absolute;
-  bottom: 24px;
+  bottom: 12px;
   width: 100%;
   max-width: 800px;
   padding: 0 16px; /* Match chat-container padding */
@@ -442,7 +442,7 @@ const closeWindow = () => window.api.closeWindow()
 /* Floating Input Area */
 .floating-input-container {
   position: absolute;
-  bottom: 24px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
