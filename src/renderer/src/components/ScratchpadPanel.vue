@@ -2,6 +2,13 @@
 import { ref, watch, onBeforeUnmount, onMounted } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+import Link from '@tiptap/extension-link'
+import SlashCommands from './tiptap/SlashCommands'
+import { suggestion } from './tiptap/suggestion'
 
 const content = ref(`
 <h2>Scratchpad</h2>
@@ -19,6 +26,14 @@ onMounted(() => {
     content: content.value,
     extensions: [
       StarterKit,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Link.configure({ openOnClick: false }),
+      SlashCommands.configure({
+        suggestion,
+      }),
     ],
     onUpdate: ({ editor }) => {
       content.value = editor.getHTML()
@@ -179,5 +194,39 @@ onBeforeUnmount(() => {
   margin: 0 0 1em 0;
   padding-left: 1em;
   color: var(--text-muted);
+}
+
+:deep(.tiptap-editor table) {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+:deep(.tiptap-editor td),
+:deep(.tiptap-editor th) {
+  min-width: 1em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+:deep(.tiptap-editor th) {
+  font-weight: bold;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+:deep(.tiptap-editor a) {
+  color: #4A90E2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+:deep(.tiptap-editor a:hover) {
+  text-decoration: underline;
 }
 </style>
