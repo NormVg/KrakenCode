@@ -96,9 +96,9 @@ const editor = useEditor({
     handleKeyDown: (_view, event) => {
       // Enter without shift = submit
       if (event.key === 'Enter' && !event.shiftKey) {
-        // Don't submit if a suggestion popup is open
-        const hasSuggestion = document.querySelector('.tippy-box')
-        if (hasSuggestion) return false
+        // Don't submit if the command drawer is open
+        if (suggestionState.value.isOpen) return false
+        
         event.preventDefault()
         handleSubmit()
         return true
