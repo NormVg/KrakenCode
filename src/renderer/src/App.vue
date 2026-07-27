@@ -202,15 +202,14 @@ onMounted(async () => {
 /* Left Sidebar */
 .left-sidebar {
   width: 260px;
-  min-width: 260px;
+  /* min-width intentionally omitted — flex-shrink:0 already prevents
+     flexbox from squishing it, and we need width to animate to 0 */
   background-color: var(--bg-dark);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 12px;
-  /* Space between sidebar and main island — owned by sidebar,
-     so it disappears when the sidebar is removed from DOM */
   margin-right: 8px;
 }
 
@@ -430,15 +429,15 @@ onMounted(async () => {
 .sidebar-left-enter-active,
 .sidebar-left-leave-active {
   transition:
-    max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.2s ease;
+    opacity 0.25s ease;
   overflow: hidden;
-  max-width: 260px;
+  white-space: nowrap;
 }
 .sidebar-left-enter-from,
 .sidebar-left-leave-to {
-  max-width: 0;
+  width: 0;
   margin-right: 0;
   opacity: 0;
 }
