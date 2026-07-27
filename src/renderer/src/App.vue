@@ -372,6 +372,7 @@ const closeWindow = () => window.api.closeWindow()
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
+  align-items: center;
   padding-bottom: 140px; 
 }
 

@@ -58,13 +58,16 @@ const props = defineProps<{
 
 /* User Message */
 .user-bubble {
-  background-color: var(--bg-dark); /* #0A0D18 */
+  background-color: rgba(255, 255, 255, 0.03); /* Subtle inset */
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: 16px;
+  border-bottom-right-radius: 4px; /* classic chat bubble tail */
+  padding: 12px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-self: flex-end;
+  max-width: 85%;
   /* Maya-design */
   transition: border-color 0.2s;
 }
@@ -121,6 +124,8 @@ const props = defineProps<{
   display: flex;
   flex-direction: column;
   padding: 0 8px;
+  align-self: flex-start;
+  width: 100%;
 }
 
 .markdown-body {
