@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ArrowLeft, ArrowRight, RotateCw, Monitor, Smartphone } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { ArrowLeft, ArrowRight, RotateCw, Monitor, Smartphone, Layout } from 'lucide-vue-next'
 
 const url = ref('https://google.com')
 const webviewRef = ref<any>(null)
 const canGoBack = ref(false)
 const canGoForward = ref(false)
-const viewMode = ref<'desktop' | 'mobile'>('desktop')
+
+type DeviceMode = 'desktop' | 'mobile' | 'responsive'
+const viewMode = ref<DeviceMode>('desktop')
+
+// Responsive dimensions
+const customWidth = ref(800)
+const customHeight = ref(600)
+const zoomLevel = ref(100)
 
 const loadUrl = () => {
   if (webviewRef.value) {
@@ -44,59 +51,139 @@ const onDidNavigate = (e: any) => {
   }
 }
 
-const setViewMode = (mode: 'desktop' | 'mobile') => {
+const setViewMode = (mode: DeviceMode) => {
   viewMode.value = mode
-  // Optionally, you can set the user agent for mobile here if needed
   if (webviewRef.value) {
     if (mode === 'mobile') {
       webviewRef.value.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1')
     } else {
-      // Set to default desktop user agent (empty means default)
       webviewRef.value.setUserAgent(navigator.userAgent)
     }
     webviewRef.value.reload()
   }
 }
+
+// Computed styles for the device frame
+const frameStyle = computed(() => {
+  if (viewMode.value === 'desktop') {
+    return {
+      width: '100%',
+      height: '100%',
+      transform: `scale(${zoomLevel.value / 100})`,
+      transformOrigin: 'top left'
+    }
+  }
+  
+  if (viewMode.value === 'mobile') {
+    return {
+      width: '375px',
+      height: '812px',
+      transform: `scale(${zoomLevel.value / 100})`,
+      transformOrigin: 'top center'
+    }
+  }
+
+  // Responsive mode
+  return {
+    width: `${customWidth.value}px`,
+    height: `${customHeight.value}px`,
+    transform: `scale(${zoomLevel.value / 100})`,
+    transformOrigin: 'top center'
+  }
+})
 </script>
 
 <template>
   <div class="webview-container">
+    
+    <!-- 1. Top Address Bar (Browser Chrome) -->
     <div class="address-bar">
       <div class="nav-group">
         <button class="nav-btn" :disabled="!canGoBack" @click="goBack"><ArrowLeft :size="16" /></button>
         <button class="nav-btn" :disabled="!canGoForward" @click="goForward"><ArrowRight :size="16" /></button>
-        <button class="nav-btn" @click="reload"><RotateCw :size="16" /></button>
+        <button class="nav-btn" @click="reload"><RotateCw :size="14" /></button>
       </div>
       
-      <input 
-        v-model="url" 
-        @keyup.enter="loadUrl" 
-        class="url-input" 
-        type="text" 
-        placeholder="Enter URL..." 
-      />
-      
-      <div class="view-toggles">
-        <button 
-          class="nav-btn" 
-          :class="{ 'active': viewMode === 'desktop' }" 
-          @click="setViewMode('desktop')"
-          title="Desktop View"
-        >
-          <Monitor :size="16" />
-        </button>
-        <button 
-          class="nav-btn" 
-          :class="{ 'active': viewMode === 'mobile' }" 
-          @click="setViewMode('mobile')"
-          title="Mobile View"
-        >
-          <Smartphone :size="16" />
-        </button>
+      <div class="url-bar-wrapper">
+        <input 
+          v-model="url" 
+          @keyup.enter="loadUrl" 
+          class="url-input" 
+          type="text" 
+          placeholder="Enter URL..." 
+          spellcheck="false"
+        />
       </div>
     </div>
+
+    <!-- 2. DevTools Device Toolbar -->
+    <div class="device-toolbar">
+      <div class="toolbar-group">
+        <button 
+          class="tool-btn" 
+          :class="{ 'active': viewMode === 'desktop' }" 
+          @click="setViewMode('desktop')"
+          title="Desktop"
+        >
+          <Monitor :size="14" />
+          <span>Desktop</span>
+        </button>
+        <button 
+          class="tool-btn" 
+          :class="{ 'active': viewMode === 'responsive' }" 
+          @click="setViewMode('responsive')"
+          title="Responsive"
+        >
+          <Layout :size="14" />
+          <span>Responsive</span>
+        </button>
+        <button 
+          class="tool-btn" 
+          :class="{ 'active': viewMode === 'mobile' }" 
+          @click="setViewMode('mobile')"
+          title="Mobile"
+        >
+          <Smartphone :size="14" />
+          <span>iPhone SE</span>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Dimensions (only show in Responsive mode) -->
+      <div class="toolbar-group dimensions-group" :class="{ 'disabled': viewMode !== 'responsive' }">
+        <input 
+          type="number" 
+          v-model="customWidth" 
+          class="dim-input" 
+          :disabled="viewMode !== 'responsive'"
+        />
+        <span class="dim-separator">×</span>
+        <input 
+          type="number" 
+          v-model="customHeight" 
+          class="dim-input" 
+          :disabled="viewMode !== 'responsive'"
+        />
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Zoom -->
+      <div class="toolbar-group">
+        <select v-model="zoomLevel" class="zoom-select">
+          <option :value="50">50%</option>
+          <option :value="75">75%</option>
+          <option :value="100">100%</option>
+          <option :value="125">125%</option>
+          <option :value="150">150%</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 3. Workspace Stage -->
     <div class="webview-stage" :class="viewMode">
-      <div class="device-frame" :class="viewMode">
+      <div class="device-frame" :class="viewMode" :style="frameStyle">
         <webview
           ref="webviewRef"
           class="webview-element"
@@ -106,6 +193,7 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
         ></webview>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -115,20 +203,22 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: var(--bg-panel); /* Blend with surroundings */
+  background-color: var(--bg-panel);
 }
 
+/* ─── Address Bar ────────────────────────────────────────────────────────── */
 .address-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background-color: transparent;
+  background-color: #1a1a24;
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
+  flex-shrink: 0;
 }
 
-.nav-group, .view-toggles {
+.nav-group {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -139,7 +229,7 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -147,11 +237,7 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
   -webkit-app-region: no-drag;
 }
 .nav-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-}
-.nav-btn.active {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
 }
 .nav-btn:disabled {
@@ -159,61 +245,181 @@ const setViewMode = (mode: 'desktop' | 'mobile') => {
   cursor: not-allowed;
 }
 
-.url-input {
+.url-bar-wrapper {
   flex: 1;
-  background-color: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  max-width: 600px;
+  margin: 0 auto;
+  -webkit-app-region: no-drag;
+}
+
+.url-input {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-main);
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
   font-family: var(--font-primary);
   font-size: 13px;
   outline: none;
-  -webkit-app-region: no-drag;
+  text-align: center;
+  transition: all 0.2s ease;
 }
 .url-input:focus {
   border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.4);
+  text-align: left;
 }
 
+/* ─── Device Toolbar (DevTools Style) ────────────────────────────────────── */
+.device-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background-color: #232333;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.tool-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+}
+
+.tool-btn.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+}
+
+/* Dimensions Input */
+.dimensions-group {
+  transition: opacity 0.2s ease;
+}
+.dimensions-group.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.dim-input {
+  width: 50px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-main);
+  font-family: var(--font-code);
+  font-size: 12px;
+  text-align: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.dim-input:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dim-input:focus {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+.dim-separator {
+  color: var(--text-muted-dark);
+  font-size: 12px;
+}
+
+/* Zoom Dropdown */
+.zoom-select {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  padding: 2px;
+}
+.zoom-select option {
+  background-color: var(--bg-panel);
+}
+
+/* ─── Workspace Stage ────────────────────────────────────────────────────── */
 .webview-stage {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  background-color: var(--bg-dark); /* Subtle background for the stage */
+  
+  /* Technical background hash pattern */
+  background-color: #0d0f16;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 16px 16px;
+  
   overflow: auto;
   position: relative;
   padding: 24px;
 }
 
+/* Desktop mode has no padding, fills stage */
 .webview-stage.desktop {
   padding: 0;
+  background-image: none;
   background-color: transparent;
+  align-items: stretch;
 }
 
 .device-frame {
   position: relative;
-  overflow: hidden;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
+  transition: width 0.2s ease, height 0.2s ease;
 }
 
-/* Mobile Frame Styling - Clean internal frame */
-.device-frame.mobile {
-  width: 375px;
-  height: 812px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+/* Responsive & Mobile add borders and shadow */
+.device-frame.mobile,
+.device-frame.responsive {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* For resizing in responsive mode, we use CSS resize */
+.device-frame.responsive {
+  resize: both;
+  overflow: hidden;
+  /* Override inline styles during manual resize */
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Desktop Frame Styling */
 .device-frame.desktop {
-  width: 100%;
-  height: 100%;
   border: none;
   border-radius: 0;
+  transition: none;
 }
 
 .webview-element {
