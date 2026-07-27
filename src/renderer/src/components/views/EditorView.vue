@@ -24,12 +24,44 @@ self.MonacoEnvironment = {
 // Tell the wrapper to use our local monaco instance instead of fetching from CDN
 loader.config({ monaco })
 
+monaco.editor.defineTheme('kraken-theme', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '6C7A9C', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'C678DD', fontStyle: 'bold' },
+    { token: 'string', foreground: 'A3BE8C' },
+    { token: 'number', foreground: 'D08770' },
+    { token: 'type', foreground: 'EBCB8B' },
+    { token: 'class', foreground: 'EBCB8B', fontStyle: 'bold' },
+    { token: 'function', foreground: '82AAFF' },
+    { token: 'variable', foreground: 'A6ACCD' },
+    { token: 'operator', foreground: '89DDFF' },
+    { token: 'property', foreground: '80CBC4' }
+  ],
+  colors: {
+    'editor.background': '#11131e',
+    'editor.foreground': '#A6ACCD',
+    'editor.lineHighlightBackground': '#181b2b',
+    'editorCursor.foreground': '#82AAFF',
+    'editorWhitespace.foreground': '#1f2438',
+    'editorIndentGuide.background': '#1f2438',
+    'editorIndentGuide.activeBackground': '#3b4366',
+    'editorLineNumber.foreground': '#3b4366',
+    'editorLineNumber.activeForeground': '#82AAFF',
+    'editorWidget.background': '#181b2b',
+    'editorSuggestWidget.background': '#181b2b',
+    'editorSuggestWidget.border': '#1f2438',
+    'editorSuggestWidget.selectedBackground': '#252a42'
+  }
+})
+
 const MONACO_EDITOR_OPTIONS = {
   automaticLayout: true,
   formatOnType: true,
   formatOnPaste: true,
   minimap: { enabled: false },
-  theme: 'vs-dark',
+  theme: 'kraken-theme',
   fontFamily: 'JetBrains Mono, Menlo, Monaco, "Courier New", monospace',
   fontSize: 14,
   lineHeight: 24,
@@ -121,7 +153,7 @@ const handleMount = (editor: any) => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: #1e1e1e; /* VS Code dark theme default background */
+  background-color: #11131e; /* Matches kraken-theme background */
 }
 
 /* Tabs Header */
@@ -129,7 +161,7 @@ const handleMount = (editor: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #1e1e1e; /* Same as editor background */
+  background-color: #11131e; /* Same as editor background */
   padding: 8px 12px;
   user-select: none;
 }
@@ -172,7 +204,7 @@ const handleMount = (editor: any) => {
 }
 
 .editor-tab.active {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
 }
 
