@@ -190,27 +190,6 @@ const closeWindow = () => window.api.closeWindow()
           ></textarea>
         </div>
       </div>
-
-      <!-- Bottom Focus Bar -->
-      <div class="focus-bar no-drag">
-        <div class="focus-tabs">
-          <div class="focus-tab active">
-            <span>agent_chat</span>
-            <button class="tab-close-btn">×</button>
-          </div>
-        </div>
-        <div class="focus-actions">
-          <button class="focus-icon-btn" title="Toggle Projects Sidebar" @click="isLeftSidebarOpen = !isLeftSidebarOpen">
-            <PanelLeft :size="18" stroke-width="2" />
-          </button>
-          <button class="focus-icon-btn" title="Settings" @click="isSettingsOpen = true">
-            <Settings2 :size="18" stroke-width="2" />
-          </button>
-          <button class="focus-icon-btn" title="Toggle Tools Sidebar" @click="isRightSidebarOpen = !isRightSidebarOpen">
-            <PanelRight :size="18" stroke-width="2" />
-          </button>
-        </div>
-      </div>
     </main>
 
     <!-- Right Sidebar -->
@@ -503,100 +482,6 @@ const closeWindow = () => window.api.closeWindow()
 
 .input-pill textarea::placeholder {
   color: var(--text-muted);
-}
-
-/* Focus Bar */
-.focus-bar {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  max-width: 1000px;
-  height: 40px;
-  background-color: rgba(10, 13, 24, 0.8); /* #0A0D18 */
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  z-index: 10;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.focus-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 100%;
-}
-
-.focus-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  background-color: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-  font-size: 0.8em;
-  color: var(--text-muted);
-  cursor: pointer;
-  /* Maya-design: break down animation */
-  transition: background-color 0.3s ease, color 0.2s ease-in-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.focus-tab:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-  transform: scale(1.03);
-}
-
-.focus-tab.active {
-  background-color: var(--accent-purple);
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.tab-close-btn {
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-size: 1.1em;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0.7;
-}
-.tab-close-btn:hover {
-  opacity: 1;
-}
-
-.focus-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px; /* Spaced out beautifully */
-  padding-right: 8px;
-}
-
-.focus-icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--accent-purple);
-  opacity: 0.7;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.focus-icon-btn:hover {
-  background-color: transparent;
-  color: var(--accent-purple);
-  opacity: 1;
-  transform: scale(1.15);
 }
 
 /* Right Sidebar */
