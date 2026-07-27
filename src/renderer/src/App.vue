@@ -118,7 +118,8 @@ onMounted(async () => {
           v-for="(view, key) in views"
           :key="key"
           :is="view.component"
-          v-show="projectsStore.activeView === key"
+          class="app-view"
+          :class="{ 'app-view-hidden': projectsStore.activeView !== key }"
         />
       </div>
 
@@ -420,6 +421,26 @@ onMounted(async () => {
   flex-direction: column;
   position: relative;
   overflow: hidden;
+}
+
+.app-view {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-view-hidden {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 .global-bottom-bar {
