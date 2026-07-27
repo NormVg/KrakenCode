@@ -3,8 +3,8 @@
   --bg-dark: #0A0D18;
   --bg-panel: #1C1C2A;
   --bg-input: #1C1C2A;
-  --text-main: #FFFFFF;
-  --text-muted: #9DA1D3; /* Or #71738E for darker muted */
+  --text-main: #E2E8F0; /* Softened from #FFFFFF */
+  --text-muted: #9DA1D3; 
   --text-muted-dark: #71738E;
   --accent: #FF5F5F; /* Primary red accent */
   --accent-hover: #ff7a7a;
@@ -24,6 +24,8 @@ body, html {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-primary);
+  font-size: 14px; /* Reduced from default 16px */
+  -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 

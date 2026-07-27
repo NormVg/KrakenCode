@@ -150,29 +150,31 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
-  color: var(--text-muted);
+  padding: 6px 8px;
+  color: var(--text-muted-dark);
   cursor: pointer;
   border-radius: 6px;
+  margin-bottom: 2px;
 }
 
 .project-folder:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
 }
 
 .active-folder {
-  color: var(--text-main);
+  color: var(--text-muted);
 }
 
 .folder-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .add-chat-btn {
   opacity: 0;
   padding: 2px;
+  color: var(--text-muted);
 }
 
 .project-folder:hover .add-chat-btn {
@@ -180,9 +182,10 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
 }
 
 .folder-name {
-  font-size: 0.9em;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .empty-state {
@@ -228,37 +231,45 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px 8px 32px; /* Indent to align with folder text */
-  border-radius: 8px;
+  padding: 8px 10px 8px 30px; /* Indent to align with folder text */
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  margin: 0 4px;
 }
 
 .project-item:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .project-item.active {
-  background-color: rgba(255, 255, 255, 0.1); /* Brighter active state */
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .item-title {
-  font-size: 0.85em;
-  color: #c9cdd4; /* Slightly brighter than muted */
+  font-size: 0.9rem;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 12px;
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.project-item:hover .item-title {
+  color: #E2E8F0;
 }
 
 .project-item.active .item-title {
-  color: #ffffff;
+  color: #FFFFFF;
   font-weight: 500;
 }
 
 .item-time {
-  font-size: 0.75em;
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  color: var(--text-muted-dark);
   flex-shrink: 0;
 }
 </style>
