@@ -57,11 +57,12 @@ const handleKeydown = (e: KeyboardEvent) => {
   </div>
 </template>
 
-<style scoped>
+
+
 .chat-input-container {
   width: 100%;
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
+  background-color: var(--bg-panel); /* #1C1C2A */
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
