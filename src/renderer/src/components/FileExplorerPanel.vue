@@ -125,14 +125,14 @@ const onDropRoot = async (e: DragEvent) => {
     @drop.prevent="onDropRoot"
     :class="{ 'drag-over-root': isDragOverRoot }"
   >
-    <div class="panel-actions no-drag">
-      <button class="panel-action-btn" @click="handleCreateItem(null, 'file')" title="New File">
+    <div class="panel-actions">
+      <button class="panel-action-btn" @click.stop="handleCreateItem(null, 'file')" title="New File">
         <FilePlus :size="13" />
       </button>
-      <button class="panel-action-btn" @click="handleCreateItem(null, 'folder')" title="New Folder">
+      <button class="panel-action-btn" @click.stop="handleCreateItem(null, 'folder')" title="New Folder">
         <FolderPlus :size="13" />
       </button>
-      <button class="panel-action-btn" @click="loadTree" title="Refresh">
+      <button class="panel-action-btn" @click.stop="loadTree" title="Refresh">
         <RotateCw :size="13" />
       </button>
     </div>
@@ -161,7 +161,7 @@ const onDropRoot = async (e: DragEvent) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 10px 12px 0;
+  padding: 4px 0 0;
   position: relative;
   transition: background-color 0.15s ease;
 }
@@ -171,12 +171,12 @@ const onDropRoot = async (e: DragEvent) => {
 }
 
 .panel-actions {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 2;
   display: flex;
   gap: 2px;
+  justify-content: flex-end;
+  padding: 4px 2px 4px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
 }
 
 .panel-action-btn {
@@ -190,6 +190,8 @@ const onDropRoot = async (e: DragEvent) => {
   align-items: center;
   justify-content: center;
   transition: color 0.15s ease-out, background-color 0.15s ease-out;
+  -webkit-app-region: no-drag;
+  pointer-events: all;
 }
 
 .panel-action-btn:hover {
@@ -206,6 +208,7 @@ const onDropRoot = async (e: DragEvent) => {
   flex-direction: column;
   gap: 0;
   overflow: auto;
+  padding: 0 6px;
   /* Hide scrollbar */
   scrollbar-width: none;
   -ms-overflow-style: none;
