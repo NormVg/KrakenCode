@@ -44,12 +44,9 @@ const handleSave = async () => {
 
       <!-- Content -->
       <main class="settings-content">
-        <header class="content-header">
-          <h2>{{ tabs.find(t => t.id === activeTab)?.label }}</h2>
-          <button v-if="isSetup" class="icon-btn close-btn" @click="emit('close')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </header>
+        <button v-if="isSetup" class="icon-btn close-btn" @click="emit('close')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
 
         <div class="scroll-area">
           <template v-if="activeTab === 'models'">
@@ -188,22 +185,14 @@ const handleSave = async () => {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-dark);
+  position: relative;
 }
 
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border-color);
-  min-height: 48px;
-}
-
-.content-header h2 {
-  font-size: 1.05em;
-  font-weight: 500;
-  margin: 0;
-  color: var(--text-main);
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
 }
 
 .icon-btn {
