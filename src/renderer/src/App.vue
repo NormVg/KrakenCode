@@ -101,23 +101,27 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- View Toggles (Center) -->
-        <div class="bottom-view-toggles">
-          <button 
-            v-for="(view, key) in views" 
-            :key="key"
-            class="bottom-tab-btn"
-            :class="{ active: projectsStore.activeView === key }"
-            @click="projectsStore.activeView = key"
-            :title="view.label"
-          >
-            <component :is="view.icon" :size="16" />
+        <!-- View Toggles & Right Sidebar (Right Aligned) -->
+        <div class="header-right-group">
+          <div class="bottom-view-toggles">
+            <button 
+              v-for="(view, key) in views" 
+              :key="key"
+              class="bottom-tab-btn"
+              :class="{ active: projectsStore.activeView === key }"
+              @click="projectsStore.activeView = key"
+              :title="view.label"
+            >
+              <component :is="view.icon" :size="16" />
+            </button>
+          </div>
+
+          <div class="divider-vertical"></div>
+
+          <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
+            <PanelRight :size="16" />
           </button>
         </div>
-
-        <button class="icon-btn" @click="isRightSidebarOpen = !isRightSidebarOpen" title="Toggle Tools">
-          <PanelRight :size="16" />
-        </button>
       </div>
     </main>
 
@@ -295,31 +299,35 @@ onMounted(async () => {
   position: relative; /* For absolute composer */
 }
 
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.divider-vertical {
+  width: 1px;
+  height: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .bottom-view-toggles {
   display: flex;
   align-items: center;
   gap: 4px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 4px;
-  border-radius: 10px;
-  box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);
 }
 
 .bottom-tab-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 6px;
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
   border: none;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.2s ease;
 }
 
 .bottom-tab-btn:hover {
@@ -328,9 +336,8 @@ onMounted(async () => {
 }
 
 .bottom-tab-btn.active {
-  background: rgba(255, 255, 255, 0.12);
   color: var(--text-main);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .view-container {
