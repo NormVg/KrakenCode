@@ -154,6 +154,8 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  justify-content: center;
 }
 
 :deep(canvas) {
