@@ -1,17 +1,54 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Settings, FolderPlus, Folder, Plus } from 'lucide-vue-next'
+import { Settings, FolderPlus, Folder, Plus, MessageSquare, MoreHorizontal, Edit2, Trash2 } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
 
 const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
-const { projects, activeProjectId } = storeToRefs(projectsStore)
+const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
+
+const activeMenuId = ref<string | null>(null)
+const editingChatId = ref<string | null>(null)
+const editTitle = ref('')
 
 const handleCreateChat = (projectId: string) => {
   projectsStore.createChat(projectId)
-  projectsStore.activeView = 'agent' // Ensure we're in the Agent view when creating a chat
+  projectsStore.activeView = 'agent'
 }
+
+const toggleMenu = (chatId: string) => {
+  activeMenuId.value = activeMenuId.value === chatId ? null : chatId
+}
+
+const startEdit = (chatId: string, title: string) => {
+  editingChatId.value = chatId
+  editTitle.value = title
+  activeMenuId.value = null
+}
+
+const saveEdit = (projectId: string, chatId: string) => {
+  if (editTitle.value.trim()) {
+    projectsStore.renameChat(projectId, chatId, editTitle.value.trim())
+  }
+  editingChatId.value = null
+}
+
+const handleDelete = (projectId: string, chatId: string) => {
+  projectsStore.deleteChat(projectId, chatId)
+  activeMenuId.value = null
+}
+
+const closeMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.chat-menu')) {
+    activeMenuId.value = null
+  }
+}
+
+onMounted(() => document.addEventListener('click', closeMenu))
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 </script>
 
 <template>
@@ -42,6 +79,54 @@ const handleCreateChat = (projectId: string) => {
             <button class="icon-btn add-chat-btn" title="New Session" @click.stop="handleCreateChat(project.id)">
               <Plus :size="14" stroke-width="2" />
             </button>
+          </div>
+          
+          <!-- Project Items (Chat Sessions) -->
+          <div class="project-items" v-if="project.items && project.items.length > 0">
+            <div 
+              v-for="item in project.items" 
+              :key="item.id" 
+              class="project-item"
+              :class="{ 'active': activeChatId === item.id }"
+              @click="projectsStore.selectChat(project.id, item.id)"
+            >
+              <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
+                <MessageSquare :size="14" />
+              </div>
+              
+              <div class="item-content" style="flex: 1; display: flex; justify-content: space-between; align-items: center; min-width: 0;">
+                <div v-if="editingChatId === item.id" class="edit-mode" style="width: 100%;">
+                  <input 
+                    type="text" 
+                    v-model="editTitle" 
+                    @keyup.enter="saveEdit(project.id, item.id)"
+                    @blur="saveEdit(project.id, item.id)"
+                    @click.stop
+                    autofocus
+                    class="edit-input"
+                  />
+                </div>
+                <template v-else>
+                  <span class="item-title">{{ item.title || 'New Chat' }}</span>
+                  <div class="item-meta">
+                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ item.time }}</span>
+                    <div class="chat-menu">
+                      <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
+                        <MoreHorizontal :size="14" />
+                      </button>
+                      <div class="dropdown-menu" v-if="activeMenuId === item.id">
+                        <button class="dropdown-item" @click.stop="startEdit(item.id, item.title || 'New Chat')">
+                          <Edit2 :size="12" /> Rename
+                        </button>
+                        <button class="dropdown-item delete" @click.stop="handleDelete(project.id, item.id)">
+                          <Trash2 :size="12" /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
         

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
-import ChatSessionsPanel from './ChatSessionsPanel.vue'
+import ScratchpadPanel from './ScratchpadPanel.vue'
 import FileExplorerPanel from './FileExplorerPanel.vue'
 
 const projectsStore = useProjectsStore()
@@ -20,7 +20,7 @@ export interface SidebarTab {
 const contextualTabs = computed<SidebarTab[]>(() => {
   if (activeView.value === 'agent') {
     return [
-      { id: 'sessions', label: 'Sessions', component: ChatSessionsPanel }
+      { id: 'scratchpad', label: 'Scratchpad', component: ScratchpadPanel }
     ]
   }
   if (activeView.value === 'editor') {
