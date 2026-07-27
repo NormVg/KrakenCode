@@ -8,8 +8,11 @@ declare global {
       streamChat: (id: string, message: string) => void
       onChatChunk: (id: string, callback: (chunk: string) => void) => void
       onChatEnd: (id: string, callback: () => void) => void
-      onChatError: (id: string, callback: (err: string) => void) => void
+      onChatError: (id: string, callback: (error: string) => void) => void
       removeChatListeners: (id: string) => void
+      minimizeWindow: () => void
+      maximizeWindow: () => void
+      closeWindow: () => void
       setModel: (config: { provider: string, model: string, baseURL?: string, apiKey?: string }) => Promise<{ success: boolean, error?: string }>
     }
   }

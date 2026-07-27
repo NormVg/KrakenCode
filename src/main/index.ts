@@ -16,7 +16,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 18 },
+    trafficLightPosition: { x: -100, y: -100 }, // Hides native controls off-screen
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -31,6 +31,20 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  ipcMain.on('window-minimize', () => {
+    mainWindow.minimize()
+  })
+  ipcMain.on('window-maximize', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  })
+  ipcMain.on('window-close', () => {
+    mainWindow.close()
   })
 
   // HMR for renderer base on electron-vite cli.

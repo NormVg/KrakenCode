@@ -10,6 +10,7 @@ import './assets/main.css'
 const configStore = useConfigStore()
 const { isSetup, provider, model } = storeToRefs(configStore)
 const isSettingsOpen = ref(false)
+const isSidebarOpen = ref(true)
 
 // Ensure Settings opens if we somehow lose setup state
 watch(isSetup, (newVal) => {
@@ -103,60 +104,35 @@ const handleKeydown = (e: KeyboardEvent) => {
     handleChat()
   }
 }
+
+// Window Controls
+const minimizeWindow = () => window.api.minimizeWindow()
+const maximizeWindow = () => window.api.maximizeWindow()
+const closeWindow = () => window.api.closeWindow()
 </script>
 
 <template>
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header" style="-webkit-app-region: drag;">
-        <div class="header-actions">
-          <button class="icon-btn sidebar-toggle-btn no-drag" title="Toggle Sidebar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
-          </button>
-        </div>
-      </div>
-      
-      <div class="sidebar-content">
-        <div class="history-section">
-          <div class="history-title">Recent</div>
-          <div class="history-item active">New Conversation</div>
-        </div>
-      </div>
-      
-      <div class="sidebar-footer">
-        <button class="icon-btn settings-btn" @click="isSettingsOpen = true" title="Settings">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        </button>
-      </div>
-    </aside>
+  <div class="layout" style="-webkit-app-region: drag;">
+    
+    <!-- Custom Window Controls (Top Right) -->
+    <div class="window-controls no-drag">
+      <button class="win-btn close" @click="closeWindow"></button>
+      <button class="win-btn minimize" @click="minimizeWindow"></button>
+      <button class="win-btn maximize" @click="maximizeWindow"></button>
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
-      
-      <!-- Top Header -->
-      <header class="main-header" style="-webkit-app-region: drag;">
-        <div class="breadcrumbs">
-          <span class="muted">Kraken</span>
-          <span class="muted divider">/</span>
-          <span class="active">New Conversation</span>
-        </div>
-        <div class="header-right no-drag">
-          <!-- Placeholder right controls -->
-        </div>
-      </header>
       
       <!-- Settings Modal via component -->
       <SettingsModal 
         v-if="isSettingsOpen" 
         @close="isSettingsOpen = false" 
+        class="no-drag"
       />
 
       <!-- Chat History -->
-      <div class="chat-history" ref="chatHistoryRef">
+      <div class="chat-history no-drag" ref="chatHistoryRef">
         <div class="chat-container">
           <div v-if="!isSetup" class="welcome-screen">
             <img src="./assets/banner.png" alt="Kraken Logo" class="welcome-banner" />
@@ -179,125 +155,105 @@ const handleKeydown = (e: KeyboardEvent) => {
         </div>
       </div>
 
-      <!-- Input Area -->
-      <div class="input-container">
+      <!-- Agent Input Pill (Floating above focus bar) -->
+      <div class="floating-input-container no-drag">
         <div class="input-pill">
           <textarea 
             v-model="prompt" 
-            placeholder="Ask anything, @ to mention, / for actions"
+            placeholder="Can you code me a multi threaded logger"
             rows="1"
             @keydown="handleKeydown"
             :disabled="!isSetup || isLoading"
           ></textarea>
-          <button class="send-btn" @click="handleChat" :disabled="!isSetup || !prompt.trim() || isLoading">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </div>
+      </div>
+
+      <!-- Bottom Focus Bar -->
+      <div class="focus-bar no-drag">
+        <div class="focus-tabs">
+          <div class="focus-tab active">
+            <span>agent_chat</span>
+            <button class="tab-close-btn">×</button>
+          </div>
+        </div>
+        <div class="focus-actions">
+          <button class="focus-icon-btn" title="Settings" @click="isSettingsOpen = true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+          <button class="focus-icon-btn" title="Toggle Sidebar" @click="isSidebarOpen = !isSidebarOpen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
           </button>
         </div>
       </div>
     </main>
+
+    <!-- Right Sidebar -->
+    <aside class="right-sidebar no-drag" v-if="isSidebarOpen">
+      <div class="sidebar-content">
+        <div class="sidebar-placeholder">
+          <h3>File Explorer</h3>
+          <p class="muted">Agent workspace files will appear here.</p>
+        </div>
+      </div>
+      
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active">FileExplorer</div>
+        <div class="sidebar-tab">Tools</div>
+      </div>
+    </aside>
   </div>
 </template>
 
 <style scoped>
-/* Keeping only the necessary styles, removing old modal styles */
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
 .layout {
   display: flex;
   height: 100vh;
   width: 100vw;
   background-color: var(--bg-dark);
+  position: relative;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 250px;
-  background-color: var(--bg-panel);
-  border-right: 1px solid var(--border-color);
+/* Window Controls */
+.window-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   display: flex;
-  flex-direction: column;
-  z-index: 10;
+  gap: 8px;
+  z-index: 50;
 }
 
-.sidebar-header {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  padding-left: 80px; /* Safe area for Mac traffic lights */
-  padding-right: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-}
-
-.no-drag {
-  -webkit-app-region: no-drag;
-}
-
-.sidebar-content {
-  flex: 1;
-  padding: 16px 8px;
-  overflow-y: auto;
-}
-
-.history-section {
-  margin-bottom: 24px;
-}
-
-.history-title {
-  font-size: 0.75em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 0 8px;
-  margin-bottom: 8px;
-}
-
-.history-item {
-  font-size: 0.85em;
-  padding: 6px 8px;
-  color: var(--text-muted);
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.history-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-}
-
-.history-item.active {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-}
-
-.sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-}
-
-.icon-btn {
-  background: transparent;
+.win-btn {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px; /* Squircle hexagon-like shape approximation for now */
   border: none;
-  color: var(--text-muted);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.1s;
 }
 
-.icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
+.win-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
+
+.win-btn.close {
+  background-color: var(--accent); /* Red */
+}
+
+.win-btn.minimize {
+  background-color: var(--accent-green); /* Green */
+}
+
+.win-btn.maximize {
+  background-color: #FACC15; /* Yellow */
+}
+
 
 /* Main Content */
 .main-content {
@@ -308,37 +264,6 @@ const handleKeydown = (e: KeyboardEvent) => {
   min-width: 0;
 }
 
-.main-header {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-dark);
-  z-index: 5;
-}
-
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85em;
-  font-weight: 500;
-}
-
-.breadcrumbs .muted {
-  color: var(--text-muted);
-}
-
-.breadcrumbs .active {
-  color: var(--text-main);
-}
-
-.breadcrumbs .divider {
-  opacity: 0.5;
-}
-
 /* Chat History */
 .chat-history {
   flex: 1;
@@ -346,13 +271,15 @@ const handleKeydown = (e: KeyboardEvent) => {
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
+  /* Add padding to bottom to prevent overlap with floating input and focus bar */
+  padding-bottom: 140px; 
 }
 
 .chat-container {
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
-  padding: 40px 20px 120px 20px;
+  padding: 40px 20px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -367,49 +294,51 @@ const handleKeydown = (e: KeyboardEvent) => {
   color: var(--text-muted);
   font-size: 0.9em;
   gap: 24px;
+  margin-top: 10vh;
 }
 
 .welcome-banner {
-  max-width: 400px;
+  max-width: 300px;
   width: 100%;
-  opacity: 0.4;
+  opacity: 0.2;
   filter: grayscale(100%);
   transition: opacity 0.3s;
 }
 
 .welcome-banner:hover {
-  opacity: 0.8;
+  opacity: 0.5;
 }
 
-/* Input Area */
-.input-container {
+/* Floating Input Area */
+.floating-input-container {
   position: absolute;
-  bottom: 0;
+  bottom: 60px; /* Above focus bar */
   left: 0;
   right: 0;
-  padding: 24px;
   display: flex;
   justify-content: center;
-  background: linear-gradient(to top, var(--bg-dark) 60%, transparent);
   pointer-events: none;
+  z-index: 20;
 }
 
 .input-pill {
   pointer-events: auto;
   display: flex;
-  align-items: flex-end;
-  background-color: var(--bg-panel);
+  align-items: center;
+  background-color: rgba(28, 28, 42, 0.85); /* var(--bg-panel) with opacity */
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 8px 16px;
+  border-radius: 20px;
+  padding: 10px 24px;
   width: 100%;
-  max-width: 760px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  transition: border-color 0.2s;
+  max-width: 600px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(147, 116, 190, 0.1); /* Subtle glowing shadow */
+  transition: box-shadow 0.3s, border-color 0.3s;
 }
 
 .input-pill:focus-within {
-  border-color: var(--text-muted);
+  border-color: var(--accent-purple);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 30px rgba(147, 116, 190, 0.2);
 }
 
 .input-pill textarea {
@@ -423,33 +352,155 @@ const handleKeydown = (e: KeyboardEvent) => {
   line-height: 1.5;
   max-height: 200px;
   min-height: 24px;
-  padding: 8px 0;
+  padding: 0;
 }
 
-.send-btn {
-  background: transparent;
+.input-pill textarea::placeholder {
   color: var(--text-muted);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+}
+
+/* Focus Bar */
+.focus-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  height: 36px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: color 0.2s, background-color 0.2s;
-  margin-left: 8px;
-  margin-bottom: 4px;
+  justify-content: space-between;
+  padding: 0 8px;
+  z-index: 10;
 }
 
-.send-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+.focus-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.focus-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.focus-tab:hover {
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
 }
 
-.send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.focus-tab.active {
+  background-color: var(--accent-purple);
+  color: #fff;
+}
+
+.tab-close-btn {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.tab-close-btn:hover {
+  opacity: 1;
+}
+
+.focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.focus-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.focus-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+/* Right Sidebar */
+.right-sidebar {
+  width: 280px;
+  background-color: var(--bg-panel);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-placeholder {
+  text-align: center;
+  margin-top: 50px;
+}
+.sidebar-placeholder h3 {
+  font-size: 1em;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+.sidebar-placeholder .muted {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.sidebar-tabs {
+  display: flex;
+  border-top: 1px solid var(--border-color);
+  padding: 8px;
+  gap: 4px;
+}
+
+.sidebar-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.sidebar-tab:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-tab.active {
+  background-color: var(--text-main);
+  color: var(--bg-dark);
+  font-weight: 600;
 }
 
 /* Loading */

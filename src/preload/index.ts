@@ -9,16 +9,19 @@ const api = {
     ipcRenderer.on(`agent:chat:chunk:${id}`, (_, chunk) => callback(chunk));
   },
   onChatEnd: (id: string, callback: () => void) => {
-    ipcRenderer.on(`agent:chat:end:${id}`, () => callback());
+    ipcRenderer.once(`agent:chat:end:${id}`, () => callback());
   },
   onChatError: (id: string, callback: (err: string) => void) => {
-    ipcRenderer.on(`agent:chat:error:${id}`, (_, err) => callback(err));
+    ipcRenderer.once(`agent:chat:error:${id}`, (_, err) => callback(err));
   },
   removeChatListeners: (id: string) => {
     ipcRenderer.removeAllListeners(`agent:chat:chunk:${id}`);
     ipcRenderer.removeAllListeners(`agent:chat:end:${id}`);
     ipcRenderer.removeAllListeners(`agent:chat:error:${id}`);
   },
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  closeWindow: () => ipcRenderer.send('window-close'),
   setModel: (config: { provider: string, model: string, baseURL?: string }) => ipcRenderer.invoke('agent:setModel', config)
 }
 
