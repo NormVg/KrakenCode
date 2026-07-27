@@ -6,7 +6,7 @@ import { useProjectsStore } from './stores/projects'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
-import { PanelLeft, PanelRight, MessageSquare, Code, Globe, SplitSquareHorizontal, Network, Terminal } from 'lucide-vue-next'
+import { PanelLeft, PanelRight, CircleDotDashed, Code, Globe, SplitSquareHorizontal, Network, Terminal } from 'lucide-vue-next'
 import './assets/main.css'
 
 import AgentView from './components/views/AgentView.vue'
@@ -17,7 +17,7 @@ import ArchGraphView from './components/views/ArchGraphView.vue'
 import TerminalView from './components/views/TerminalView.vue'
 
 const views = {
-  agent: { component: AgentView, icon: MessageSquare, label: 'Agent' },
+  agent: { component: AgentView, icon: CircleDotDashed, label: 'Agent' },
   editor: { component: EditorView, icon: Code, label: 'Editor' },
   web: { component: WebViewView, icon: Globe, label: 'Web' },
   diff: { component: DiffView, icon: SplitSquareHorizontal, label: 'Diff' },
