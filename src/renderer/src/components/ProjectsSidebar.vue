@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { Settings, FolderPlus, Folder } from 'lucide-vue-next'
+import { Settings, FolderPlus, Folder, Plus } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
 
 const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
 const { projects, activeProjectId } = storeToRefs(projectsStore)
+
+const handleCreateChat = (projectId: string) => {
+  projectsStore.createChat(projectId)
+  projectsStore.activeView = 'agent' // Ensure we're in the Agent view when creating a chat
+}
 </script>
 
 <template>
@@ -34,6 +39,9 @@ const { projects, activeProjectId } = storeToRefs(projectsStore)
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
             </div>
+            <button class="icon-btn add-chat-btn" title="New Session" @click.stop="handleCreateChat(project.id)">
+              <Plus :size="14" stroke-width="2" />
+            </button>
           </div>
         </div>
         

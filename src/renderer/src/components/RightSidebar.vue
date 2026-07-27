@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
 import ToolsPanel from './ToolsPanel.vue'
 import ChatSessionsPanel from './ChatSessionsPanel.vue'
+import FileExplorerPanel from './FileExplorerPanel.vue'
 
 const projectsStore = useProjectsStore()
 const { activeView } = storeToRefs(projectsStore)
@@ -29,7 +30,12 @@ const contextualTabs = computed<SidebarTab[]>(() => {
       { id: 'sessions', label: 'Sessions', component: ChatSessionsPanel }
     ]
   }
-  // Other views might have their own contextual tabs, e.g. Editor -> File Tree
+  if (activeView.value === 'editor') {
+    return [
+      { id: 'files', label: 'Files', component: FileExplorerPanel }
+    ]
+  }
+  // Other views might have their own contextual tabs
   return []
 })
 
