@@ -1,12 +1,49 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Settings, FolderPlus, Folder, Plus, Trash2 } from 'lucide-vue-next'
+import { Settings, FolderPlus, Folder, Plus, Trash2, MoreHorizontal, Edit2 } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
 
 const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
 const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
+
+const activeMenuId = ref<string | null>(null)
+const editingChatId = ref<string | null>(null)
+const editTitle = ref('')
+
+const toggleMenu = (chatId: string) => {
+  activeMenuId.value = activeMenuId.value === chatId ? null : chatId
+}
+
+const startEdit = (chatId: string, title: string) => {
+  editingChatId.value = chatId
+  editTitle.value = title
+  activeMenuId.value = null
+}
+
+const saveEdit = (projectId: string, chatId: string) => {
+  if (editTitle.value.trim()) {
+    projectsStore.renameChat(projectId, chatId, editTitle.value.trim())
+  }
+  editingChatId.value = null
+}
+
+const handleDelete = (projectId: string, chatId: string) => {
+  projectsStore.deleteChat(projectId, chatId)
+  activeMenuId.value = null
+}
+
+const closeMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.chat-menu')) {
+    activeMenuId.value = null
+  }
+}
+
+onMounted(() => document.addEventListener('click', closeMenu))
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 </script>
 
 <template>
@@ -47,8 +84,36 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
               :class="['project-item', { active: activeChatId === item.id }]"
               @click="projectsStore.selectChat(project.id, item.id)"
             >
-              <span class="item-title">{{ item.title || 'New Chat' }}</span>
-              <span class="item-time">{{ item.time }}</span>
+              <div v-if="editingChatId === item.id" class="edit-mode">
+                <input 
+                  type="text" 
+                  v-model="editTitle" 
+                  @keyup.enter="saveEdit(project.id, item.id)"
+                  @blur="saveEdit(project.id, item.id)"
+                  @click.stop
+                  autofocus
+                  class="edit-input"
+                />
+              </div>
+              <template v-else>
+                <span class="item-title">{{ item.title || 'New Chat' }}</span>
+                <div class="item-meta">
+                  <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ item.time }}</span>
+                  <div class="chat-menu">
+                    <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
+                      <MoreHorizontal :size="14" />
+                    </button>
+                    <div class="dropdown-menu" v-if="activeMenuId === item.id">
+                      <button class="dropdown-item" @click.stop="startEdit(item.id, item.title || 'New Chat')">
+                        <Edit2 :size="12" /> Rename
+                      </button>
+                      <button class="dropdown-item delete" @click.stop="handleDelete(project.id, item.id)">
+                        <Trash2 :size="12" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -262,5 +327,100 @@ const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
   font-size: 0.75rem;
   color: var(--text-muted-dark);
   flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.item-time.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-menu {
+  position: relative;
+}
+
+.menu-trigger {
+  opacity: 0;
+  padding: 4px;
+  color: var(--text-muted);
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--bg-dark);
+}
+
+.project-item:hover .menu-trigger,
+.chat-menu:has(.dropdown-menu) .menu-trigger {
+  opacity: 1;
+}
+
+.project-item.active .menu-trigger {
+  background-color: transparent;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background-color: var(--bg-panel);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 120px;
+}
+
+.dropdown-item {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  transition: background-color 0.1s;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item.delete {
+  color: var(--accent);
+}
+.dropdown-item.delete:hover {
+  background-color: rgba(255, 95, 95, 0.1);
+}
+
+.edit-mode {
+  width: 100%;
+}
+
+.edit-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--accent-purple);
+  color: var(--text-main);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  outline: none;
 }
 </style>

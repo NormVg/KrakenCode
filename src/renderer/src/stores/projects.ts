@@ -162,6 +162,26 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  const renameChat = (projectId: string, chatId: string, newTitle: string) => {
+    const project = projects.value.find(p => p.id === projectId)
+    if (!project) return
+    const chat = project.items.find(c => c.id === chatId)
+    if (chat) {
+      chat.title = newTitle
+      saveData()
+    }
+  }
+
+  const deleteChat = (projectId: string, chatId: string) => {
+    const project = projects.value.find(p => p.id === projectId)
+    if (!project) return
+    project.items = project.items.filter(c => c.id !== chatId)
+    if (activeChatId.value === chatId) {
+      activeChatId.value = project.items.length > 0 ? project.items[0].id : null
+    }
+    saveData()
+  }
+
   return {
     projects,
     activeProjectId,
@@ -174,6 +194,8 @@ export const useProjectsStore = defineStore('projects', () => {
     addProject,
     createChat,
     selectChat,
+    renameChat,
+    deleteChat,
     addMessageToActiveChat,
     updateActiveChatStreamingMessage,
     endActiveChatStreamingMessage,
