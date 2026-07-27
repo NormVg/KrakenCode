@@ -174,6 +174,7 @@ onMounted(async () => {
   width: 100vw;
   background-color: var(--bg-dark); /* #0A0D18 */
   position: relative;
+  -webkit-app-region: drag;
 }
 
 .layout {
@@ -195,6 +196,7 @@ onMounted(async () => {
   flex-direction: column;
   flex-shrink: 0;
   padding-top: 12px;
+  -webkit-app-region: no-drag;
 }
 
 /* Main Content (The Island) */
@@ -208,6 +210,7 @@ onMounted(async () => {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  -webkit-app-region: no-drag;
 }
 
 .floating-bottom-bar {
