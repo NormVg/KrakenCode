@@ -37,12 +37,18 @@ watch(
       techBefore = props.node.tech ?? ''
       if (labelEl.value) {
         labelEl.value.textContent = props.node.label || ''
+        // Focus after contenteditable is true in DOM
+        labelEl.value.contentEditable = 'true'
         labelEl.value.focus()
         selectAll(labelEl.value)
       }
       if (techEl.value) {
         techEl.value.textContent = props.node.tech ?? ''
+        techEl.value.contentEditable = 'true'
       }
+    } else {
+      if (labelEl.value) labelEl.value.contentEditable = 'false'
+      if (techEl.value) techEl.value.contentEditable = 'false'
     }
   },
 )
@@ -52,7 +58,7 @@ watch(
   ([label, tech, editing]) => {
     if (editing) return
     if (labelEl.value && labelEl.value.textContent !== label) {
-      labelEl.value.textContent = label
+      labelEl.value.textContent = label || KIND_DEFAULT_LABEL[props.node.kind]
     }
     if (techEl.value) {
       const t = tech ?? ''
@@ -119,31 +125,24 @@ function onBlur(e: FocusEvent) {
   })
 }
 
-/** Start drag from anywhere on the card (including label), unless editing */
 function onPointerDown(e: PointerEvent) {
   if (props.editing) {
-    // Keep focus/caret inside the text field
     e.stopPropagation()
     return
   }
+  // Parent handles drag + manual double-click edit
   emit('pointerdown', props.node.id, e)
 }
 
 function onTextPointerDown(e: PointerEvent) {
-  if (props.editing) {
-    e.stopPropagation()
-  }
-  // not editing: bubble to card so drag + double-click both work
+  if (props.editing) e.stopPropagation()
 }
 
 function onDblClick(e: MouseEvent) {
   e.preventDefault()
   e.stopPropagation()
-  // Always allow edit via double-click (move or connect tool)
   emit('start-edit', props.node.id)
 }
-
-defineExpose({ rootEl })
 </script>
 
 <template>
@@ -171,21 +170,19 @@ defineExpose({ rootEl })
       ref="labelEl"
       class="node-label"
       :class="{ placeholder: !node.label && !editing }"
-      :contenteditable="editing"
       :spellcheck="false"
       role="textbox"
       :aria-label="isText ? 'Text' : 'Label'"
       @keydown="onKeydown"
       @blur="onBlur"
       @pointerdown="onTextPointerDown"
-    >{{ node.label || (editing ? '' : KIND_DEFAULT_LABEL[node.kind]) }}</div>
+    >{{ node.label || KIND_DEFAULT_LABEL[node.kind] }}</div>
 
     <div
       v-if="!isText && (editing || node.tech)"
       ref="techEl"
       class="node-tech"
       :class="{ placeholder: editing && !node.tech, editable: editing }"
-      :contenteditable="editing"
       :spellcheck="false"
       data-placeholder="tech"
       role="textbox"
@@ -270,8 +267,6 @@ defineExpose({ rootEl })
   outline: none;
   min-height: 1.2em;
   caret-color: #E2E8F0;
-  /* Allow drag from label when not editing */
-  pointer-events: auto;
 }
 
 .builder-node.is-text .node-label {
@@ -285,7 +280,7 @@ defineExpose({ rootEl })
   font-weight: 500;
 }
 
-.node-label[contenteditable='true'] {
+.builder-node.editing .node-label {
   cursor: text;
 }
 

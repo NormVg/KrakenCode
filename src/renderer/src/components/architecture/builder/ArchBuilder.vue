@@ -44,7 +44,6 @@ let nodeDrag: {
   originX: number
   originY: number
   active: boolean
-  pointerId: number
 } | null = null
 
 let panDrag: {
@@ -55,6 +54,10 @@ let panDrag: {
 } | null = null
 
 const DRAG_THRESHOLD_PX = 6
+const DBLCLICK_MS = 380
+
+/** Manual double-click tracking (pointer capture breaks native dblclick) */
+let lastNodeTap: { id: string; time: number } | null = null
 
 let suppressEmit = false
 let emitTimer: ReturnType<typeof setTimeout> | null = null
@@ -62,8 +65,15 @@ let spaceHeld = false
 /** Last Mermaid we pushed up — ignore when it echoes back so we never re-parse/re-layout */
 let lastEmittedSource = ''
 
+let removeNodeDragListeners: (() => void) | null = null
+
 function normalizeSource(s: string): string {
   return s.replace(/\r\n/g, '\n').trim()
+}
+
+function clearNodeDragListeners() {
+  removeNodeDragListeners?.()
+  removeNodeDragListeners = null
 }
 
 const edgePaths = computed(() => {
@@ -328,19 +338,33 @@ function onNodePointerDown(id: string, e: PointerEvent) {
   if (spaceHeld) return
   if (editingId.value === id) return
 
-  // Connect tool: no drag — click/dblclick still work for link + edit
+  e.stopPropagation()
+
+  // Manual double-click → edit (works even when drag logic is active)
+  const now = performance.now()
+  if (
+    lastNodeTap &&
+    lastNodeTap.id === id &&
+    now - lastNodeTap.time < DBLCLICK_MS
+  ) {
+    lastNodeTap = null
+    clearNodeDragListeners()
+    nodeDrag = null
+    startEdit(id)
+    return
+  }
+  lastNodeTap = { id, time: now }
+
+  selectedEdgeId.value = null
+  if (!selectedIds.value.includes(id)) selectedIds.value = [id]
+
+  // Connect tool: select only (connect logic is on click), no drag
   if (activeTool.value === 'connect') return
 
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
 
-  // Do NOT preventDefault here — that kills double-click → edit
-  e.stopPropagation()
-
-  selectedEdgeId.value = null
-  if (!selectedIds.value.includes(id)) selectedIds.value = [id]
-
-  // Pending press; becomes a real drag only after moving past threshold
+  clearNodeDragListeners()
   nodeDrag = {
     id,
     startX: e.clientX,
@@ -348,13 +372,37 @@ function onNodePointerDown(id: string, e: PointerEvent) {
     originX: node.x,
     originY: node.y,
     active: false,
-    pointerId: e.pointerId,
   }
 
-  try {
-    stageRef.value?.setPointerCapture(e.pointerId)
-  } catch {
-    /* noop */
+  // Document listeners — do NOT use setPointerCapture (it kills dblclick)
+  const onMove = (ev: PointerEvent) => {
+    if (!nodeDrag || nodeDrag.id !== id) return
+    const dist = Math.hypot(ev.clientX - nodeDrag.startX, ev.clientY - nodeDrag.startY)
+    if (!nodeDrag.active) {
+      if (dist < DRAG_THRESHOLD_PX) return
+      nodeDrag.active = true
+      lastNodeTap = null // cancel pending double-click once dragging
+    }
+    const n = model.value.nodes.find((x) => x.id === nodeDrag!.id)
+    if (!n) return
+    const dx = (ev.clientX - nodeDrag.startX) / zoom.value
+    const dy = (ev.clientY - nodeDrag.startY) / zoom.value
+    n.x = Math.max(8, nodeDrag.originX + dx)
+    n.y = Math.max(8, nodeDrag.originY + dy)
+  }
+
+  const onUp = () => {
+    clearNodeDragListeners()
+    nodeDrag = null
+  }
+
+  document.addEventListener('pointermove', onMove)
+  document.addEventListener('pointerup', onUp)
+  document.addEventListener('pointercancel', onUp)
+  removeNodeDragListeners = () => {
+    document.removeEventListener('pointermove', onMove)
+    document.removeEventListener('pointerup', onUp)
+    document.removeEventListener('pointercancel', onUp)
   }
 }
 
@@ -397,22 +445,8 @@ function onStagePointerMove(e: PointerEvent) {
       x: panDrag.originX + (e.clientX - panDrag.startX),
       y: panDrag.originY + (e.clientY - panDrag.startY),
     }
-    return
   }
-  if (!nodeDrag) return
-
-  const dist = Math.hypot(e.clientX - nodeDrag.startX, e.clientY - nodeDrag.startY)
-  if (!nodeDrag.active) {
-    if (dist < DRAG_THRESHOLD_PX) return
-    nodeDrag.active = true
-  }
-
-  const node = model.value.nodes.find((n) => n.id === nodeDrag!.id)
-  if (!node) return
-  const dx = (e.clientX - nodeDrag.startX) / zoom.value
-  const dy = (e.clientY - nodeDrag.startY) / zoom.value
-  node.x = Math.max(8, nodeDrag.originX + dx)
-  node.y = Math.max(8, nodeDrag.originY + dy)
+  // Node drag is handled on document listeners
 }
 
 function onStagePointerUp(e: PointerEvent) {
@@ -421,7 +455,6 @@ function onStagePointerUp(e: PointerEvent) {
     isPanning.value = false
     emitViewport()
   }
-  nodeDrag = null
   try {
     if (stageRef.value?.hasPointerCapture(e.pointerId)) {
       stageRef.value.releasePointerCapture(e.pointerId)
@@ -467,9 +500,11 @@ function startEdit(id: string) {
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
   // Cancel any pending/active drag so edit isn't stolen
+  clearNodeDragListeners()
   nodeDrag = null
   panDrag = null
   isPanning.value = false
+  lastNodeTap = null
   selectedEdgeId.value = null
   selectedIds.value = [id]
   editingId.value = id
@@ -558,6 +593,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown)
   document.removeEventListener('keyup', onKeyUp)
+  clearNodeDragListeners()
   if (emitTimer) clearTimeout(emitTimer)
 })
 
