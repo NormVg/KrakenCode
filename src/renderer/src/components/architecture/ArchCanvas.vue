@@ -7,6 +7,7 @@ import {
   type EdgeMouseEvent,
   type Connection,
   MarkerType,
+  ConnectionMode,
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 
@@ -269,7 +270,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
       :nodes-connectable="true"
       :elements-selectable="true"
       :multi-selection-key-code="'Shift'"
-      connection-mode="loose"
+      :connection-mode="ConnectionMode.Loose"
       fit-view-on-init
       class="kraken-flow"
       @pane-click="onPaneClick"
