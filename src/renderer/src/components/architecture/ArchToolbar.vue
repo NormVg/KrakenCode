@@ -48,7 +48,7 @@ const handleClear = () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--bg-panel);
+  background: transparent;
   border-bottom: 1px solid var(--border-color);
   height: 48px;
   box-sizing: border-box;
