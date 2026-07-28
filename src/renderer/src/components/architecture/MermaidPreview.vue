@@ -50,37 +50,38 @@ function ensureMermaid() {
       actorMargin: 48,
       messageMargin: 36,
     },
+    // Darker node fills so diagram reads on light #1C1C2A canvas
     themeVariables: {
       darkMode: true,
       background: '#1C1C2A',
-      primaryColor: '#1C1C2A',
+      primaryColor: '#0A0D18',
       primaryTextColor: '#E2E8F0',
-      primaryBorderColor: 'rgba(157, 161, 211, 0.4)',
-      secondaryColor: '#1C1C2A',
-      tertiaryColor: '#141420',
-      lineColor: '#9DA1D3',
+      primaryBorderColor: '#6B6F9E',
+      secondaryColor: '#0E111C',
+      tertiaryColor: '#0A0D18',
+      lineColor: '#8B90C4',
       textColor: '#E2E8F0',
-      mainBkg: '#1C1C2A',
-      nodeBorder: 'rgba(157, 161, 211, 0.4)',
-      clusterBkg: 'rgba(28, 28, 42, 0.95)',
-      clusterBorder: 'rgba(255, 255, 255, 0.08)',
-      titleColor: '#9DA1D3',
-      edgeLabelBackground: '#1C1C2A',
-      actorBkg: '#1C1C2A',
-      actorBorder: 'rgba(157, 161, 211, 0.4)',
+      mainBkg: '#0A0D18',
+      nodeBorder: '#6B6F9E',
+      clusterBkg: 'rgba(10, 13, 24, 0.55)',
+      clusterBorder: 'rgba(107, 111, 158, 0.55)',
+      titleColor: '#C4C7E8',
+      edgeLabelBackground: '#0A0D18',
+      actorBkg: '#0A0D18',
+      actorBorder: '#6B6F9E',
       actorTextColor: '#E2E8F0',
-      signalColor: '#9DA1D3',
+      signalColor: '#8B90C4',
       signalTextColor: '#E2E8F0',
-      labelBoxBkgColor: '#1C1C2A',
-      labelBoxBorderColor: 'rgba(255, 255, 255, 0.08)',
+      labelBoxBkgColor: '#0A0D18',
+      labelBoxBorderColor: '#6B6F9E',
       labelTextColor: '#E2E8F0',
       loopTextColor: '#E2E8F0',
-      noteBkgColor: '#1C1C2A',
+      noteBkgColor: '#0E111C',
       noteTextColor: '#E2E8F0',
-      noteBorderColor: 'rgba(255, 255, 255, 0.08)',
-      activationBkgColor: 'rgba(147, 116, 190, 0.15)',
+      noteBorderColor: '#6B6F9E',
+      activationBkgColor: 'rgba(147, 116, 190, 0.25)',
       activationBorderColor: '#9374BE',
-      sequenceNumberColor: '#0A0D18',
+      sequenceNumberColor: '#E2E8F0',
       fontFamily: 'Inter, system-ui, sans-serif',
     },
   })
@@ -135,6 +136,17 @@ function styleInjectedSvg() {
   svg.style.maxWidth = '100%'
   svg.style.height = 'auto'
   svg.style.display = 'block'
+
+  // Force readable contrast if mermaid theme vars were soft-overridden
+  root.querySelectorAll('.node rect, .node polygon, .node circle, .node path').forEach((el) => {
+    const node = el as SVGElement
+    if (!node.getAttribute('fill') || node.getAttribute('fill') === 'none') return
+    // Only darken flat node backgrounds that blend with the canvas
+    const fill = node.getAttribute('fill') || ''
+    if (fill === '#1C1C2A' || fill === '#1c1c2a' || fill === 'rgb(28, 28, 42)') {
+      node.setAttribute('fill', '#0A0D18')
+    }
+  })
 }
 
 function fitView() {
@@ -308,6 +320,51 @@ defineExpose({
 .svg-host :deep(svg) {
   max-width: 100%;
   height: auto;
+}
+
+/* High-contrast Mermaid nodes on light canvas */
+.svg-host :deep(.node rect),
+.svg-host :deep(.node polygon),
+.svg-host :deep(.node circle),
+.svg-host :deep(.basic.label-container) {
+  fill: #0A0D18 !important;
+  stroke: #6B6F9E !important;
+  stroke-width: 1.5px !important;
+}
+
+.svg-host :deep(.node .label),
+.svg-host :deep(.nodeLabel),
+.svg-host :deep(.edgeLabel),
+.svg-host :deep(.cluster-label),
+.svg-host :deep(text) {
+  color: #E2E8F0 !important;
+  fill: #E2E8F0 !important;
+}
+
+.svg-host :deep(.edge-pattern-solid),
+.svg-host :deep(.flowchart-link),
+.svg-host :deep(path.path),
+.svg-host :deep(.edgePath .path) {
+  stroke: #8B90C4 !important;
+  stroke-width: 1.75px !important;
+}
+
+.svg-host :deep(.marker),
+.svg-host :deep(marker path),
+.svg-host :deep(.arrowheadPath) {
+  fill: #8B90C4 !important;
+  stroke: #8B90C4 !important;
+}
+
+.svg-host :deep(.cluster rect) {
+  fill: rgba(10, 13, 24, 0.45) !important;
+  stroke: rgba(107, 111, 158, 0.55) !important;
+  stroke-width: 1.25px !important;
+}
+
+.svg-host :deep(.labelBkg),
+.svg-host :deep(.edgeLabel rect) {
+  fill: #0A0D18 !important;
 }
 
 .preview-error {
