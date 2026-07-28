@@ -27,17 +27,31 @@ const kindLabel = computed(() => props.node.kind)
 
 let labelBefore = ''
 let techBefore = ''
+/** Skip flush when we already committed or cancelled ourselves */
+let skipExitFlush = false
 
 watch(
   () => props.editing,
-  async (on) => {
+  async (on, wasOn) => {
+    // Parent ended edit (e.g. canvas click) — save DOM text before contenteditable turns off
+    if (wasOn && !on) {
+      if (skipExitFlush) {
+        skipExitFlush = false
+      } else {
+        const label = readLabel() || KIND_DEFAULT_LABEL[props.node.kind]
+        emit('commit-edit', props.node.id, label, readTech())
+      }
+      if (labelEl.value) labelEl.value.contentEditable = 'false'
+      if (techEl.value) techEl.value.contentEditable = 'false'
+      return
+    }
+
     await nextTick()
     if (on) {
       labelBefore = props.node.label
       techBefore = props.node.tech ?? ''
       if (labelEl.value) {
         labelEl.value.textContent = props.node.label || ''
-        // Focus after contenteditable is true in DOM
         labelEl.value.contentEditable = 'true'
         labelEl.value.focus()
         selectAll(labelEl.value)
@@ -46,9 +60,6 @@ watch(
         techEl.value.textContent = props.node.tech ?? ''
         techEl.value.contentEditable = 'true'
       }
-    } else {
-      if (labelEl.value) labelEl.value.contentEditable = 'false'
-      if (techEl.value) techEl.value.contentEditable = 'false'
     }
   },
 )
@@ -86,11 +97,13 @@ function readTech(): string | undefined {
 }
 
 function commit() {
+  skipExitFlush = true
   const label = readLabel() || KIND_DEFAULT_LABEL[props.node.kind]
   emit('commit-edit', props.node.id, label, readTech())
 }
 
 function cancel() {
+  skipExitFlush = true
   if (labelEl.value) labelEl.value.textContent = labelBefore
   if (techEl.value) techEl.value.textContent = techBefore
   emit('cancel-edit')

@@ -340,6 +340,10 @@ function onCanvasDrop(e: DragEvent) {
 }
 
 function selectNode(id: string, additive: boolean) {
+  // Switching to another node while editing should exit edit first
+  if (editingId.value && editingId.value !== id) {
+    endEditIfNeeded()
+  }
   selectedEdgeId.value = null
   if (activeTool.value === 'connect') {
     if (!connectSourceId.value) {
@@ -379,17 +383,29 @@ function selectNode(id: string, additive: boolean) {
 }
 
 function selectEdge(id: string) {
-  if (editingId.value) return
+  endEditIfNeeded()
   selectedIds.value = []
   connectSourceId.value = null
   selectedEdgeId.value = id
 }
 
+/** Exit edit mode (save) and clear selection — used when clicking empty canvas */
 function clearSelection() {
-  if (editingId.value) return
+  endEditIfNeeded()
   selectedIds.value = []
   selectedEdgeId.value = null
   connectSourceId.value = null
+}
+
+function endEditIfNeeded() {
+  if (!editingId.value) return
+  // Blur active contenteditable so the card can flush; then force-exit
+  const active = document.activeElement as HTMLElement | null
+  if (active?.closest?.('.builder-node')) {
+    active.blur()
+  }
+  // Always leave edit mode on canvas click (blur may not fire in Electron)
+  editingId.value = null
 }
 
 function onNodePointerDown(id: string, e: PointerEvent) {
@@ -469,18 +485,27 @@ function onStagePointerDown(e: PointerEvent) {
   if (nodeDrag) return
 
   const target = e.target as HTMLElement | null
-  if (target?.closest?.('.builder-node')) return
+  const onNode = !!target?.closest?.('.builder-node')
+
+  // Clicking anywhere outside the editing node exits edit mode
+  if (editingId.value && !onNode) {
+    endEditIfNeeded()
+  }
+
+  if (onNode) return
   if (target?.classList?.contains('edge-hit') || target?.classList?.contains('edge-path')) return
 
   const onEmpty =
     target === stageRef.value ||
     target?.classList?.contains('world') ||
-    target?.classList?.contains('builder-stage')
+    target?.classList?.contains('builder-stage') ||
+    target?.tagName === 'svg' ||
+    target?.classList?.contains('edge-layer')
 
   const wantPan =
     e.button === 1 ||
     spaceHeld ||
-    (e.button === 0 && onEmpty && activeTool.value !== 'connect')
+    (e.button === 0 && !!onEmpty && activeTool.value !== 'connect')
 
   if (!wantPan) return
   e.preventDefault()
