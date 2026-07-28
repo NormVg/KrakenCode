@@ -42,7 +42,7 @@ const nodeTypes = {
       
       <Controls position="top-left" class="arch-controls" />
       
-      <MiniMap class="arch-minimap" :node-color="(node) => {
+      <MiniMap position="top-right" class="arch-minimap" :node-color="(node) => {
         if (node.type === 'database') return '#3B82F6'
         if (node.type === 'service') return '#9374BE'
         if (node.type === 'queue') return '#0EA5E9'
@@ -97,6 +97,9 @@ const nodeTypes = {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  /* Reduce size */
+  width: 120px !important;
+  height: 80px !important;
 }
 
 :deep(.arch-minimap .vue-flow__minimap-mask) {
