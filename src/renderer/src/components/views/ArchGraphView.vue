@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import ArchCanvas from '../architecture/ArchCanvas.vue'
-import ArchToolbar from '../architecture/ArchToolbar.vue'
 import { useArchGraph } from '../architecture/composables/useArchGraph'
 
 const archGraph = useArchGraph()
@@ -55,27 +54,15 @@ onMounted(() => {
 
 <template>
   <div class="architecture-view-wrapper">
-    <ArchToolbar />
-    <div class="canvas-wrapper">
-      <ArchCanvas />
-    </div>
+    <ArchCanvas />
   </div>
 </template>
 
 <style scoped>
 .architecture-view-wrapper {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   background: var(--bg-panel);
-}
-
-.canvas-wrapper {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  position: relative;
   overflow: hidden;
 }
 </style>
