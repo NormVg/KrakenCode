@@ -120,8 +120,8 @@ function onNodeDblClick({ node, event }: NodeMouseEvent) {
     nodeId: node.id,
     label:  (node.data?.label as string) ?? '',
     tech:   (node.data?.tech  as string) ?? '',
-    x:      event.clientX,
-    y:      event.clientY,
+    x:      (event as MouseEvent).clientX ?? 0,
+    y:      (event as MouseEvent).clientY ?? 0,
   }
 }
 
