@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, shallowRef } from 'vue'
+import { ref, watch, onMounted, nextTick, shallowRef, computed } from 'vue'
 import mermaid from 'mermaid'
 
 const props = defineProps<{
   source: string
+  /** When true, primary pointer drag pans the canvas */
+  panEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'error', message: string | null): void
   (e: 'rendered'): void
+  (e: 'viewport', payload: { zoom: number; pan: { x: number; y: number } }): void
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -21,6 +24,12 @@ const isPanning = ref(false)
 let panStart = { x: 0, y: 0, panX: 0, panY: 0 }
 let renderSeq = 0
 let mermaidReady = false
+
+const zoomPercent = computed(() => Math.round(zoom.value * 100))
+
+function emitViewport() {
+  emit('viewport', { zoom: zoom.value, pan: { ...pan.value } })
+}
 
 function ensureMermaid() {
   if (mermaidReady) return
@@ -43,22 +52,22 @@ function ensureMermaid() {
     },
     themeVariables: {
       darkMode: true,
-      background: '#1C1C2A',
+      background: '#0A0D18',
       primaryColor: '#1C1C2A',
       primaryTextColor: '#E2E8F0',
-      primaryBorderColor: 'rgba(157, 161, 211, 0.45)',
+      primaryBorderColor: 'rgba(157, 161, 211, 0.4)',
       secondaryColor: '#1C1C2A',
       tertiaryColor: '#0A0D18',
       lineColor: '#9DA1D3',
       textColor: '#E2E8F0',
       mainBkg: '#1C1C2A',
-      nodeBorder: 'rgba(157, 161, 211, 0.45)',
-      clusterBkg: 'rgba(28, 28, 42, 0.85)',
+      nodeBorder: 'rgba(157, 161, 211, 0.4)',
+      clusterBkg: 'rgba(28, 28, 42, 0.9)',
       clusterBorder: 'rgba(255, 255, 255, 0.08)',
       titleColor: '#9DA1D3',
-      edgeLabelBackground: '#1C1C2A',
+      edgeLabelBackground: '#0A0D18',
       actorBkg: '#1C1C2A',
-      actorBorder: 'rgba(157, 161, 211, 0.45)',
+      actorBorder: 'rgba(157, 161, 211, 0.4)',
       actorTextColor: '#E2E8F0',
       signalColor: '#9DA1D3',
       signalTextColor: '#E2E8F0',
@@ -131,31 +140,48 @@ function styleInjectedSvg() {
 function fitView() {
   zoom.value = 1
   pan.value = { x: 0, y: 0 }
+  emitViewport()
 }
 
 function zoomBy(delta: number) {
-  zoom.value = Math.min(3, Math.max(0.35, Number((zoom.value + delta).toFixed(2))))
+  zoom.value = Math.min(3, Math.max(0.25, Number((zoom.value + delta).toFixed(2))))
+  emitViewport()
+}
+
+function setZoom(next: number) {
+  zoom.value = Math.min(3, Math.max(0.25, Number(next.toFixed(2))))
+  emitViewport()
 }
 
 function onWheel(e: WheelEvent) {
-  if (e.metaKey || e.ctrlKey) {
+  // Pinch / ctrl-scroll → zoom
+  if (e.ctrlKey || e.metaKey) {
     e.preventDefault()
     zoomBy(e.deltaY > 0 ? -0.08 : 0.08)
     return
   }
-  // Trackpad pinch often reports ctrlKey; plain scroll pans lightly
-  if (!e.ctrlKey && Math.abs(e.deltaY) > 0) {
-    // no-op: allow natural scroll of parent if any
+  // Trackpad scroll → pan
+  e.preventDefault()
+  pan.value = {
+    x: pan.value.x - e.deltaX,
+    y: pan.value.y - e.deltaY,
   }
+  emitViewport()
+}
+
+function shouldStartPan(e: PointerEvent): boolean {
+  if (e.button === 1) return true // middle mouse
+  if (e.altKey) return true
+  if (props.panEnabled !== false && e.button === 0) return true // default: drag to pan
+  return false
 }
 
 function onPointerDown(e: PointerEvent) {
-  if (e.button === 1 || e.altKey) {
-    e.preventDefault()
-    isPanning.value = true
-    panStart = { x: e.clientX, y: e.clientY, panX: pan.value.x, panY: pan.value.y }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }
+  if (!shouldStartPan(e)) return
+  e.preventDefault()
+  isPanning.value = true
+  panStart = { x: e.clientX, y: e.clientY, panX: pan.value.x, panY: pan.value.y }
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -169,6 +195,7 @@ function onPointerMove(e: PointerEvent) {
 function onPointerUp(e: PointerEvent) {
   if (!isPanning.value) return
   isPanning.value = false
+  emitViewport()
   try {
     ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
   } catch {
@@ -192,7 +219,14 @@ onMounted(() => {
   ensureMermaid()
 })
 
-defineExpose({ fitView, zoomBy, zoom, pan })
+defineExpose({
+  fitView,
+  zoomBy,
+  setZoom,
+  zoom,
+  zoomPercent,
+  pan,
+})
 </script>
 
 <template>
@@ -225,7 +259,7 @@ defineExpose({ fitView, zoomBy, zoom, pan })
     </div>
 
     <div v-else-if="!source.trim()" class="preview-empty">
-      Write Mermaid on the left
+      Write Mermaid in Code mode
     </div>
   </div>
 </template>
@@ -236,8 +270,10 @@ defineExpose({ fitView, zoomBy, zoom, pan })
   width: 100%;
   height: 100%;
   min-width: 0;
-  background: var(--bg-panel);
+  background: #0A0D18;
   overflow: hidden;
+  cursor: grab;
+  touch-action: none;
 }
 
 .mermaid-preview.panning {
@@ -250,7 +286,7 @@ defineExpose({ fitView, zoomBy, zoom, pan })
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 24px calc(24px + var(--bottom-bar-clearance));
+  padding: 56px 24px calc(24px + var(--bottom-bar-clearance));
   transform-origin: center center;
   transition: transform 120ms ease-out;
   will-change: transform;
@@ -262,6 +298,7 @@ defineExpose({ fitView, zoomBy, zoom, pan })
 
 .svg-host {
   max-width: min(920px, 100%);
+  pointer-events: none; /* pan hits the stage, not SVG internals */
 }
 
 .svg-host :deep(svg) {
