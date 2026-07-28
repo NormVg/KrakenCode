@@ -38,7 +38,7 @@ const nodeTypes = {
       fit-view-on-init
       class="kraken-arch-flow"
     >
-      <Background pattern-color="rgba(255, 95, 95, 0.15)" :gap="24" :size="1" />
+      <Background pattern-color="rgba(170, 32, 90, 0.5)" :gap="24" :size="1" />
       
       <Controls position="top-left" class="arch-controls" />
       
