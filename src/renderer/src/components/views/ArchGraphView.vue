@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import ArchCanvas    from '../architecture/ArchCanvas.vue'
+import NodePalette   from '../architecture/NodePalette.vue'
 import { useArchGraph } from '../architecture/composables/useArchGraph'
 
 const archGraph = useArchGraph()
@@ -26,15 +27,27 @@ onMounted(() => {
 
 <template>
   <div class="arch-view">
-    <ArchCanvas />
+    <NodePalette />
+    <div class="arch-canvas-area">
+      <ArchCanvas />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .arch-view {
+  display: flex;
+  flex-direction: row;
   width: 100%;
   height: 100%;
-  background: #121212; /* Match Excalidraw dark theme */
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.arch-canvas-area {
+  flex: 1;
+  height: 100%;
+  position: relative;
   overflow: hidden;
 }
 </style>

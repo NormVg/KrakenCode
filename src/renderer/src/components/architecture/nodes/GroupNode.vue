@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Handle, Position } from '@vue-flow/core'
 import type { GroupNodeData } from '../types/arch.types'
 
 const props = defineProps<{
@@ -13,7 +14,20 @@ const props = defineProps<{
     <div v-if="data.description" class="group-desc">{{ data.description }}</div>
     
     <!-- Group nodes do not typically have handles; children connect to each other, or connections go to the group border. Vue Flow handles group borders automatically if needed. -->
-  </div>
+  
+    <!-- Top Handles -->
+    <Handle type="source" :position="Position.Top" id="top-s" class="arch-handle" />
+    <Handle type="target" :position="Position.Top" id="top-t" class="arch-handle target-handle" />
+    <!-- Bottom Handles -->
+    <Handle type="source" :position="Position.Bottom" id="bottom-s" class="arch-handle" />
+    <Handle type="target" :position="Position.Bottom" id="bottom-t" class="arch-handle target-handle" />
+    <!-- Right Handles -->
+    <Handle type="source" :position="Position.Right" id="right-s" class="arch-handle arch-handle-right" />
+    <Handle type="target" :position="Position.Right" id="right-t" class="arch-handle arch-handle-right target-handle" />
+    <!-- Left Handles -->
+    <Handle type="source" :position="Position.Left" id="left-s" class="arch-handle arch-handle-left" />
+    <Handle type="target" :position="Position.Left" id="left-t" class="arch-handle arch-handle-left target-handle" />
+</div>
 </template>
 
 <style scoped>

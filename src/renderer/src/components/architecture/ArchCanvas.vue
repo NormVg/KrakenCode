@@ -3,14 +3,19 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import {
   VueFlow,
   useVueFlow,
-  MarkerType,
   type NodeMouseEvent,
+  type EdgeMouseEvent,
   type Connection,
+  MarkerType,
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
+import { MiniMap } from '@vue-flow/minimap'
+import { Controls } from '@vue-flow/controls'
 
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
+import '@vue-flow/controls/dist/style.css'
+import '@vue-flow/minimap/dist/style.css'
 
 import ServiceNode  from './nodes/ServiceNode.vue'
 import DatabaseNode from './nodes/DatabaseNode.vue'
@@ -18,6 +23,7 @@ import QueueNode    from './nodes/QueueNode.vue'
 import GroupNode    from './nodes/GroupNode.vue'
 import ExternalNode from './nodes/ExternalNode.vue'
 import NodeEditModal from './NodeEditModal.vue'
+import { useAutoLayout } from './composables/useAutoLayout'
 
 // ─── Composables ─────────────────────────────────────────────────────────────
 const {
@@ -29,10 +35,13 @@ const {
   getSelectedEdges,
   findNode,
   updateNode,
+  getEdges,
+  setEdges,
   project,
-  zoomIn,
-  zoomOut,
+  fitView,
 } = useVueFlow({ id: 'arch-canvas' })
+
+const { recompute } = useAutoLayout()
 
 const nodeTypes = {
   service:  ServiceNode,
@@ -42,10 +51,10 @@ const nodeTypes = {
   external: ExternalNode,
 }
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// ─── Canvas ref ───────────────────────────────────────────────────────────────
 const canvasRef = ref<HTMLElement | null>(null)
-const activeTool = ref<string>('select') // 'select', 'service', 'database', 'queue', 'external', 'group'
 
+// ─── Edit modal state ─────────────────────────────────────────────────────────
 interface EditState {
   nodeId: string
   label: string
@@ -72,27 +81,40 @@ function defaultData(type: string): Record<string, any> {
   return bases[type] ?? { kind: type, label: 'Node' }
 }
 
-// ─── Click to place nodes (Excalidraw style) ─────────────────────────────────
-function onPaneClick(e: MouseEvent) {
-  if (activeTool.value === 'select') {
-    // Regular selection behavior (handled by vue-flow natively)
-    return
-  }
+// ─── Drop from NodePalette ────────────────────────────────────────────────────
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+}
 
-  // A tool is active, place the node!
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  const type = e.dataTransfer?.getData('application/kraken-arch-node-type')
+  if (!type || !canvasRef.value) return
+
+  const rect = canvasRef.value.getBoundingClientRect()
+  const pos  = project({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+
+  addNodes([{
+    id:       nextId(),
+    type,
+    position: pos,
+    data:     defaultData(type),
+  }])
+}
+
+// ─── Double-click on empty pane → create service node ────────────────────────
+function onPaneDblClick(e: MouseEvent) {
   if (!canvasRef.value) return
   const rect = canvasRef.value.getBoundingClientRect()
   const pos  = project({ x: e.clientX - rect.left, y: e.clientY - rect.top })
 
   addNodes([{
     id:       nextId(),
-    type:     activeTool.value,
+    type:     'service',
     position: pos,
-    data:     defaultData(activeTool.value),
+    data:     defaultData('service'),
   }])
-
-  // Revert back to pointer after placing
-  activeTool.value = 'select'
 }
 
 // ─── Double-click on node → open edit modal ───────────────────────────────────
@@ -114,6 +136,17 @@ function confirmEdit(id: string, label: string, tech: string) {
   editing.value = null
 }
 
+function onEdgeClick({ edge }: EdgeMouseEvent) {
+  const edges = getEdges.value
+  const newEdges = edges.map(e => {
+    if (e.id === edge.id) {
+      return { ...e, animated: !e.animated }
+    }
+    return e
+  })
+  setEdges(newEdges)
+}
+
 // ─── Edge created by user dragging between handles ───────────────────────────
 function onConnect(connection: Connection) {
   addEdges([{
@@ -130,31 +163,17 @@ function onConnect(connection: Connection) {
   }])
 }
 
-// ─── Keyboard interactions ────────────────────────────────────────────────────
+// ─── Keyboard delete ──────────────────────────────────────────────────────────
 function onKeyDown(e: KeyboardEvent) {
-  if (editing.value) return  // don't delete/switch tools while editing
+  if (editing.value) return  // don't delete while editing
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
-  // Delete
   if (e.key === 'Delete' || e.key === 'Backspace') {
     const nodes = getSelectedNodes.value.map(n => n.id)
     const edges = getSelectedEdges.value.map(e => e.id)
     if (nodes.length) removeNodes(nodes)
     if (edges.length) removeEdges(edges)
   }
-
-  // Quick switch to pointer (Escape)
-  if (e.key === 'Escape') {
-    activeTool.value = 'select'
-  }
-  
-  // Excalidraw-like hotkeys (1, 2, 3...)
-  if (e.key === '1') activeTool.value = 'select'
-  if (e.key === '2') activeTool.value = 'service'
-  if (e.key === '3') activeTool.value = 'database'
-  if (e.key === '4') activeTool.value = 'queue'
-  if (e.key === '5') activeTool.value = 'external'
-  if (e.key === '6') activeTool.value = 'group'
 }
 
 onMounted(() => { document.addEventListener('keydown', onKeyDown) })
@@ -162,8 +181,12 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
 </script>
 
 <template>
-  <div ref="canvasRef" class="arch-canvas-container" :class="{ 'crosshair-cursor': activeTool !== 'select' }">
-    <!-- Vue Flow Canvas -->
+  <div
+    ref="canvasRef"
+    class="arch-canvas-container"
+    @dragover="onDragOver"
+    @drop="onDrop"
+  >
     <VueFlow
       id="arch-canvas"
       :node-types="nodeTypes as any"
@@ -176,63 +199,50 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
       :nodes-connectable="true"
       :elements-selectable="true"
       :multi-selection-key-code="'Shift'"
-      :pan-on-drag="activeTool === 'select'"
-      :selection-on-drag="activeTool === 'select'"
       fit-view-on-init
       class="kraken-arch-flow"
-      @pane-click="onPaneClick"
+      @pane-dbl-click="onPaneDblClick"
       @node-double-click="onNodeDblClick"
+      @edge-click="onEdgeClick"
       @connect="onConnect"
     >
-      <!-- Extremely subtle background dots to match Excalidraw dark theme -->
-      <Background pattern-color="rgba(255, 255, 255, 0.03)" :gap="24" :size="1" />
+      <Background pattern-color="rgba(170, 32, 90, 0.5)" :gap="24" :size="1" />
+
+      <Controls position="top-left" class="arch-controls" />
+
+      <MiniMap
+        position="top-right"
+        class="arch-minimap"
+        :node-color="(node) => {
+          if (node.type === 'database') return '#3B82F6'
+          if (node.type === 'service')  return '#9374BE'
+          if (node.type === 'queue')    return '#0EA5E9'
+          if (node.type === 'group')    return 'rgba(255,255,255,0.1)'
+          return '#444'
+        }"
+      />
+
+      <!-- Floating action bar: Auto Layout + Fit View + Clear -->
+      <div class="floating-toolbar">
+          <button class="fab" title="Fit View" @click="fitView({ padding: 0.15, duration: 400 })">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+            </svg>
+          </button>
+          <div class="fab-divider" />
+          <button class="fab fab-primary" title="Auto Layout" @click="recompute()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Auto Layout
+          </button>
+        </div>
     </VueFlow>
 
-    <!-- Excalidraw-Style Top Floating Toolbar -->
-    <div class="excalidraw-toolbar">
-      <div class="toolbar-group">
-        <button class="tool-btn" :class="{ active: activeTool === 'select' }" @click="activeTool = 'select'" title="Selection (1)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
-            <path d="M13 13l6 6"></path>
-          </svg>
-        </button>
-      </div>
-
-      <div class="toolbar-divider"></div>
-
-      <div class="toolbar-group">
-        <button class="tool-btn" :class="{ active: activeTool === 'service' }" @click="activeTool = 'service'" title="Service (2)">
-          <div class="tool-icon hexagon">⬡</div>
-        </button>
-        <button class="tool-btn" :class="{ active: activeTool === 'database' }" @click="activeTool = 'database'" title="Database (3)">
-          <div class="tool-icon">⬟</div>
-        </button>
-        <button class="tool-btn" :class="{ active: activeTool === 'queue' }" @click="activeTool = 'queue'" title="Queue (4)">
-          <div class="tool-icon">◈</div>
-        </button>
-        <button class="tool-btn" :class="{ active: activeTool === 'external' }" @click="activeTool = 'external'" title="External (5)">
-          <div class="tool-icon">◎</div>
-        </button>
-        <button class="tool-btn" :class="{ active: activeTool === 'group' }" @click="activeTool = 'group'" title="Group (6)">
-          <div class="tool-icon">⬜</div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Excalidraw-Style Bottom Left Zoom Controls -->
-    <div class="excalidraw-zoom-controls">
-      <button class="zoom-btn" @click="() => zoomOut()">-</button>
-      <button class="zoom-btn" @click="() => zoomIn()">+</button>
-    </div>
-
-    <!-- Top Left Menu Mock (Visual only for now) -->
-    <div class="excalidraw-menu-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
+    <!-- Double-click to create hint -->
+    <div class="canvas-hint">
+      Double-click canvas to add a node · Drag from panel · Drag handles to connect
     </div>
 
     <!-- Node Edit Modal -->
@@ -252,170 +262,158 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
 .arch-canvas-container {
   width: 100%;
   height: 100%;
-  position: absolute;
-  inset: 0;
-  background: #121212; /* Excalidraw dark theme */
+  position: relative;
+  background: transparent;
 }
 
 .kraken-arch-flow {
   background-color: transparent;
 }
 
-/* Change cursor to crosshair when a tool is selected */
-.crosshair-cursor :deep(.vue-flow__pane) {
-  cursor: crosshair !important;
-}
-
-/* ─── Top Floating Toolbar ────────────────────────────────────────── */
-.excalidraw-toolbar {
+/* Floating toolbar – bottom-center */
+.floating-toolbar {
   position: absolute;
-  top: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  background: #232329;
+  gap: 4px;
+  background: rgba(14, 14, 24, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 10;
+  pointer-events: all;
+}
+
+.fab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   border-radius: 8px;
-  padding: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
-  z-index: 10;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.toolbar-group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+.fab:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.9);
 }
 
-.toolbar-divider {
+.fab-primary {
+  color: rgba(255,255,255,0.75);
+}
+
+.fab-primary:hover {
+  background: rgba(147, 116, 190, 0.2);
+  color: #9374BE;
+}
+
+.fab-divider {
   width: 1px;
-  height: 24px;
+  height: 18px;
   background: rgba(255,255,255,0.1);
-  margin: 0 8px;
+  margin: 0 2px;
 }
 
-.tool-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: #a0a0a0;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  position: relative;
-}
-
-.tool-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e0e0e0;
-}
-
-/* Active State (Indigo) */
-.tool-btn.active {
-  background: rgba(166, 124, 255, 0.2);
-  color: #a67cff;
-}
-
-.tool-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-.tool-icon.hexagon {
-  font-size: 18px; /* Optical adjustment */
-}
-
-/* ─── Bottom Left Zoom Controls ──────────────────────────────────────── */
-.excalidraw-zoom-controls {
+/* Canvas hint */
+.canvas-hint {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
-  display: flex;
-  background: #232329;
-  border-radius: 6px;
-  padding: 2px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
-  z-index: 10;
+  bottom: 20px;
+  right: 20px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.18);
+  pointer-events: none;
+  letter-spacing: 0.02em;
 }
 
-.zoom-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Controls */
+:deep(.arch-controls) {
+  background: rgba(20, 20, 32, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+:deep(.arch-controls button) {
   background: transparent;
-  border: none;
-  color: #a0a0a0;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 18px;
-  line-height: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  fill: rgba(255,255,255,0.7);
 }
-.zoom-btn:hover {
+
+:deep(.arch-controls button:hover) {
   background: rgba(255, 255, 255, 0.08);
-  color: #e0e0e0;
 }
 
-/* ─── Top Left Menu Button ──────────────────────────────────────────── */
-.excalidraw-menu-btn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #232329;
-  border-radius: 6px;
-  color: #a0a0a0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
-  cursor: pointer;
-  z-index: 10;
+:deep(.arch-controls button:last-child) {
+  border-bottom: none;
 }
 
-.excalidraw-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e0e0e0;
+/* Minimap */
+:deep(.arch-minimap) {
+  background: rgba(20, 20, 32, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  width: 120px !important;
+  height: 80px !important;
 }
 
-/* ─── Base Overrides ────────────────────────────────────────────────── */
+:deep(.arch-minimap .vue-flow__minimap-mask) {
+  fill: rgba(0, 0, 0, 0.6);
+}
+
+/* Node handle styling – make handles visible on hover */
 :deep(.vue-flow__handle) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #121212;
-  border: 1.5px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.2);
+  border: 1.5px solid rgba(255,255,255,0.35);
   transition: all 0.15s ease;
 }
 
 :deep(.vue-flow__handle:hover) {
-  background: #a67cff;
-  border-color: #a67cff;
+  background: var(--accent, #FF5F5F);
+  border-color: var(--accent, #FF5F5F);
   transform: scale(1.4);
+  box-shadow: 0 0 8px var(--accent, #FF5F5F);
 }
 
+/* Edge styles */
 :deep(.vue-flow__edge-path) {
-  stroke: rgba(255,255,255,0.25);
+  stroke: rgba(255,255,255,0.2);
 }
 
 :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke: #a67cff;
+  stroke: var(--accent, #FF5F5F);
 }
 
+/* Connection line while dragging */
 :deep(.vue-flow__connection-path) {
-  stroke: #a67cff !important;
+  stroke: var(--accent, #FF5F5F) !important;
   stroke-width: 2 !important;
   stroke-dasharray: 5 3 !important;
 }
 
+/* Selection box */
 :deep(.vue-flow__selection) {
-  background: rgba(166, 124, 255, 0.1);
-  border: 1px solid rgba(166, 124, 255, 0.5);
+  background: rgba(147, 116, 190, 0.08);
+  border: 1px solid rgba(147, 116, 190, 0.4);
   border-radius: 4px;
 }
 </style>

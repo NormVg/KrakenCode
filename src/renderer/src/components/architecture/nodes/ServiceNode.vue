@@ -21,8 +21,7 @@ const color = props.data.status
 
 <template>
   <div class="arch-node service-node" :class="{ selected }">
-    <Handle type="target" :position="Position.Top" class="arch-handle" />
-
+    
     <div class="node-header">
       <div class="node-icon service-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -39,10 +38,20 @@ const color = props.data.status
 
     <div v-if="data.description" class="node-desc">{{ data.description }}</div>
 
-    <Handle type="source" :position="Position.Bottom" class="arch-handle" />
-    <Handle type="source" :position="Position.Right" class="arch-handle arch-handle-right" />
-    <Handle type="target" :position="Position.Left" class="arch-handle arch-handle-left" />
-  </div>
+              
+    <!-- Top Handles -->
+    <Handle type="source" :position="Position.Top" id="top-s" class="arch-handle" />
+    <Handle type="target" :position="Position.Top" id="top-t" class="arch-handle target-handle" />
+    <!-- Bottom Handles -->
+    <Handle type="source" :position="Position.Bottom" id="bottom-s" class="arch-handle" />
+    <Handle type="target" :position="Position.Bottom" id="bottom-t" class="arch-handle target-handle" />
+    <!-- Right Handles -->
+    <Handle type="source" :position="Position.Right" id="right-s" class="arch-handle arch-handle-right" />
+    <Handle type="target" :position="Position.Right" id="right-t" class="arch-handle arch-handle-right target-handle" />
+    <!-- Left Handles -->
+    <Handle type="source" :position="Position.Left" id="left-s" class="arch-handle arch-handle-left" />
+    <Handle type="target" :position="Position.Left" id="left-t" class="arch-handle arch-handle-left target-handle" />
+</div>
 </template>
 
 <style scoped>
@@ -125,12 +134,22 @@ const color = props.data.status
   padding-top: 6px;
 }
 
+
+
+
+
 :deep(.arch-handle) {
   width: 8px;
   height: 8px;
   background: rgba(255,255,255,0.2);
   border: 1px solid rgba(255,255,255,0.1);
   transition: background 0.15s ease;
+}
+
+:deep(.arch-handle.target-handle) {
+  border: none;
+  background: transparent;
+  pointer-events: none; /* Let source handle take the drag events */
 }
 
 :deep(.arch-handle:hover) {
