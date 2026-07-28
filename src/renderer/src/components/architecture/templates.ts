@@ -1,15 +1,6 @@
 // Default and starter Mermaid diagrams for the Architecture view.
 
-export const DEFAULT_ARCH_DIAGRAM = `%%{init: {"theme": "dark", "themeVariables": {
-  "primaryColor": "#1C1C2A",
-  "primaryTextColor": "#E2E8F0",
-  "primaryBorderColor": "#9374BE",
-  "lineColor": "#9DA1D3",
-  "secondaryColor": "#141420",
-  "tertiaryColor": "#0A0D18",
-  "fontFamily": "Inter, system-ui, sans-serif"
-}}}%%
-flowchart TB
+export const DEFAULT_ARCH_DIAGRAM = `flowchart TB
   subgraph Clients
     WEB[Web App]
     MOB[Mobile]

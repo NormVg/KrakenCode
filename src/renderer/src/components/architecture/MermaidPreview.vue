@@ -43,33 +43,33 @@ function ensureMermaid() {
     },
     themeVariables: {
       darkMode: true,
-      background: '#141420',
+      background: '#1C1C2A',
       primaryColor: '#1C1C2A',
       primaryTextColor: '#E2E8F0',
-      primaryBorderColor: '#9374BE',
-      secondaryColor: '#181825',
+      primaryBorderColor: 'rgba(157, 161, 211, 0.45)',
+      secondaryColor: '#1C1C2A',
       tertiaryColor: '#0A0D18',
       lineColor: '#9DA1D3',
       textColor: '#E2E8F0',
       mainBkg: '#1C1C2A',
-      nodeBorder: '#9374BE',
-      clusterBkg: 'rgba(28, 28, 42, 0.7)',
-      clusterBorder: 'rgba(147, 116, 190, 0.35)',
-      titleColor: '#E2E8F0',
-      edgeLabelBackground: '#141420',
+      nodeBorder: 'rgba(157, 161, 211, 0.45)',
+      clusterBkg: 'rgba(28, 28, 42, 0.85)',
+      clusterBorder: 'rgba(255, 255, 255, 0.08)',
+      titleColor: '#9DA1D3',
+      edgeLabelBackground: '#1C1C2A',
       actorBkg: '#1C1C2A',
-      actorBorder: '#9374BE',
+      actorBorder: 'rgba(157, 161, 211, 0.45)',
       actorTextColor: '#E2E8F0',
       signalColor: '#9DA1D3',
       signalTextColor: '#E2E8F0',
       labelBoxBkgColor: '#1C1C2A',
-      labelBoxBorderColor: 'rgba(255,255,255,0.12)',
+      labelBoxBorderColor: 'rgba(255, 255, 255, 0.08)',
       labelTextColor: '#E2E8F0',
       loopTextColor: '#E2E8F0',
-      noteBkgColor: '#181825',
+      noteBkgColor: '#1C1C2A',
       noteTextColor: '#E2E8F0',
-      noteBorderColor: 'rgba(255,255,255,0.12)',
-      activationBkgColor: 'rgba(147, 116, 190, 0.2)',
+      noteBorderColor: 'rgba(255, 255, 255, 0.08)',
+      activationBkgColor: 'rgba(147, 116, 190, 0.15)',
       activationBorderColor: '#9374BE',
       sequenceNumberColor: '#0A0D18',
       fontFamily: 'Inter, system-ui, sans-serif',
@@ -90,7 +90,6 @@ async function renderDiagram(raw: string) {
 
   const seq = ++renderSeq
   try {
-    // Validate first so we don't leave broken SVG in the DOM
     await mermaid.parse(code)
     if (seq !== renderSeq) return
 
@@ -107,12 +106,11 @@ async function renderDiagram(raw: string) {
   } catch (err) {
     if (seq !== renderSeq) return
     const message = err instanceof Error ? err.message : String(err)
-    // Mermaid errors are often multi-line; keep the first useful line
     const clean = message
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean)
-      .slice(0, 3)
+      .slice(0, 2)
       .join(' · ')
     renderError.value = clean
     emit('error', clean)
@@ -143,12 +141,15 @@ function onWheel(e: WheelEvent) {
   if (e.metaKey || e.ctrlKey) {
     e.preventDefault()
     zoomBy(e.deltaY > 0 ? -0.08 : 0.08)
+    return
+  }
+  // Trackpad pinch often reports ctrlKey; plain scroll pans lightly
+  if (!e.ctrlKey && Math.abs(e.deltaY) > 0) {
+    // no-op: allow natural scroll of parent if any
   }
 }
 
 function onPointerDown(e: PointerEvent) {
-  if (e.button !== 0 && e.button !== 1) return
-  // Middle mouse or space-pan would be ideal; allow drag on empty stage with alt or middle
   if (e.button === 1 || e.altKey) {
     e.preventDefault()
     isPanning.value = true
@@ -175,6 +176,10 @@ function onPointerUp(e: PointerEvent) {
   }
 }
 
+function onDoubleClick() {
+  fitView()
+}
+
 watch(
   () => props.source,
   (next) => {
@@ -191,48 +196,36 @@ defineExpose({ fitView, zoomBy, zoom, pan })
 </script>
 
 <template>
-  <div class="mermaid-preview">
+  <div
+    class="mermaid-preview"
+    :class="{ panning: isPanning }"
+    @wheel="onWheel"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerUp"
+    @dblclick="onDoubleClick"
+  >
     <div
-      class="preview-stage"
-      :class="{ panning: isPanning }"
-      @wheel="onWheel"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerUp"
+      class="preview-transform"
+      :style="{
+        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+      }"
     >
       <div
-        class="preview-transform"
-        :style="{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-        }"
-      >
-        <div
-          v-if="svgHtml && !renderError"
-          ref="containerRef"
-          class="svg-host"
-          v-html="svgHtml"
-        />
-      </div>
-
-      <div v-if="renderError" class="preview-error" role="alert">
-        <div class="error-title">Diagram error</div>
-        <div class="error-body">{{ renderError }}</div>
-        <div class="error-hint">Fix the Mermaid syntax on the left — preview updates as you type.</div>
-      </div>
-
-      <div v-else-if="!source.trim()" class="preview-empty">
-        <p>Write Mermaid on the left to render architecture here.</p>
-      </div>
+        v-if="svgHtml && !renderError"
+        ref="containerRef"
+        class="svg-host"
+        v-html="svgHtml"
+      />
     </div>
 
-    <div class="preview-chrome">
-      <button type="button" class="chrome-btn" title="Zoom out" @click="zoomBy(-0.1)">−</button>
-      <span class="zoom-label">{{ Math.round(zoom * 100) }}%</span>
-      <button type="button" class="chrome-btn" title="Zoom in" @click="zoomBy(0.1)">+</button>
-      <div class="chrome-divider" />
-      <button type="button" class="chrome-btn text" title="Reset view" @click="fitView">Fit</button>
-      <span class="chrome-hint">⌘/Ctrl+scroll zoom · Alt+drag pan</span>
+    <div v-if="renderError" class="preview-error" role="alert">
+      {{ renderError }}
+    </div>
+
+    <div v-else-if="!source.trim()" class="preview-empty">
+      Write Mermaid on the left
     </div>
   </div>
 </template>
@@ -240,25 +233,14 @@ defineExpose({ fitView, zoomBy, zoom, pan })
 <style scoped>
 .mermaid-preview {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  width: 100%;
   height: 100%;
   min-width: 0;
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(147, 116, 190, 0.06) 0%, transparent 55%),
-    #141420;
+  background: var(--bg-panel);
   overflow: hidden;
 }
 
-.preview-stage {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  cursor: default;
-  min-height: 0;
-}
-
-.preview-stage.panning {
+.mermaid-preview.panning {
   cursor: grabbing;
 }
 
@@ -268,19 +250,18 @@ defineExpose({ fitView, zoomBy, zoom, pan })
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 24px 24px calc(24px + var(--bottom-bar-clearance));
   transform-origin: center center;
   transition: transform 120ms ease-out;
   will-change: transform;
 }
 
-.preview-stage.panning .preview-transform {
+.mermaid-preview.panning .preview-transform {
   transition: none;
 }
 
 .svg-host {
-  max-width: min(960px, 100%);
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+  max-width: min(920px, 100%);
 }
 
 .svg-host :deep(svg) {
@@ -293,33 +274,16 @@ defineExpose({ fitView, zoomBy, zoom, pan })
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(420px, calc(100% - 48px));
-  padding: 16px;
-  border-radius: 12px;
-  background: rgba(226, 75, 74, 0.1);
-  border: 1px solid hsla(0, 65%, 60%, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(0, 0, 0, 0.35);
-}
-
-.error-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: hsl(0, 65%, 76%);
-  margin: 0 0 8px;
-}
-
-.error-body {
+  width: min(400px, calc(100% - 48px));
+  padding: 12px 14px;
+  border-radius: var(--chrome-radius);
+  background: rgba(255, 95, 95, 0.08);
+  border: 1px solid rgba(255, 95, 95, 0.25);
+  color: var(--text-muted);
   font-size: 12px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.7);
   font-family: var(--font-code);
+  line-height: 1.5;
   word-break: break-word;
-}
-
-.error-hint {
-  margin-top: 12px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
 }
 
 .preview-empty {
@@ -328,81 +292,9 @@ defineExpose({ fitView, zoomBy, zoom, pan })
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-muted-dark);
   font-size: 13px;
   padding: 24px;
-  text-align: center;
-}
-
-.preview-empty p {
-  margin: 0;
-}
-
-.preview-chrome {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(10, 13, 24, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.chrome-btn {
-  min-width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
-}
-
-.chrome-btn.text {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 0 10px;
-  min-width: 40px;
-}
-
-.chrome-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.chrome-btn:active {
-  transform: scale(0.96);
-}
-
-.zoom-label {
-  min-width: 44px;
-  text-align: center;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.45);
-  font-family: var(--font-code);
-}
-
-.chrome-divider {
-  width: 1px;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 0 4px;
-}
-
-.chrome-hint {
-  margin-left: auto;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.28);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding-bottom: calc(24px + var(--bottom-bar-clearance));
 }
 </style>
