@@ -259,37 +259,37 @@ onUnmounted(() => {
       <div class="tool-group" role="tablist" aria-label="View mode">
         <button
           type="button"
-          class="tool-btn text"
+          class="tool-btn"
           :class="{ active: mode === 'builder' }"
-          title="Build with drag and drop"
+          title="Build"
+          aria-label="Build"
           @click="setMode('builder')"
         >
-          <MousePointer2 :size="14" />
-          <span>Build</span>
+          <MousePointer2 :size="15" />
         </button>
         <button
           type="button"
-          class="tool-btn text"
+          class="tool-btn"
           :class="{ active: mode === 'preview' }"
           title="Preview"
+          aria-label="Preview"
           @click="setMode('preview')"
         >
-          <Eye :size="14" />
-          <span>Preview</span>
+          <Eye :size="15" />
         </button>
         <button
           type="button"
-          class="tool-btn text"
+          class="tool-btn"
           :class="{ active: mode === 'code' }"
-          title="Mermaid code"
+          title="Code"
+          aria-label="Code"
           @click="setMode('code')"
         >
-          <Code2 :size="14" />
-          <span>Code</span>
+          <Code2 :size="15" />
         </button>
       </div>
 
-      <!-- Builder: node types + tools live in the top bar only -->
+      <!-- Builder: icons only + native tooltips -->
       <template v-if="showBuilderTools">
         <div class="tool-divider" />
 
@@ -298,15 +298,15 @@ onUnmounted(() => {
             v-for="item in NODE_TOOLS"
             :key="item.kind"
             type="button"
-            class="tool-btn text kind-btn"
-            :title="`Add ${item.label} (or drag onto canvas)`"
+            class="tool-btn kind-btn"
+            :title="item.label"
+            :aria-label="`Add ${item.label}`"
             :style="{ '--kind': KIND_COLORS[item.kind] }"
             draggable="true"
             @click="addNode(item.kind)"
             @dragstart="onPaletteDragStart($event, item.kind)"
           >
-            <component :is="item.icon" :size="13" class="kind-icon" />
-            <span>{{ item.label }}</span>
+            <component :is="item.icon" :size="15" class="kind-icon" />
           </button>
         </div>
 
@@ -315,23 +315,23 @@ onUnmounted(() => {
         <div class="tool-group" aria-label="Builder tools">
           <button
             type="button"
-            class="tool-btn text"
+            class="tool-btn"
             :class="{ active: builderTool === 'select' }"
-            title="Move nodes"
+            title="Move"
+            aria-label="Move"
             @click="builderTool = 'select'"
           >
-            <MousePointer2 :size="14" />
-            <span>Move</span>
+            <MousePointer2 :size="15" />
           </button>
           <button
             type="button"
-            class="tool-btn text"
+            class="tool-btn"
             :class="{ active: builderTool === 'connect' }"
-            title="Connect nodes (click A then B)"
+            title="Connect"
+            aria-label="Connect"
             @click="builderTool = 'connect'"
           >
-            <Link2 :size="14" />
-            <span>Connect</span>
+            <Link2 :size="15" />
           </button>
         </div>
       </template>
@@ -454,7 +454,6 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   width: 32px;
   height: 32px;
   padding: 0;
@@ -464,13 +463,6 @@ onUnmounted(() => {
   color: var(--text-muted-dark);
   cursor: pointer;
   transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
-}
-
-.tool-btn.text {
-  width: auto;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 500;
 }
 
 .tool-btn:hover {
@@ -487,16 +479,11 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.kind-btn {
-  color: rgba(255, 255, 255, 0.5);
-}
-
 .kind-btn .kind-icon {
   color: var(--kind);
 }
 
 .kind-btn:hover {
-  color: var(--text-main);
   background: color-mix(in srgb, var(--kind) 14%, transparent);
 }
 
