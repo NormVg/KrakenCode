@@ -18,6 +18,7 @@ const emit = defineEmits<{
   (e: 'cancel-edit'): void
 }>()
 
+const rootEl = ref<HTMLElement | null>(null)
 const labelEl = ref<HTMLElement | null>(null)
 const techEl = ref<HTMLElement | null>(null)
 const accent = computed(() => KIND_COLORS[props.node.kind])
@@ -108,7 +109,7 @@ function onKeydown(e: KeyboardEvent) {
 
 function onBlur(e: FocusEvent) {
   const next = e.relatedTarget as Node | null
-  const root = (e.currentTarget as HTMLElement).closest('.builder-node')
+  const root = rootEl.value
   if (next && root?.contains(next)) return
   requestAnimationFrame(() => {
     if (!props.editing) return
@@ -118,22 +119,34 @@ function onBlur(e: FocusEvent) {
   })
 }
 
+/** Start drag from anywhere on the card (including label), unless editing */
 function onPointerDown(e: PointerEvent) {
   if (props.editing) {
+    // Only stop when actually editing text so caret works
     e.stopPropagation()
     return
   }
   emit('pointerdown', props.node.id, e)
 }
 
+function onTextPointerDown(e: PointerEvent) {
+  if (props.editing) {
+    e.stopPropagation()
+  }
+  // not editing: do NOT stop — bubble to card for drag
+}
+
 function onDblClick(e: MouseEvent) {
   e.stopPropagation()
   emit('start-edit', props.node.id)
 }
+
+defineExpose({ rootEl })
 </script>
 
 <template>
   <div
+    ref="rootEl"
     class="builder-node"
     :class="{
       selected,
@@ -146,13 +159,12 @@ function onDblClick(e: MouseEvent) {
       top: `${node.y}px`,
       '--accent': accent,
     }"
-    @pointerdown.stop="onPointerDown"
+    @pointerdown="onPointerDown"
     @click.stop="emit('select', node.id, $event.shiftKey)"
     @dblclick="onDblClick"
   >
     <div v-if="!isText" class="node-kind">{{ kindLabel }}</div>
 
-    <!-- Same elements always — contenteditable when editing (no input chrome) -->
     <div
       ref="labelEl"
       class="node-label"
@@ -163,7 +175,7 @@ function onDblClick(e: MouseEvent) {
       :aria-label="isText ? 'Text' : 'Label'"
       @keydown="onKeydown"
       @blur="onBlur"
-      @pointerdown.stop="editing && $event.stopPropagation()"
+      @pointerdown="onTextPointerDown"
     >{{ node.label || (editing ? '' : KIND_DEFAULT_LABEL[node.kind]) }}</div>
 
     <div
@@ -173,12 +185,12 @@ function onDblClick(e: MouseEvent) {
       :class="{ placeholder: editing && !node.tech, editable: editing }"
       :contenteditable="editing"
       :spellcheck="false"
-      :data-placeholder="'tech'"
+      data-placeholder="tech"
       role="textbox"
       aria-label="Tech"
       @keydown="onKeydown"
       @blur="onBlur"
-      @pointerdown.stop="editing && $event.stopPropagation()"
+      @pointerdown="onTextPointerDown"
     >{{ node.tech ?? '' }}</div>
   </div>
 </template>
@@ -256,6 +268,8 @@ function onDblClick(e: MouseEvent) {
   outline: none;
   min-height: 1.2em;
   caret-color: #E2E8F0;
+  /* Allow drag from label when not editing */
+  pointer-events: auto;
 }
 
 .builder-node.is-text .node-label {

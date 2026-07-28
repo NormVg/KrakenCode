@@ -314,6 +314,11 @@ function onNodePointerDown(id: string, e: PointerEvent) {
 
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  selectedEdgeId.value = null
   if (!selectedIds.value.includes(id)) selectedIds.value = [id]
 
   nodeDrag = {
@@ -323,16 +328,33 @@ function onNodePointerDown(id: string, e: PointerEvent) {
     originX: node.x,
     originY: node.y,
   }
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+
+  // Capture on the stage so move/up always arrive (not lost to SVG/labels)
+  try {
+    stageRef.value?.setPointerCapture(e.pointerId)
+  } catch {
+    /* noop */
+  }
 }
 
 function onStagePointerDown(e: PointerEvent) {
-  // Middle mouse, space+drag, or empty-stage drag → pan
-  const onEmpty = e.target === stageRef.value || (e.target as HTMLElement).classList?.contains('world')
+  // Don't pan if a node drag just started
+  if (nodeDrag) return
+
+  const target = e.target as HTMLElement | null
+  // Ignore node cards and edge hits
+  if (target?.closest?.('.builder-node')) return
+  if (target?.classList?.contains('edge-hit') || target?.classList?.contains('edge-path')) return
+
+  const onEmpty =
+    target === stageRef.value ||
+    target?.classList?.contains('world') ||
+    target?.classList?.contains('builder-stage')
+
   const wantPan =
     e.button === 1 ||
     spaceHeld ||
-    (e.button === 0 && onEmpty && !nodeDrag && activeTool.value !== 'connect')
+    (e.button === 0 && onEmpty && activeTool.value !== 'connect')
 
   if (!wantPan) return
   e.preventDefault()
@@ -343,7 +365,11 @@ function onStagePointerDown(e: PointerEvent) {
     originX: pan.value.x,
     originY: pan.value.y,
   }
-  stageRef.value?.setPointerCapture(e.pointerId)
+  try {
+    stageRef.value?.setPointerCapture(e.pointerId)
+  } catch {
+    /* noop */
+  }
 }
 
 function onStagePointerMove(e: PointerEvent) {
@@ -368,13 +394,15 @@ function onStagePointerUp(e: PointerEvent) {
     panDrag = null
     isPanning.value = false
     emitViewport()
-    try {
-      stageRef.value?.releasePointerCapture(e.pointerId)
-    } catch {
-      /* noop */
-    }
   }
   nodeDrag = null
+  try {
+    if (stageRef.value?.hasPointerCapture(e.pointerId)) {
+      stageRef.value.releasePointerCapture(e.pointerId)
+    }
+  } catch {
+    /* noop */
+  }
 }
 
 function onWheel(e: WheelEvent) {
@@ -586,7 +614,7 @@ defineExpose({
           :connect-from="connectSourceId === node.id"
           :editing="editingId === node.id"
           @select="selectNode"
-          @pointerdown="onNodePointerDown"
+          @pointerdown="(id, ev) => onNodePointerDown(id, ev)"
           @start-edit="startEdit"
           @commit-edit="commitEdit"
           @cancel-edit="cancelEdit"
