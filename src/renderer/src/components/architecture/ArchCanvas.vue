@@ -208,8 +208,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
       />
 
       <!-- Floating action bar: Auto Layout + Fit View + Clear -->
-      <template #default>
-        <div class="floating-toolbar">
+      <div class="floating-toolbar">
           <button class="fab" title="Fit View" @click="fitView({ padding: 0.15, duration: 400 })">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
@@ -224,7 +223,6 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
             Auto Layout
           </button>
         </div>
-      </template>
     </VueFlow>
 
     <!-- Double-click to create hint -->
