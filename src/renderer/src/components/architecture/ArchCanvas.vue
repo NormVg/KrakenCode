@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import { Minimap } from '@vue-flow/minimap'
+import { MiniMap } from '@vue-flow/minimap'
 import { Controls } from '@vue-flow/controls'
 
 // Import core styles
@@ -42,7 +42,7 @@ const nodeTypes = {
       
       <Controls class="arch-controls" />
       
-      <Minimap class="arch-minimap" :node-color="(node) => {
+      <MiniMap class="arch-minimap" :node-color="(node) => {
         if (node.type === 'database') return '#3B82F6'
         if (node.type === 'service') return '#9374BE'
         if (node.type === 'queue') return '#0EA5E9'
