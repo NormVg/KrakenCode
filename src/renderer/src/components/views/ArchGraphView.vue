@@ -468,11 +468,18 @@ onUnmounted(() => {
 }
 
 .kind-btn .kind-icon {
-  color: var(--kind);
+  color: color-mix(in srgb, var(--kind) 72%, rgba(157, 161, 211, 0.55));
+  opacity: 0.85;
+  transition: color 160ms ease-out, opacity 160ms ease-out;
 }
 
 .kind-btn:hover {
-  background: color-mix(in srgb, var(--kind) 14%, transparent);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kind-btn:hover .kind-icon {
+  color: var(--kind);
+  opacity: 1;
 }
 
 .zoom-readout {

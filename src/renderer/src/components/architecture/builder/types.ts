@@ -54,11 +54,12 @@ export const KIND_DEFAULT_LABEL: Record<ArchNodeKind, string> = {
   text: 'Double-click to edit',
 }
 
+/** Muted accents — readable on dark chrome, not neon */
 export const KIND_COLORS: Record<ArchNodeKind, string> = {
-  service: '#9374BE',
-  database: '#3B82F6',
-  queue: '#0EA5E9',
-  external: '#F59E0B',
-  client: '#10B981',
-  text: '#9DA1D3',
+  service: '#8B7AA8',
+  database: '#6B8CB8',
+  queue: '#6A9AAA',
+  external: '#A8926E',
+  client: '#6B9B88',
+  text: '#7A7E9A',
 }
