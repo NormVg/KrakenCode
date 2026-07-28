@@ -29,6 +29,8 @@ export interface Project {
   name: string;
   path: string;
   items: ChatSession[];
+  /** Mermaid source for the Architecture (Graph) view — text-first, agent-editable */
+  architecture?: string;
 }
 
 export type ViewType = 'agent' | 'editor' | 'web' | 'diff' | 'graph' | 'terminal'
@@ -278,6 +280,14 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  // --- Architecture (Mermaid) ---
+  const setProjectArchitecture = (projectId: string, mermaidSource: string) => {
+    const project = projects.value.find(p => p.id === projectId)
+    if (!project) return
+    project.architecture = mermaidSource
+    saveData()
+  }
+
   return {
     projects,
     activeProjectId,
@@ -303,6 +313,7 @@ export const useProjectsStore = defineStore('projects', () => {
     closeFile,
     updateFileContent,
     saveFile,
-    renameOpenFile
+    renameOpenFile,
+    setProjectArchitecture,
   }
 })
