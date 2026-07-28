@@ -5,7 +5,7 @@ declare global {
     electron: ElectronAPI
     api: {
       chat: (message: string) => Promise<string>
-      streamChat: (id: string, message: string) => void
+      streamChat: (id: string, message: string, options?: { system?: string }) => void
       onChatChunk: (id: string, callback: (chunk: string) => void) => void
       onChatEnd: (id: string, callback: () => void) => void
       onChatError: (id: string, callback: (error: string) => void) => void

@@ -8,8 +8,9 @@ Kraken is a Modern Coding Agent interface built with Electron, Vue 3, Vite, and 
 - [x] Modern UI Overhaul (Dark mode, syntax highlighting, sidebar)
 - [x] Implement Git auto-commit workflow
 - [x] Architecture view: replace Vue Flow with Mermaid (text-first, agent-editable)
+- [x] Wire agent to read project architecture + apply `architecture-mermaid` updates
 - [ ] Setup persistence for chat history
-- [ ] Wire agent tools to read/write project architecture Mermaid source
+- [ ] Full multi-turn chat history in model context (currently single-turn prompt)
 
 ## Current Status
 - Modern UI overhaul is complete.
@@ -22,3 +23,5 @@ Kraken is a Modern Coding Agent interface built with Electron, Vue 3, Vite, and 
   - Per-project persistence via `Project.architecture`
   - Templates: System flowchart, Sequence, C4 Context, ER
   - Vue Flow / elkjs removed from dependencies
+  - Agent receives architecture in system prompt; can overwrite via ` ```architecture-mermaid ` fences
+  - Slash command `/Architecture` seeds an architecture update prompt

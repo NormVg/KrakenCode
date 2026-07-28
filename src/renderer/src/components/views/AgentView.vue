@@ -6,6 +6,10 @@ import { useProjectsStore } from '../../stores/projects'
 import ChatMessage from '../ChatMessage.vue'
 import ChatInput from '../ChatInput.vue'
 import QueuedMessages from '../QueuedMessages.vue'
+import {
+  buildArchitectureSystemPrompt,
+  extractArchitectureUpdate,
+} from '../../utils/architectureAgent'
 
 const configStore = useConfigStore()
 const { isSetup } = storeToRefs(configStore)
@@ -31,13 +35,29 @@ const processNextMessage = async () => {
   }
 }
 
+/** Apply architecture-mermaid fences from the finished agent reply. */
+const applyArchitectureFromAgentReply = () => {
+  const last = projectsStore.activeChat?.messages.at(-1)
+  if (!last || last.role !== 'agent' || !last.content) return
+
+  const { displayContent, mermaidSource, didUpdate } = extractArchitectureUpdate(last.content)
+  if (!didUpdate || !mermaidSource) return
+
+  const projectId = projectsStore.activeProjectId
+  if (projectId) {
+    projectsStore.setProjectArchitecture(projectId, mermaidSource)
+  }
+  projectsStore.replaceActiveChatLastAgentContent(displayContent)
+}
+
 const executeMessage = async (text: string) => {
   if (projectsStore.projects.length === 0) {
     const proj = {
       id: crypto.randomUUID(),
       name: 'Default Workspace',
       path: '',
-      items: []
+      items: [],
+      architecture: undefined as string | undefined,
     }
     projectsStore.projects.push(proj)
     projectsStore.activeProjectId = proj.id
@@ -62,6 +82,7 @@ const executeMessage = async (text: string) => {
 
   window.api.onChatEnd(msgId, () => {
     projectsStore.endActiveChatStreamingMessage()
+    applyArchitectureFromAgentReply()
     isLoading.value = false
     window.api.removeChatListeners(msgId)
     processNextMessage()
@@ -74,7 +95,14 @@ const executeMessage = async (text: string) => {
     processNextMessage()
   })
 
-  window.api.streamChat(msgId, text)
+  const project = projectsStore.activeProject
+  const system = buildArchitectureSystemPrompt({
+    projectName: project?.name,
+    projectPath: project?.path,
+    architecture: project?.architecture,
+  })
+
+  window.api.streamChat(msgId, text, { system })
 }
 
 const handleChat = async () => {

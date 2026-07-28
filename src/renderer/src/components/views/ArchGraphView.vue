@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
@@ -93,18 +93,32 @@ const statusLabel = computed(() => {
 })
 
 // ── Load / persist per project ────────────────────────────────────────────────
+/** When true, ignore localSource watches so external (agent) loads don't re-save. */
+let syncingFromStore = false
+
 function loadFromProject() {
   const stored = activeProject.value?.architecture
-  localSource.value = stored?.trim() ? stored : DEFAULT_ARCH_DIAGRAM
+  const next = stored?.trim() ? stored : DEFAULT_ARCH_DIAGRAM
+  if (next === localSource.value) return
+  syncingFromStore = true
+  localSource.value = next
   previewError.value = null
   previewRef.value?.fitView()
+  // Release after Vue processes the localSource write so the watcher skips re-save
+  nextTick(() => {
+    syncingFromStore = false
+  })
 }
 
 function scheduleSave() {
+  if (syncingFromStore) return
   if (!activeProject.value || !isLoaded.value) return
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
-    projectsStore.setProjectArchitecture(activeProject.value!.id, localSource.value)
+    if (syncingFromStore || !activeProject.value) return
+    // Avoid noisy writes when content already matches store
+    if (activeProject.value.architecture === localSource.value) return
+    projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
   }, 450)
 }
 
@@ -114,6 +128,16 @@ watch(
     loadFromProject()
   },
   { immediate: true },
+)
+
+// Agent (or other views) may update architecture while Graph is open
+watch(
+  () => activeProject.value?.architecture,
+  (arch) => {
+    if (arch == null) return
+    if (arch === localSource.value) return
+    loadFromProject()
+  },
 )
 
 watch(localSource, () => {

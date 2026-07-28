@@ -91,6 +91,21 @@ const commands: SlashCommandItem[] = [
       editor.chain().focus().deleteRange(range).insertContent('Debug: ').run()
     },
   },
+  {
+    title: 'Architecture',
+    description: 'Design or update the Mermaid system diagram',
+    icon: 'network',
+    command: ({ editor, range }) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent(
+          'Update the project architecture diagram (Mermaid) for: ',
+        )
+        .run()
+    },
+  },
 ]
 
 export const slashSuggestion = {

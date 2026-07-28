@@ -156,7 +156,13 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.on('agent:stream-chat', async (event, { id, message }) => {
+  ipcMain.on('agent:stream-chat', async (event, payload) => {
+    const { id, message, system } = payload as {
+      id: string
+      message: string
+      system?: string
+    }
+
     try {
       if (!aiModel) {
         event.sender.send(`agent:chat:error:${id}`, "Model not configured. Please select a model first.");
@@ -165,7 +171,8 @@ app.whenReady().then(() => {
 
       const { textStream } = streamText({
         model: aiModel,
-        prompt: message
+        ...(system?.trim() ? { system: system.trim() } : {}),
+        prompt: message,
       });
 
       for await (const chunk of textStream) {

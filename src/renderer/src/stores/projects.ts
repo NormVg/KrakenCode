@@ -288,6 +288,18 @@ export const useProjectsStore = defineStore('projects', () => {
     saveData()
   }
 
+  /** Replace the final streaming agent message content (e.g. after stripping fences). */
+  const replaceActiveChatLastAgentContent = (content: string) => {
+    if (!activeChat.value) return
+    const msgs = activeChat.value.messages
+    if (msgs.length === 0) return
+    const last = msgs[msgs.length - 1]
+    if (last.role !== 'agent') return
+    last.content = content
+    last.isStreaming = false
+    saveData()
+  }
+
   return {
     projects,
     activeProjectId,
@@ -315,5 +327,6 @@ export const useProjectsStore = defineStore('projects', () => {
     saveFile,
     renameOpenFile,
     setProjectArchitecture,
+    replaceActiveChatLastAgentContent,
   }
 })
