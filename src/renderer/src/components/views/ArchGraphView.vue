@@ -5,13 +5,11 @@ import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
 import {
   Code2,
-  Eye,
   Minus,
   Plus,
   Maximize2,
   Copy,
   Check,
-  Hand,
   MousePointer2,
   Link2,
   Server,
@@ -22,14 +20,12 @@ import {
   Network,
 } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
-import MermaidPreview from '../architecture/MermaidPreview.vue'
 import ArchBuilder from '../architecture/builder/ArchBuilder.vue'
-import { useDebouncedValue } from '../architecture/composables/useArchDiagram'
 import { DEFAULT_ARCH_DIAGRAM } from '../architecture/templates'
 import type { ArchNodeKind } from '../architecture/builder/types'
 import { KIND_COLORS } from '../architecture/builder/types'
 
-type ArchMode = 'builder' | 'preview' | 'code'
+type ArchMode = 'builder' | 'code'
 type BuilderTool = 'select' | 'connect'
 
 const NODE_TOOLS: Array<{ kind: ArchNodeKind; label: string; icon: typeof Server }> = [
@@ -45,13 +41,9 @@ const { activeProject, isLoaded } = storeToRefs(projectsStore)
 
 const mode = ref<ArchMode>('builder')
 const localSource = ref(DEFAULT_ARCH_DIAGRAM)
-const debouncedSource = useDebouncedValue(localSource, 300)
-const previewError = ref<string | null>(null)
-const previewRef = ref<InstanceType<typeof MermaidPreview> | null>(null)
 const builderRef = ref<InstanceType<typeof ArchBuilder> | null>(null)
 const builderTool = ref<BuilderTool>('select')
 const zoomLabel = ref(100)
-const panTool = ref(true)
 const copied = ref(false)
 
 let syncingFromStore = false
@@ -101,19 +93,13 @@ const editorOptions = {
   },
 }
 
-const showZoomTools = computed(() => mode.value === 'preview')
-const showBuilderTools = computed(() => mode.value === 'builder')
+const isBuilder = computed(() => mode.value === 'builder')
 
 function setMode(next: ArchMode) {
   mode.value = next
-  if (next === 'preview') {
-    nextTick(() => {
-      previewRef.value?.fitView()
-      syncZoomLabel()
-    })
-  }
   if (next === 'builder') {
     builderTool.value = 'select'
+    nextTick(syncZoomLabel)
   }
 }
 
@@ -136,12 +122,12 @@ function onPaletteDragStart(e: DragEvent, kind: ArchNodeKind) {
 }
 
 function syncZoomLabel() {
-  const preview = previewRef.value
-  if (!preview) {
+  const b = builderRef.value
+  if (!b) {
     zoomLabel.value = 100
     return
   }
-  const z = preview.zoomPercent as number | { value: number } | undefined
+  const z = b.zoomPercent as number | { value: number } | undefined
   zoomLabel.value = typeof z === 'number' ? z : (z?.value ?? 100)
 }
 
@@ -150,17 +136,17 @@ function onViewport(payload: { zoom: number }) {
 }
 
 function zoomIn() {
-  previewRef.value?.zoomBy(0.1)
+  builderRef.value?.zoomBy(0.1)
   nextTick(syncZoomLabel)
 }
 
 function zoomOut() {
-  previewRef.value?.zoomBy(-0.1)
+  builderRef.value?.zoomBy(-0.1)
   nextTick(syncZoomLabel)
 }
 
 function fitView() {
-  previewRef.value?.fitView()
+  builderRef.value?.fitView()
   nextTick(syncZoomLabel)
 }
 
@@ -183,13 +169,8 @@ function loadFromProject() {
   if (next === localSource.value) return
   syncingFromStore = true
   localSource.value = next
-  previewError.value = null
   nextTick(() => {
     syncingFromStore = false
-    if (mode.value === 'preview') {
-      previewRef.value?.fitView()
-      syncZoomLabel()
-    }
   })
 }
 
@@ -232,19 +213,6 @@ function onKeyDown(e: KeyboardEvent) {
       projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
     }
   }
-  if (mode.value !== 'preview') return
-  if ((e.key === '=' || e.key === '+') && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    zoomIn()
-  }
-  if ((e.key === '-' || e.key === '_') && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    zoomOut()
-  }
-  if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
-    e.preventDefault()
-    fitView()
-  }
 }
 
 onMounted(() => {
@@ -266,21 +234,11 @@ onUnmounted(() => {
           type="button"
           class="tool-btn"
           :class="{ active: mode === 'builder' }"
-          title="Build"
-          aria-label="Build"
+          title="Canvas"
+          aria-label="Canvas"
           @click="setMode('builder')"
         >
           <MousePointer2 :size="15" />
-        </button>
-        <button
-          type="button"
-          class="tool-btn"
-          :class="{ active: mode === 'preview' }"
-          title="Preview"
-          aria-label="Preview"
-          @click="setMode('preview')"
-        >
-          <Eye :size="15" />
         </button>
         <button
           type="button"
@@ -294,8 +252,7 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- Builder: icons only + native tooltips -->
-      <template v-if="showBuilderTools">
+      <template v-if="isBuilder">
         <div class="tool-divider" />
 
         <div class="tool-group" aria-label="Add node">
@@ -317,7 +274,7 @@ onUnmounted(() => {
 
         <div class="tool-divider" />
 
-        <div class="tool-group" aria-label="Builder tools">
+        <div class="tool-group" aria-label="Tools">
           <button
             type="button"
             class="tool-btn"
@@ -348,35 +305,19 @@ onUnmounted(() => {
             <Network :size="15" />
           </button>
         </div>
-      </template>
 
-      <template v-if="showZoomTools">
         <div class="tool-divider" />
 
         <div class="tool-group" aria-label="Zoom">
-          <button type="button" class="tool-btn" title="Zoom out" @click="zoomOut">
+          <button type="button" class="tool-btn" title="Zoom out" aria-label="Zoom out" @click="zoomOut">
             <Minus :size="14" />
           </button>
           <span class="zoom-readout">{{ zoomLabel }}%</span>
-          <button type="button" class="tool-btn" title="Zoom in" @click="zoomIn">
+          <button type="button" class="tool-btn" title="Zoom in" aria-label="Zoom in" @click="zoomIn">
             <Plus :size="14" />
           </button>
-          <button type="button" class="tool-btn" title="Fit view" @click="fitView">
+          <button type="button" class="tool-btn" title="Fit" aria-label="Fit" @click="fitView">
             <Maximize2 :size="14" />
-          </button>
-        </div>
-
-        <div class="tool-divider" />
-
-        <div class="tool-group">
-          <button
-            type="button"
-            class="tool-btn"
-            :class="{ active: panTool }"
-            title="Pan"
-            @click="panTool = !panTool"
-          >
-            <Hand :size="14" />
           </button>
         </div>
       </template>
@@ -388,6 +329,7 @@ onUnmounted(() => {
           type="button"
           class="tool-btn"
           :title="copied ? 'Copied' : 'Copy Mermaid'"
+          aria-label="Copy Mermaid"
           @click="copySource"
         >
           <Check v-if="copied" :size="14" />
@@ -402,14 +344,6 @@ onUnmounted(() => {
       :source="localSource"
       :tool="builderTool"
       @update:source="onBuilderSource"
-    />
-
-    <MermaidPreview
-      v-else-if="mode === 'preview'"
-      ref="previewRef"
-      :source="debouncedSource"
-      :pan-enabled="panTool"
-      @error="previewError = $event"
       @viewport="onViewport"
     />
 
@@ -420,7 +354,6 @@ onUnmounted(() => {
         :options="editorOptions"
         class="arch-monaco"
       />
-      <p v-if="previewError" class="code-error">{{ previewError }}</p>
     </div>
   </div>
 </template>
@@ -522,23 +455,6 @@ onUnmounted(() => {
 .arch-monaco {
   width: 100%;
   height: 100%;
-}
-
-.code-error {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(var(--bottom-bar-clearance) + 8px);
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 95, 95, 0.1);
-  border: 1px solid rgba(255, 95, 95, 0.22);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-family: var(--font-code);
-  line-height: 1.4;
-  pointer-events: none;
 }
 
 :deep(.monaco-editor),
