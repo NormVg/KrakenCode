@@ -222,8 +222,8 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeyDown) })
 
     <!-- Excalidraw-Style Bottom Left Zoom Controls -->
     <div class="excalidraw-zoom-controls">
-      <button class="zoom-btn" @click="zoomOut">-</button>
-      <button class="zoom-btn" @click="zoomIn">+</button>
+      <button class="zoom-btn" @click="() => zoomOut()">-</button>
+      <button class="zoom-btn" @click="() => zoomIn()">+</button>
     </div>
 
     <!-- Top Left Menu Mock (Visual only for now) -->
