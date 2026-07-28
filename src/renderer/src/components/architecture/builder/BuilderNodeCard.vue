@@ -1,40 +1,150 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import type { ArchNode } from './types'
-import { KIND_COLORS } from './types'
+import { KIND_COLORS, KIND_DEFAULT_LABEL } from './types'
 
 const props = defineProps<{
   node: ArchNode
   selected: boolean
   connectFrom: boolean
+  editing: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'select', id: string, additive: boolean): void
   (e: 'pointerdown', id: string, event: PointerEvent): void
-  (e: 'dblclick', id: string): void
+  (e: 'start-edit', id: string): void
+  (e: 'commit-edit', id: string, label: string, tech?: string): void
+  (e: 'cancel-edit'): void
 }>()
 
+const labelDraft = ref(props.node.label)
+const techDraft = ref(props.node.tech ?? '')
+const labelInput = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+
 const accent = computed(() => KIND_COLORS[props.node.kind])
+const isText = computed(() => props.node.kind === 'text')
 const kindLabel = computed(() => props.node.kind)
+
+watch(
+  () => props.editing,
+  async (on) => {
+    if (on) {
+      labelDraft.value = props.node.label
+      techDraft.value = props.node.tech ?? ''
+      await nextTick()
+      labelInput.value?.focus()
+      labelInput.value?.select()
+    }
+  },
+)
+
+watch(
+  () => props.node.label,
+  (v) => {
+    if (!props.editing) labelDraft.value = v
+  },
+)
+
+function commit() {
+  const label =
+    labelDraft.value.trim() || KIND_DEFAULT_LABEL[props.node.kind]
+  const tech = techDraft.value.trim() || undefined
+  emit('commit-edit', props.node.id, label, tech)
+}
+
+function onLabelKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    e.stopPropagation()
+    emit('cancel-edit')
+    return
+  }
+  // Text blocks: Enter = newline with shift not needed; plain Enter commits for single-line kinds
+  if (e.key === 'Enter' && !isText.value) {
+    e.preventDefault()
+    commit()
+  }
+  if (e.key === 'Enter' && isText.value && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    commit()
+  }
+  e.stopPropagation()
+}
+
+function onPointerDown(e: PointerEvent) {
+  if (props.editing) {
+    e.stopPropagation()
+    return
+  }
+  emit('pointerdown', props.node.id, e)
+}
 </script>
 
 <template>
   <div
     class="builder-node"
-    :class="{ selected, 'connect-from': connectFrom }"
+    :class="{
+      selected,
+      'connect-from': connectFrom,
+      editing,
+      'is-text': isText,
+    }"
     :style="{
       left: `${node.x}px`,
       top: `${node.y}px`,
       '--accent': accent,
     }"
-    @pointerdown.stop="emit('pointerdown', node.id, $event)"
+    @pointerdown.stop="onPointerDown"
     @click.stop="emit('select', node.id, $event.shiftKey)"
-    @dblclick.stop="emit('dblclick', node.id)"
+    @dblclick.stop="emit('start-edit', node.id)"
   >
-    <div class="node-kind">{{ kindLabel }}</div>
-    <div class="node-label">{{ node.label }}</div>
-    <div v-if="node.tech" class="node-tech">{{ node.tech }}</div>
+    <template v-if="!isText">
+      <div class="node-kind">{{ kindLabel }}</div>
+    </template>
+
+    <!-- Inline edit -->
+    <template v-if="editing">
+      <textarea
+        v-if="isText"
+        ref="labelInput"
+        v-model="labelDraft"
+        class="inline-input inline-textarea"
+        rows="3"
+        @keydown="onLabelKeydown"
+        @blur="commit"
+        @pointerdown.stop
+        @click.stop
+      />
+      <template v-else>
+        <input
+          ref="labelInput"
+          v-model="labelDraft"
+          class="inline-input"
+          @keydown="onLabelKeydown"
+          @blur="commit"
+          @pointerdown.stop
+          @click.stop
+        />
+        <input
+          v-model="techDraft"
+          class="inline-input tech"
+          placeholder="tech (optional)"
+          @keydown="onLabelKeydown"
+          @blur="commit"
+          @pointerdown.stop
+          @click.stop
+        />
+      </template>
+    </template>
+
+    <!-- Display -->
+    <template v-else>
+      <div class="node-label" :class="{ placeholder: !node.label }">
+        {{ node.label || KIND_DEFAULT_LABEL[node.kind] }}
+      </div>
+      <div v-if="node.tech && !isText" class="node-tech">{{ node.tech }}</div>
+    </template>
   </div>
 </template>
 
@@ -52,17 +162,29 @@ const kindLabel = computed(() => props.node.kind)
   cursor: grab;
   user-select: none;
   touch-action: none;
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out, left 180ms ease-out, top 180ms ease-out;
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
   z-index: 2;
 }
 
-/* No position transition while dragging — set via class from parent if needed */
-.builder-node:active {
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+.builder-node.is-text {
+  width: 200px;
+  min-height: 56px;
+  background: rgba(10, 13, 24, 0.72);
+  border-style: dashed;
+  border-color: rgba(157, 161, 211, 0.35);
 }
 
-.builder-node:active {
+.builder-node:active:not(.editing) {
   cursor: grabbing;
+}
+
+.builder-node.editing {
+  cursor: text;
+  z-index: 5;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 .builder-node.selected {
@@ -91,8 +213,20 @@ const kindLabel = computed(() => props.node.kind)
   font-size: 13px;
   font-weight: 600;
   color: #E2E8F0;
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.builder-node.is-text .node-label {
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 12.5px;
+}
+
+.node-label.placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
 }
 
 .node-tech {
@@ -100,5 +234,40 @@ const kindLabel = computed(() => props.node.kind)
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   font-family: var(--font-code);
+}
+
+.inline-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1C1C2A;
+  color: #E2E8F0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  line-height: 1.35;
+}
+
+.inline-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.inline-input.tech {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-code);
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.inline-textarea {
+  resize: vertical;
+  min-height: 64px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 </style>

@@ -25,6 +25,9 @@ function nodeShape(kind: ArchNodeKind, id: string, label: string): string {
       return `${mid}("${text}")`
     case 'client':
       return `${mid}(["${text}"])`
+    case 'text':
+      // Parallelogram — distinct from services for round-trip
+      return `${mid}[/"${text}"/]`
     case 'service':
     default:
       return `${mid}["${text}"]`
@@ -60,15 +63,15 @@ export function modelToMermaid(model: ArchModel): string {
 
 // ── Parse Mermaid → model ─────────────────────────────────────────────────────
 
+// Groups: 1=id, 2=db, 3=queue, 4=external, 5=client, 6=text, 7=service
 const NODE_RE =
-  /^\s*([A-Za-z][\w]*)\s*(?:\[\(\s*"?([^"\]]+?)"?\s*\)\]|\[\["?([^"\]]+?)"?\]\]|\(\s*"?([^")]+?)"?\s*\)|\(\[\s*"?([^"\]]+?)"?\s*\]\)|\[\s*"?([^"\]]+?)"?\s*\])/
+  /^\s*([A-Za-z][\w]*)\s*(?:\[\(\s*"?([^"\]]+?)"?\s*\)\]|\[\["?([^"\]]+?)"?\]\]|\(\s*"?([^")]+?)"?\s*\)|\(\[\s*"?([^"\]]+?)"?\s*\]\)|\[\/\s*"?([^"\]]+?)"?\s*\/\]|\[\s*"?([^"\]]+?)"?\s*\])/
 
 const EDGE_RE =
   /^\s*([A-Za-z][\w]*)\s*-->\s*(?:\|"?([^"|]+?)"?\|\s*)?([A-Za-z][\w]*)/
 
 function inferKind(matched: RegExpMatchArray, label: string): ArchNodeKind {
   if (matched[2] != null) {
-    // Cylinder shape — database unless name hints queue
     const l = label.toLowerCase()
     if (l.includes('redis') || l.includes('queue') || l.includes('kafka') || l.includes('mq')) {
       return 'queue'
@@ -78,11 +81,12 @@ function inferKind(matched: RegExpMatchArray, label: string): ArchNodeKind {
   if (matched[3] != null) return 'queue'
   if (matched[4] != null) return 'external'
   if (matched[5] != null) return 'client'
+  if (matched[6] != null) return 'text'
   return 'service'
 }
 
 function labelFromMatch(m: RegExpMatchArray): string {
-  return (m[2] ?? m[3] ?? m[4] ?? m[5] ?? m[6] ?? 'Node').trim()
+  return (m[2] ?? m[3] ?? m[4] ?? m[5] ?? m[6] ?? m[7] ?? 'Node').trim()
 }
 
 export function mermaidToModel(source: string): ArchModel {

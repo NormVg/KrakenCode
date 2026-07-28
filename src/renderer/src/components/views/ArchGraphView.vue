@@ -18,6 +18,7 @@ import {
   Globe,
   Smartphone,
   Network,
+  Type,
 } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
 import ArchBuilder from '../architecture/builder/ArchBuilder.vue'
@@ -34,6 +35,7 @@ const NODE_TOOLS: Array<{ kind: ArchNodeKind; label: string; icon: typeof Server
   { kind: 'queue', label: 'Queue', icon: ListOrdered },
   { kind: 'external', label: 'External', icon: Globe },
   { kind: 'client', label: 'Client', icon: Smartphone },
+  { kind: 'text', label: 'Text', icon: Type },
 ]
 
 const projectsStore = useProjectsStore()

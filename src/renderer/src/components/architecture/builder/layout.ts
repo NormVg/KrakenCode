@@ -104,6 +104,7 @@ export function layoutHierarchical(model: ArchModel): ArchModel {
     service: 2,
     queue: 3,
     database: 4,
+    text: 5,
   }
   for (const [r, layer] of layers) {
     layer.sort((a, b) => {

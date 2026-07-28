@@ -26,8 +26,6 @@ const selectedIds = ref<string[]>([])
 const connectSourceId = ref<string | null>(null)
 const stageRef = ref<HTMLElement | null>(null)
 const editingId = ref<string | null>(null)
-const editLabel = ref('')
-const editTech = ref('')
 
 /** Viewport */
 const zoom = ref(1)
@@ -55,11 +53,6 @@ let panDrag: {
 let suppressEmit = false
 let emitTimer: ReturnType<typeof setTimeout> | null = null
 let spaceHeld = false
-
-const selectedNode = computed(() => {
-  if (selectedIds.value.length !== 1) return null
-  return model.value.nodes.find((n) => n.id === selectedIds.value[0]) ?? null
-})
 
 const edgePaths = computed(() => {
   return model.value.edges
@@ -177,13 +170,15 @@ function addNode(kind: ArchNodeKind, x?: number, y?: number) {
     y: Math.max(16, py),
   }
   model.value.nodes.push(node)
-  if (model.value.edges.length > 0) {
+  // Don't auto-layout pure text notes into hierarchy when alone
+  if (model.value.edges.length > 0 && kind !== 'text') {
     model.value = layoutHierarchical(model.value)
   }
   selectedIds.value = [node.id]
-  editingId.value = node.id
-  editLabel.value = node.label
-  editTech.value = ''
+  // Open inline edit immediately
+  nextTick(() => {
+    editingId.value = node.id
+  })
 }
 
 function onCanvasDragOver(e: DragEvent) {
@@ -238,15 +233,16 @@ function selectNode(id: string, additive: boolean) {
 }
 
 function clearSelection() {
+  if (editingId.value) return
   selectedIds.value = []
   connectSourceId.value = null
-  editingId.value = null
 }
 
 function onNodePointerDown(id: string, e: PointerEvent) {
   if (e.button !== 0) return
   if (activeTool.value === 'connect') return
   if (spaceHeld) return
+  if (editingId.value === id) return
 
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
@@ -348,19 +344,17 @@ function onWheel(e: WheelEvent) {
 function startEdit(id: string) {
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
+  selectedIds.value = [id]
   editingId.value = id
-  editLabel.value = node.label
-  editTech.value = node.tech ?? ''
 }
 
-function applyEdit() {
-  if (!editingId.value) return
-  const node = model.value.nodes.find((n) => n.id === editingId.value)
+function commitEdit(id: string, label: string, tech?: string) {
+  const node = model.value.nodes.find((n) => n.id === id)
   if (node) {
-    node.label = editLabel.value.trim() || KIND_DEFAULT_LABEL[node.kind]
-    node.tech = editTech.value.trim() || undefined
+    node.label = label
+    node.tech = tech
   }
-  editingId.value = null
+  if (editingId.value === id) editingId.value = null
 }
 
 function cancelEdit() {
@@ -380,22 +374,27 @@ function deleteSelection() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.code === 'Space' && !(e.target instanceof HTMLInputElement)) {
+  if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
     spaceHeld = true
   }
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-    if (e.key === 'Enter' && editingId.value) {
-      e.preventDefault()
-      applyEdit()
-    }
-    if (e.key === 'Escape' && editingId.value) cancelEdit()
     return
   }
   if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault()
     deleteSelection()
   }
-  if (e.key === 'Escape') clearSelection()
+  if (e.key === 'Escape') {
+    if (editingId.value) cancelEdit()
+    else clearSelection()
+  }
+  if (e.key === 'Enter' || e.key === 'F2') {
+    const id = selectedIds.value[0]
+    if (id && !editingId.value) {
+      e.preventDefault()
+      startEdit(id)
+    }
+  }
   if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
     e.preventDefault()
     zoomBy(0.1)
@@ -484,29 +483,17 @@ defineExpose({
           :node="node"
           :selected="selectedIds.includes(node.id)"
           :connect-from="connectSourceId === node.id"
+          :editing="editingId === node.id"
           @select="selectNode"
           @pointerdown="onNodePointerDown"
-          @dblclick="startEdit"
+          @start-edit="startEdit"
+          @commit-edit="commitEdit"
+          @cancel-edit="cancelEdit"
         />
 
         <div v-if="model.nodes.length === 0" class="empty-canvas">
-          Click a type in the top bar to add a node
+          Click a type in the top bar to add a node · double-click to edit
         </div>
-      </div>
-    </div>
-
-    <div v-if="editingId && selectedNode" class="edit-popover no-drag" @keydown.stop>
-      <label class="field">
-        <span>Label</span>
-        <input v-model="editLabel" type="text" autofocus @keydown.enter="applyEdit" />
-      </label>
-      <label class="field">
-        <span>Tech</span>
-        <input v-model="editTech" type="text" placeholder="optional" @keydown.enter="applyEdit" />
-      </label>
-      <div class="edit-actions">
-        <button type="button" class="mini-btn" @click="cancelEdit">Cancel</button>
-        <button type="button" class="mini-btn primary" @click="applyEdit">Apply</button>
       </div>
     </div>
   </div>
@@ -580,84 +567,5 @@ defineExpose({
   pointer-events: none;
   max-width: 280px;
   line-height: 1.5;
-}
-
-.edit-popover {
-  position: absolute;
-  top: 64px;
-  right: 16px;
-  width: 220px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #0A0D18;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 30;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.field span {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.field input {
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #1C1C2A;
-  color: #E2E8F0;
-  font-size: 13px;
-  outline: none;
-}
-
-.field input:focus {
-  border-color: rgba(147, 116, 190, 0.45);
-}
-
-.edit-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.mini-btn {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
-}
-
-.mini-btn:hover {
-  color: #E2E8F0;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.mini-btn:active {
-  transform: scale(0.96);
-}
-
-.mini-btn.primary {
-  background: rgba(147, 116, 190, 0.2);
-  border-color: rgba(147, 116, 190, 0.35);
-  color: #c4b0e8;
 }
 </style>

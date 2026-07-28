@@ -1,13 +1,19 @@
 // Structured architecture model — compiles to Mermaid (source of truth).
 
-export type ArchNodeKind = 'service' | 'database' | 'queue' | 'external' | 'client'
+export type ArchNodeKind =
+  | 'service'
+  | 'database'
+  | 'queue'
+  | 'external'
+  | 'client'
+  | 'text'
 
 export interface ArchNode {
   id: string
   kind: ArchNodeKind
   label: string
   tech?: string
-  /** Canvas position in builder (px). Preview layout is Mermaid's job. */
+  /** Canvas position in builder (px). */
   x: number
   y: number
 }
@@ -36,6 +42,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { kind: 'queue', label: 'Queue', description: 'Pub/sub, broker' },
   { kind: 'external', label: 'External', description: '3rd party, SaaS' },
   { kind: 'client', label: 'Client', description: 'Web, mobile, CLI' },
+  { kind: 'text', label: 'Text', description: 'Note or label' },
 ]
 
 export const KIND_DEFAULT_LABEL: Record<ArchNodeKind, string> = {
@@ -44,6 +51,7 @@ export const KIND_DEFAULT_LABEL: Record<ArchNodeKind, string> = {
   queue: 'New Queue',
   external: 'External API',
   client: 'Client App',
+  text: 'Double-click to edit',
 }
 
 export const KIND_COLORS: Record<ArchNodeKind, string> = {
@@ -52,4 +60,5 @@ export const KIND_COLORS: Record<ArchNodeKind, string> = {
   queue: '#0EA5E9',
   external: '#F59E0B',
   client: '#10B981',
+  text: '#9DA1D3',
 }
