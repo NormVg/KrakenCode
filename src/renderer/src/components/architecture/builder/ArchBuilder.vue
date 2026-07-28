@@ -54,6 +54,12 @@ let panDrag: {
 let suppressEmit = false
 let emitTimer: ReturnType<typeof setTimeout> | null = null
 let spaceHeld = false
+/** Last Mermaid we pushed up — ignore when it echoes back so we never re-parse/re-layout */
+let lastEmittedSource = ''
+
+function normalizeSource(s: string): string {
+  return s.replace(/\r\n/g, '\n').trim()
+}
 
 const edgePaths = computed(() => {
   return model.value.edges
@@ -173,9 +179,12 @@ function loadFromSource(src: string) {
   suppressEmit = true
   try {
     model.value = mermaidToModel(src)
+    // Sync echo-guard to post-parse compile so we don't bounce
+    lastEmittedSource = modelToMermaid(model.value)
     selectedIds.value = []
     selectedEdgeId.value = null
     connectSourceId.value = null
+    editingId.value = null
     nextTick(() => fitView())
   } finally {
     nextTick(() => {
@@ -188,7 +197,9 @@ function scheduleEmit() {
   if (suppressEmit) return
   if (emitTimer) clearTimeout(emitTimer)
   emitTimer = setTimeout(() => {
-    emit('update:source', modelToMermaid(model.value))
+    const mermaid = modelToMermaid(model.value)
+    lastEmittedSource = mermaid
+    emit('update:source', mermaid)
   }, 120)
 }
 
@@ -196,8 +207,13 @@ watch(
   () => props.source,
   (src, prev) => {
     if (src === prev) return
-    const compiled = modelToMermaid(model.value)
-    if (src.trim() === compiled.trim()) return
+    // Our own edit/drag emit coming back — keep positions, do NOT re-layout
+    if (normalizeSource(src) === normalizeSource(lastEmittedSource)) return
+    if (normalizeSource(src) === normalizeSource(modelToMermaid(model.value))) {
+      lastEmittedSource = src
+      return
+    }
+    // External change (project switch, agent, code mode edit)
     loadFromSource(src)
   },
   { immediate: true },
@@ -229,12 +245,8 @@ function addNode(kind: ArchNodeKind, x?: number, y?: number) {
     y: Math.max(16, py),
   }
   model.value.nodes.push(node)
-  // Don't auto-layout pure text notes into hierarchy when alone
-  if (model.value.edges.length > 0 && kind !== 'text') {
-    model.value = layoutHierarchical(model.value)
-  }
+  // Never auto-layout on add — only the layout button rearranges
   selectedIds.value = [node.id]
-  // Open inline edit immediately
   nextTick(() => {
     editingId.value = node.id
   })
@@ -274,7 +286,7 @@ function selectNode(id: string, additive: boolean) {
         source: connectSourceId.value,
         target: id,
       })
-      model.value = layoutHierarchical(model.value)
+      // Keep user's positions — layout is manual via toolbar only
     }
     connectSourceId.value = null
     selectedIds.value = [id]
@@ -447,8 +459,9 @@ function startEdit(id: string) {
 function commitEdit(id: string, label: string, tech?: string) {
   const node = model.value.nodes.find((n) => n.id === id)
   if (node) {
-    node.label = label
-    node.tech = tech
+    // Label/tech only — never touch x/y or run layout
+    if (node.label !== label) node.label = label
+    if (node.tech !== tech) node.tech = tech
   }
   if (editingId.value === id) editingId.value = null
 }
