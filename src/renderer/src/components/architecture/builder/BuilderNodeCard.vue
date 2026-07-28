@@ -122,7 +122,7 @@ function onBlur(e: FocusEvent) {
 /** Start drag from anywhere on the card (including label), unless editing */
 function onPointerDown(e: PointerEvent) {
   if (props.editing) {
-    // Only stop when actually editing text so caret works
+    // Keep focus/caret inside the text field
     e.stopPropagation()
     return
   }
@@ -133,11 +133,13 @@ function onTextPointerDown(e: PointerEvent) {
   if (props.editing) {
     e.stopPropagation()
   }
-  // not editing: do NOT stop — bubble to card for drag
+  // not editing: bubble to card so drag + double-click both work
 }
 
 function onDblClick(e: MouseEvent) {
+  e.preventDefault()
   e.stopPropagation()
+  // Always allow edit via double-click (move or connect tool)
   emit('start-edit', props.node.id)
 }
 

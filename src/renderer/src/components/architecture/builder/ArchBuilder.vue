@@ -36,12 +36,15 @@ const zoomPercent = computed(() => Math.round(zoom.value * 100))
 
 const activeTool = computed(() => props.tool ?? 'select')
 
+/** Pending press → becomes drag only after threshold (so double-click can edit) */
 let nodeDrag: {
   id: string
   startX: number
   startY: number
   originX: number
   originY: number
+  active: boolean
+  pointerId: number
 } | null = null
 
 let panDrag: {
@@ -50,6 +53,8 @@ let panDrag: {
   originX: number
   originY: number
 } | null = null
+
+const DRAG_THRESHOLD_PX = 6
 
 let suppressEmit = false
 let emitTimer: ReturnType<typeof setTimeout> | null = null
@@ -320,28 +325,32 @@ function clearSelection() {
 
 function onNodePointerDown(id: string, e: PointerEvent) {
   if (e.button !== 0) return
-  if (activeTool.value === 'connect') return
   if (spaceHeld) return
   if (editingId.value === id) return
+
+  // Connect tool: no drag — click/dblclick still work for link + edit
+  if (activeTool.value === 'connect') return
 
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
 
-  e.preventDefault()
+  // Do NOT preventDefault here — that kills double-click → edit
   e.stopPropagation()
 
   selectedEdgeId.value = null
   if (!selectedIds.value.includes(id)) selectedIds.value = [id]
 
+  // Pending press; becomes a real drag only after moving past threshold
   nodeDrag = {
     id,
     startX: e.clientX,
     startY: e.clientY,
     originX: node.x,
     originY: node.y,
+    active: false,
+    pointerId: e.pointerId,
   }
 
-  // Capture on the stage so move/up always arrive (not lost to SVG/labels)
   try {
     stageRef.value?.setPointerCapture(e.pointerId)
   } catch {
@@ -350,11 +359,9 @@ function onNodePointerDown(id: string, e: PointerEvent) {
 }
 
 function onStagePointerDown(e: PointerEvent) {
-  // Don't pan if a node drag just started
   if (nodeDrag) return
 
   const target = e.target as HTMLElement | null
-  // Ignore node cards and edge hits
   if (target?.closest?.('.builder-node')) return
   if (target?.classList?.contains('edge-hit') || target?.classList?.contains('edge-path')) return
 
@@ -393,6 +400,13 @@ function onStagePointerMove(e: PointerEvent) {
     return
   }
   if (!nodeDrag) return
+
+  const dist = Math.hypot(e.clientX - nodeDrag.startX, e.clientY - nodeDrag.startY)
+  if (!nodeDrag.active) {
+    if (dist < DRAG_THRESHOLD_PX) return
+    nodeDrag.active = true
+  }
+
   const node = model.value.nodes.find((n) => n.id === nodeDrag!.id)
   if (!node) return
   const dx = (e.clientX - nodeDrag.startX) / zoom.value
@@ -452,6 +466,11 @@ function onWheel(e: WheelEvent) {
 function startEdit(id: string) {
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
+  // Cancel any pending/active drag so edit isn't stolen
+  nodeDrag = null
+  panDrag = null
+  isPanning.value = false
+  selectedEdgeId.value = null
   selectedIds.value = [id]
   editingId.value = id
 }
