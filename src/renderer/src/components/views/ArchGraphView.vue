@@ -254,7 +254,8 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <template v-if="isBuilder">
+      <!-- Morphs open/closed instead of v-if snap -->
+      <div class="toolbar-expand" :class="{ open: isBuilder }" :aria-hidden="!isBuilder">
         <div class="tool-divider" />
 
         <div class="tool-group" aria-label="Add node">
@@ -266,6 +267,7 @@ onUnmounted(() => {
             :title="item.label"
             :aria-label="`Add ${item.label}`"
             :style="{ '--kind': KIND_COLORS[item.kind] }"
+            :tabindex="isBuilder ? 0 : -1"
             draggable="true"
             @click="addNode(item.kind)"
             @dragstart="onPaletteDragStart($event, item.kind)"
@@ -283,6 +285,7 @@ onUnmounted(() => {
             :class="{ active: builderTool === 'select' }"
             title="Move"
             aria-label="Move"
+            :tabindex="isBuilder ? 0 : -1"
             @click="builderTool = 'select'"
           >
             <MousePointer2 :size="15" />
@@ -293,6 +296,7 @@ onUnmounted(() => {
             :class="{ active: builderTool === 'connect' }"
             title="Connect"
             aria-label="Connect"
+            :tabindex="isBuilder ? 0 : -1"
             @click="builderTool = 'connect'"
           >
             <Link2 :size="15" />
@@ -302,6 +306,7 @@ onUnmounted(() => {
             class="tool-btn"
             title="Auto layout"
             aria-label="Auto layout"
+            :tabindex="isBuilder ? 0 : -1"
             @click="autoLayout"
           >
             <Network :size="15" />
@@ -311,18 +316,18 @@ onUnmounted(() => {
         <div class="tool-divider" />
 
         <div class="tool-group" aria-label="Zoom">
-          <button type="button" class="tool-btn" title="Zoom out" aria-label="Zoom out" @click="zoomOut">
+          <button type="button" class="tool-btn" title="Zoom out" aria-label="Zoom out" :tabindex="isBuilder ? 0 : -1" @click="zoomOut">
             <Minus :size="14" />
           </button>
           <span class="zoom-readout">{{ zoomLabel }}%</span>
-          <button type="button" class="tool-btn" title="Zoom in" aria-label="Zoom in" @click="zoomIn">
+          <button type="button" class="tool-btn" title="Zoom in" aria-label="Zoom in" :tabindex="isBuilder ? 0 : -1" @click="zoomIn">
             <Plus :size="14" />
           </button>
-          <button type="button" class="tool-btn" title="Fit" aria-label="Fit" @click="fitView">
+          <button type="button" class="tool-btn" title="Fit" aria-label="Fit" :tabindex="isBuilder ? 0 : -1" @click="fitView">
             <Maximize2 :size="14" />
           </button>
         </div>
-      </template>
+      </div>
 
       <div class="tool-divider" />
 
@@ -340,8 +345,9 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Keep builder mounted so canvas state survives code toggle -->
     <ArchBuilder
-      v-if="mode === 'builder'"
+      v-show="mode === 'builder'"
       ref="builderRef"
       :source="localSource"
       :tool="builderTool"
@@ -349,7 +355,7 @@ onUnmounted(() => {
       @viewport="onViewport"
     />
 
-    <div v-else class="code-pane">
+    <div v-show="mode === 'code'" class="code-pane">
       <VueMonacoEditor
         v-model:value="localSource"
         language="markdown"
@@ -383,12 +389,41 @@ onUnmounted(() => {
   background-color: #0A0D18;
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+  /* Morph width smoothly as tools expand/collapse */
+  transition:
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease-out;
+}
+
+/* Expanding middle section — bar morphs instead of snapping */
+.toolbar-expand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-6px) scaleX(0.96);
+  transform-origin: left center;
+  transition:
+    max-width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toolbar-expand.open {
+  max-width: 560px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) scaleX(1);
 }
 
 .tool-group {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .tool-divider {
@@ -397,6 +432,7 @@ onUnmounted(() => {
   margin: 0 4px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 1px;
+  flex-shrink: 0;
 }
 
 .tool-btn {
@@ -411,7 +447,10 @@ onUnmounted(() => {
   background: transparent;
   color: var(--text-muted-dark);
   cursor: pointer;
-  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
+  transition:
+    background 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms ease-out,
+    transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tool-btn:hover {
@@ -420,7 +459,7 @@ onUnmounted(() => {
 }
 
 .tool-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
 }
 
 .tool-btn.active {

@@ -23,6 +23,7 @@ const emit = defineEmits<{
 
 const model = ref<ArchModel>({ nodes: [], edges: [] })
 const selectedIds = ref<string[]>([])
+const selectedEdgeId = ref<string | null>(null)
 const connectSourceId = ref<string | null>(null)
 const stageRef = ref<HTMLElement | null>(null)
 const editingId = ref<string | null>(null)
@@ -173,6 +174,7 @@ function loadFromSource(src: string) {
   try {
     model.value = mermaidToModel(src)
     selectedIds.value = []
+    selectedEdgeId.value = null
     connectSourceId.value = null
     nextTick(() => fitView())
   } finally {
@@ -252,6 +254,7 @@ function onCanvasDrop(e: DragEvent) {
 }
 
 function selectNode(id: string, additive: boolean) {
+  selectedEdgeId.value = null
   if (activeTool.value === 'connect') {
     if (!connectSourceId.value) {
       connectSourceId.value = id
@@ -289,9 +292,17 @@ function selectNode(id: string, additive: boolean) {
   }
 }
 
+function selectEdge(id: string) {
+  if (editingId.value) return
+  selectedIds.value = []
+  connectSourceId.value = null
+  selectedEdgeId.value = id
+}
+
 function clearSelection() {
   if (editingId.value) return
   selectedIds.value = []
+  selectedEdgeId.value = null
   connectSourceId.value = null
 }
 
@@ -420,6 +431,12 @@ function cancelEdit() {
 
 function deleteSelection() {
   if (editingId.value) return
+  // Delete selected connection first
+  if (selectedEdgeId.value) {
+    model.value.edges = model.value.edges.filter((e) => e.id !== selectedEdgeId.value)
+    selectedEdgeId.value = null
+    return
+  }
   const ids = new Set(selectedIds.value)
   if (!ids.size) return
   model.value.nodes = model.value.nodes.filter((n) => !ids.has(n.id))
@@ -434,7 +451,11 @@ function onKeyDown(e: KeyboardEvent) {
   if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
     spaceHeld = true
   }
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+  if (
+    e.target instanceof HTMLInputElement ||
+    e.target instanceof HTMLTextAreaElement ||
+    (e.target as HTMLElement)?.isContentEditable
+  ) {
     return
   }
   if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -511,7 +532,7 @@ defineExpose({
       @dblclick.self="fitView"
     >
       <div class="world" :style="worldStyle" @click.self="clearSelection">
-        <svg class="edge-layer" aria-hidden="true">
+        <svg class="edge-layer">
           <defs>
             <marker
               id="arch-arrow"
@@ -524,14 +545,35 @@ defineExpose({
             >
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B90C4" />
             </marker>
+            <marker
+              id="arch-arrow-selected"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#c4b0e8" />
+            </marker>
           </defs>
-          <path
-            v-for="edge in edgePaths"
-            :key="edge.id"
-            :d="edge.d"
-            class="edge-path"
-            marker-end="url(#arch-arrow)"
-          />
+          <g v-for="edge in edgePaths" :key="edge.id">
+            <!-- Wide invisible hit target -->
+            <path
+              :d="edge.d"
+              class="edge-hit"
+              @pointerdown.stop
+              @click.stop="selectEdge(edge.id)"
+            />
+            <path
+              :d="edge.d"
+              class="edge-path"
+              :class="{ selected: selectedEdgeId === edge.id }"
+              :marker-end="selectedEdgeId === edge.id ? 'url(#arch-arrow-selected)' : 'url(#arch-arrow)'"
+              @pointerdown.stop
+              @click.stop="selectEdge(edge.id)"
+            />
+          </g>
         </svg>
 
         <BuilderNodeCard
@@ -603,14 +645,36 @@ defineExpose({
   width: 4000px;
   height: 4000px;
   overflow: visible;
-  pointer-events: none;
   z-index: 1;
+  pointer-events: none;
+}
+
+.edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
 }
 
 .edge-path {
   fill: none;
   stroke: #8B90C4;
   stroke-width: 1.75;
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke 140ms ease-out, stroke-width 140ms ease-out;
+}
+
+.edge-path.selected {
+  stroke: #c4b0e8;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px rgba(147, 116, 190, 0.55));
+}
+
+.edge-path:hover:not(.selected) {
+  stroke: #a8add4;
+  stroke-width: 2.1;
 }
 
 .empty-canvas {

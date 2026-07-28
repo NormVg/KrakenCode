@@ -18,49 +18,84 @@ const emit = defineEmits<{
   (e: 'cancel-edit'): void
 }>()
 
-const labelDraft = ref(props.node.label)
-const techDraft = ref(props.node.tech ?? '')
-const labelInput = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
-
+const labelEl = ref<HTMLElement | null>(null)
+const techEl = ref<HTMLElement | null>(null)
 const accent = computed(() => KIND_COLORS[props.node.kind])
 const isText = computed(() => props.node.kind === 'text')
 const kindLabel = computed(() => props.node.kind)
 
+let labelBefore = ''
+let techBefore = ''
+
 watch(
   () => props.editing,
   async (on) => {
+    await nextTick()
     if (on) {
-      labelDraft.value = props.node.label
-      techDraft.value = props.node.tech ?? ''
-      await nextTick()
-      labelInput.value?.focus()
-      labelInput.value?.select()
+      labelBefore = props.node.label
+      techBefore = props.node.tech ?? ''
+      if (labelEl.value) {
+        labelEl.value.textContent = props.node.label || ''
+        labelEl.value.focus()
+        selectAll(labelEl.value)
+      }
+      if (techEl.value) {
+        techEl.value.textContent = props.node.tech ?? ''
+      }
     }
   },
 )
 
 watch(
-  () => props.node.label,
-  (v) => {
-    if (!props.editing) labelDraft.value = v
+  () => [props.node.label, props.node.tech, props.editing] as const,
+  ([label, tech, editing]) => {
+    if (editing) return
+    if (labelEl.value && labelEl.value.textContent !== label) {
+      labelEl.value.textContent = label
+    }
+    if (techEl.value) {
+      const t = tech ?? ''
+      if (techEl.value.textContent !== t) techEl.value.textContent = t
+    }
   },
 )
 
-function commit() {
-  const label =
-    labelDraft.value.trim() || KIND_DEFAULT_LABEL[props.node.kind]
-  const tech = techDraft.value.trim() || undefined
-  emit('commit-edit', props.node.id, label, tech)
+function selectAll(el: HTMLElement) {
+  const range = document.createRange()
+  range.selectNodeContents(el)
+  const sel = window.getSelection()
+  sel?.removeAllRanges()
+  sel?.addRange(range)
 }
 
-function onLabelKeydown(e: KeyboardEvent) {
+function readLabel(): string {
+  return (labelEl.value?.innerText ?? '').replace(/\u00a0/g, ' ').trim()
+}
+
+function readTech(): string | undefined {
+  if (isText.value) return undefined
+  const t = (techEl.value?.innerText ?? '').replace(/\u00a0/g, ' ').trim()
+  return t || undefined
+}
+
+function commit() {
+  const label = readLabel() || KIND_DEFAULT_LABEL[props.node.kind]
+  emit('commit-edit', props.node.id, label, readTech())
+}
+
+function cancel() {
+  if (labelEl.value) labelEl.value.textContent = labelBefore
+  if (techEl.value) techEl.value.textContent = techBefore
+  emit('cancel-edit')
+}
+
+function onKeydown(e: KeyboardEvent) {
+  e.stopPropagation()
   if (e.key === 'Escape') {
     e.preventDefault()
-    e.stopPropagation()
-    emit('cancel-edit')
+    cancel()
     return
   }
-  // Single-line: Enter commits. Text: ⌘/Ctrl+Enter commits (Enter = newline).
   if (e.key === 'Enter' && !isText.value) {
     e.preventDefault()
     commit()
@@ -69,15 +104,12 @@ function onLabelKeydown(e: KeyboardEvent) {
     e.preventDefault()
     commit()
   }
-  e.stopPropagation()
 }
 
-/** Don't exit edit when tabbing between label/tech inside the same card */
-function onFieldBlur(e: FocusEvent) {
+function onBlur(e: FocusEvent) {
   const next = e.relatedTarget as Node | null
   const root = (e.currentTarget as HTMLElement).closest('.builder-node')
   if (next && root?.contains(next)) return
-  // Defer so a click on the other field can take focus first
   requestAnimationFrame(() => {
     if (!props.editing) return
     const active = document.activeElement
@@ -92,6 +124,11 @@ function onPointerDown(e: PointerEvent) {
     return
   }
   emit('pointerdown', props.node.id, e)
+}
+
+function onDblClick(e: MouseEvent) {
+  e.stopPropagation()
+  emit('start-edit', props.node.id)
 }
 </script>
 
@@ -111,54 +148,38 @@ function onPointerDown(e: PointerEvent) {
     }"
     @pointerdown.stop="onPointerDown"
     @click.stop="emit('select', node.id, $event.shiftKey)"
-    @dblclick.stop="emit('start-edit', node.id)"
+    @dblclick="onDblClick"
   >
-    <template v-if="!isText">
-      <div class="node-kind">{{ kindLabel }}</div>
-    </template>
+    <div v-if="!isText" class="node-kind">{{ kindLabel }}</div>
 
-    <!-- Inline edit -->
-    <template v-if="editing">
-      <textarea
-        v-if="isText"
-        ref="labelInput"
-        v-model="labelDraft"
-        class="inline-input inline-textarea"
-        rows="3"
-        @keydown="onLabelKeydown"
-        @blur="onFieldBlur"
-        @pointerdown.stop
-        @click.stop
-      />
-      <template v-else>
-        <input
-          ref="labelInput"
-          v-model="labelDraft"
-          class="inline-input"
-          @keydown="onLabelKeydown"
-          @blur="onFieldBlur"
-          @pointerdown.stop
-          @click.stop
-        />
-        <input
-          v-model="techDraft"
-          class="inline-input tech"
-          placeholder="tech (optional)"
-          @keydown="onLabelKeydown"
-          @blur="onFieldBlur"
-          @pointerdown.stop
-          @click.stop
-        />
-      </template>
-    </template>
+    <!-- Same elements always — contenteditable when editing (no input chrome) -->
+    <div
+      ref="labelEl"
+      class="node-label"
+      :class="{ placeholder: !node.label && !editing }"
+      :contenteditable="editing"
+      :spellcheck="false"
+      role="textbox"
+      :aria-label="isText ? 'Text' : 'Label'"
+      @keydown="onKeydown"
+      @blur="onBlur"
+      @pointerdown.stop="editing && $event.stopPropagation()"
+    >{{ node.label || (editing ? '' : KIND_DEFAULT_LABEL[node.kind]) }}</div>
 
-    <!-- Display -->
-    <template v-else>
-      <div class="node-label" :class="{ placeholder: !node.label }">
-        {{ node.label || KIND_DEFAULT_LABEL[node.kind] }}
-      </div>
-      <div v-if="node.tech && !isText" class="node-tech">{{ node.tech }}</div>
-    </template>
+    <div
+      v-if="!isText && (editing || node.tech)"
+      ref="techEl"
+      class="node-tech"
+      :class="{ placeholder: editing && !node.tech, editable: editing }"
+      :contenteditable="editing"
+      :spellcheck="false"
+      :data-placeholder="'tech'"
+      role="textbox"
+      aria-label="Tech"
+      @keydown="onKeydown"
+      @blur="onBlur"
+      @pointerdown.stop="editing && $event.stopPropagation()"
+    >{{ node.tech ?? '' }}</div>
   </div>
 </template>
 
@@ -176,7 +197,7 @@ function onPointerDown(e: PointerEvent) {
   cursor: grab;
   user-select: none;
   touch-action: none;
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+  transition: border-color 160ms ease-out, box-shadow 160ms ease-out;
   z-index: 2;
 }
 
@@ -195,13 +216,14 @@ function onPointerDown(e: PointerEvent) {
 .builder-node.editing {
   cursor: text;
   z-index: 5;
+  user-select: text;
   border-color: var(--accent);
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent),
-    0 8px 24px rgba(0, 0, 0, 0.45);
+    0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.builder-node.selected {
+.builder-node.selected:not(.editing) {
   border-color: var(--accent);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent),
@@ -221,6 +243,7 @@ function onPointerDown(e: PointerEvent) {
   text-transform: uppercase;
   color: var(--accent);
   margin: 0 0 4px;
+  pointer-events: none;
 }
 
 .node-label {
@@ -230,6 +253,9 @@ function onPointerDown(e: PointerEvent) {
   line-height: 1.35;
   word-break: break-word;
   white-space: pre-wrap;
+  outline: none;
+  min-height: 1.2em;
+  caret-color: #E2E8F0;
 }
 
 .builder-node.is-text .node-label {
@@ -243,45 +269,30 @@ function onPointerDown(e: PointerEvent) {
   font-weight: 500;
 }
 
+.node-label[contenteditable='true'] {
+  cursor: text;
+}
+
 .node-tech {
   margin-top: 4px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   font-family: var(--font-code);
-}
-
-.inline-input {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 4px 6px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #1C1C2A;
-  color: #E2E8F0;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
+  line-height: 1.3;
   outline: none;
-  line-height: 1.35;
+  min-height: 1.1em;
+  caret-color: rgba(255, 255, 255, 0.55);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.inline-input:focus {
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+.node-tech.editable {
+  cursor: text;
 }
 
-.inline-input.tech {
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  font-family: var(--font-code);
-  color: rgba(226, 232, 240, 0.7);
-}
-
-.inline-textarea {
-  resize: vertical;
-  min-height: 64px;
-  font-weight: 500;
-  line-height: 1.4;
+.node-tech.placeholder:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 255, 255, 0.22);
+  font-style: normal;
 }
 </style>
