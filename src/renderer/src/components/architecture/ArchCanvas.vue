@@ -58,7 +58,7 @@ const nodeTypes = {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--bg-dark); /* Match app background */
+  background: transparent;
 }
 
 /* Base Flow Overrides */
