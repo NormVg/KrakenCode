@@ -9,11 +9,9 @@ import {
   MarkerType,
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import { MiniMap } from '@vue-flow/minimap'
 
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
-import '@vue-flow/minimap/dist/style.css'
 
 import ServiceNode  from './nodes/ServiceNode.vue'
 import DatabaseNode from './nodes/DatabaseNode.vue'
@@ -271,6 +269,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
       :nodes-connectable="true"
       :elements-selectable="true"
       :multi-selection-key-code="'Shift'"
+      connection-mode="loose"
       fit-view-on-init
       class="kraken-flow"
       @pane-click="onPaneClick"
@@ -285,17 +284,6 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
         :size="1.5"
       />
 
-      <MiniMap
-        position="bottom-right"
-        class="arch-minimap"
-        :node-color="(node) => {
-          if (node.type === 'database') return '#3B82F6'
-          if (node.type === 'service')  return '#9374BE'
-          if (node.type === 'queue')    return '#0EA5E9'
-          if (node.type === 'group')    return 'rgba(255,255,255,0.1)'
-          return '#555'
-        }"
-      />
     </VueFlow>
 
     <!-- ═══════════════════════════════════════════════════ ZOOM CONTROLS (BL) -->

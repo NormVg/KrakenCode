@@ -20,6 +20,11 @@ const accent = props.data.dbType ? dbColor[props.data.dbType] ?? '#9DA1D3' : '#3
 
 <template>
   <div class="arch-node db-node" :class="{ selected }" :style="{ '--db-accent': accent }">
+    <!-- Connection handles: one per side, works as source OR target -->
+    <Handle id="top"    type="source" :position="Position.Top"    class="node-handle" />
+    <Handle id="right"  type="source" :position="Position.Right"  class="node-handle" />
+    <Handle id="bottom" type="source" :position="Position.Bottom" class="node-handle" />
+    <Handle id="left"   type="source" :position="Position.Left"   class="node-handle" />
     
     <div class="node-header">
       <div class="node-icon db-icon">
@@ -38,19 +43,6 @@ const accent = props.data.dbType ? dbColor[props.data.dbType] ?? '#9DA1D3' : '#3
     <div v-if="data.dbType" class="db-type-badge">{{ data.dbType }}</div>
     <div v-if="data.description" class="node-desc">{{ data.description }}</div>
 
-              
-    <!-- Top Handles -->
-    <Handle type="source" :position="Position.Top" id="top-s" class="arch-handle" />
-    <Handle type="target" :position="Position.Top" id="top-t" class="arch-handle target-handle" />
-    <!-- Bottom Handles -->
-    <Handle type="source" :position="Position.Bottom" id="bottom-s" class="arch-handle" />
-    <Handle type="target" :position="Position.Bottom" id="bottom-t" class="arch-handle target-handle" />
-    <!-- Right Handles -->
-    <Handle type="source" :position="Position.Right" id="right-s" class="arch-handle arch-handle-right" />
-    <Handle type="target" :position="Position.Right" id="right-t" class="arch-handle arch-handle-right target-handle" />
-    <!-- Left Handles -->
-    <Handle type="source" :position="Position.Left" id="left-s" class="arch-handle arch-handle-left" />
-    <Handle type="target" :position="Position.Left" id="left-t" class="arch-handle arch-handle-left target-handle" />
 </div>
 </template>
 
@@ -135,10 +127,6 @@ const accent = props.data.dbType ? dbColor[props.data.dbType] ?? '#9DA1D3' : '#3
   border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: 6px;
 }
-
-
-
-
 
 :deep(.arch-handle) {
   width: 8px;
