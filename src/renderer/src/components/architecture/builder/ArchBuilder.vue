@@ -8,6 +8,7 @@ import {
   newEdgeId,
   newNodeId,
 } from './mermaidCodec'
+import { edgePath, layoutHierarchical, NODE_H, NODE_W } from './layout'
 import BuilderNodeCard from './BuilderNodeCard.vue'
 
 const props = defineProps<{
@@ -47,22 +48,15 @@ const selectedNode = computed(() => {
 })
 
 const edgePaths = computed(() => {
-  const NODE_W = 168
-  const NODE_H = 72
   return model.value.edges
     .map((e) => {
       const s = model.value.nodes.find((n) => n.id === e.source)
       const t = model.value.nodes.find((n) => n.id === e.target)
       if (!s || !t) return null
-      const x1 = s.x + NODE_W / 2
-      const y1 = s.y + NODE_H / 2
-      const x2 = t.x + NODE_W / 2
-      const y2 = t.y + NODE_H / 2
-      const mx = (x1 + x2) / 2
-      const my = (y1 + y2) / 2 - 24
+      const { d, mx, my } = edgePath(s, t)
       return {
         id: e.id,
-        d: `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`,
+        d,
         label: e.label,
         lx: mx,
         ly: my,
@@ -77,10 +71,15 @@ const edgePaths = computed(() => {
   }>
 })
 
+/** Re-run hierarchy layout (toolbar can call via expose) */
+function autoLayout() {
+  model.value = layoutHierarchical(model.value)
+}
+
 function loadFromSource(src: string) {
   suppressEmit = true
   try {
-    model.value = mermaidToModel(src)
+    model.value = mermaidToModel(src) // includes hierarchical layout
     selectedIds.value = []
     connectSourceId.value = null
   } finally {
@@ -118,29 +117,35 @@ watch(
 
 watch(model, () => scheduleEmit(), { deep: true })
 
-function canvasCenter(): { x: number; y: number } {
-  const el = canvasRef.value
-  if (!el) return { x: 80, y: 100 }
-  return {
-    x: el.scrollLeft + el.clientWidth / 2 - 84,
-    y: el.scrollTop + el.clientHeight / 2 - 40,
-  }
-}
-
-/** Place a new node (from top bar click or drop) */
+/** Place a new node — append at bottom rank center, then optional manual drag */
 function addNode(kind: ArchNodeKind, x?: number, y?: number) {
-  const pos = x != null && y != null ? { x, y } : canvasCenter()
-  // Slight offset if stacking many at center
-  const jitter = model.value.nodes.length * 12
+  let px = x
+  let py = y
+  if (px == null || py == null) {
+    const maxY = model.value.nodes.reduce((m, n) => Math.max(m, n.y), 40)
+    const bottom = model.value.nodes.filter((n) => n.y >= maxY - 10)
+    const count = bottom.length
+    px = 56 + count * (NODE_W + 48)
+    py = model.value.nodes.length === 0 ? 72 : maxY + NODE_H + 72
+  }
   const node: ArchNode = {
     id: newNodeId(kind),
     kind,
     label: KIND_DEFAULT_LABEL[kind],
-    x: Math.max(16, pos.x + (jitter % 48)),
-    y: Math.max(16, pos.y + (jitter % 36)),
+    x: Math.max(16, px),
+    y: Math.max(16, py),
   }
   model.value.nodes.push(node)
-  selectedIds.value = [node.id]
+  // Keep hierarchy tidy after each add when graph has edges
+  if (model.value.edges.length > 0) {
+    model.value = layoutHierarchical(model.value)
+    const placed = model.value.nodes.find((n) => n.id === node.id)
+    if (placed) {
+      selectedIds.value = [placed.id]
+    }
+  } else {
+    selectedIds.value = [node.id]
+  }
   editingId.value = node.id
   editLabel.value = node.label
   editTech.value = ''
@@ -182,6 +187,8 @@ function selectNode(id: string, additive: boolean) {
         target: id,
       }
       model.value.edges.push(edge)
+      // Re-flow hierarchy so the new link reads top-down
+      model.value = layoutHierarchical(model.value)
     }
     connectSourceId.value = null
     selectedIds.value = [id]
@@ -298,7 +305,7 @@ onUnmounted(() => {
   if (emitTimer) clearTimeout(emitTimer)
 })
 
-defineExpose({ addNode })
+defineExpose({ addNode, autoLayout })
 </script>
 
 <template>

@@ -41,9 +41,10 @@ const kindLabel = computed(() => props.node.kind)
 <style scoped>
 .builder-node {
   position: absolute;
-  width: 168px;
-  min-height: 64px;
-  padding: 10px 12px;
+  width: 176px;
+  min-height: 70px;
+  box-sizing: border-box;
+  padding: 12px 14px;
   border-radius: 10px;
   background: #0A0D18;
   border: 1.5px solid color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.12));
@@ -51,8 +52,13 @@ const kindLabel = computed(() => props.node.kind)
   cursor: grab;
   user-select: none;
   touch-action: none;
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out, left 180ms ease-out, top 180ms ease-out;
   z-index: 2;
+}
+
+/* No position transition while dragging — set via class from parent if needed */
+.builder-node:active {
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
 }
 
 .builder-node:active {

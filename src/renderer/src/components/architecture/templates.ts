@@ -1,34 +1,23 @@
 // Default and starter Mermaid diagrams for the Architecture view.
 
 export const DEFAULT_ARCH_DIAGRAM = `flowchart TB
-  subgraph Clients
-    WEB[Web App]
-    MOB[Mobile]
-  end
-
-  subgraph Edge
-    GW[API Gateway]
-  end
-
-  subgraph Core
-    AUTH[Auth Service]
-    API[App API]
-    WORK[Background Worker]
-  end
-
-  subgraph Data
-    DB[(PostgreSQL)]
-    REDIS[(Redis Queue)]
-  end
+  WEB(["Web App"])
+  MOB(["Mobile"])
+  GW["API Gateway"]
+  AUTH["Auth Service"]
+  API["App API"]
+  WORK["Background Worker"]
+  DB[("PostgreSQL")]
+  REDIS[["Redis Queue"]]
 
   WEB --> GW
   MOB --> GW
   GW --> AUTH
   GW --> API
+  AUTH --> DB
   API --> DB
   API --> WORK
   WORK --> REDIS
-  AUTH --> DB
 `
 
 export interface ArchTemplate {

@@ -19,6 +19,7 @@ import {
   ListOrdered,
   Globe,
   Smartphone,
+  Network,
 } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
 import MermaidPreview from '../architecture/MermaidPreview.vue'
@@ -122,6 +123,10 @@ function onBuilderSource(src: string) {
 
 function addNode(kind: ArchNodeKind) {
   builderRef.value?.addNode(kind)
+}
+
+function autoLayout() {
+  builderRef.value?.autoLayout()
 }
 
 function onPaletteDragStart(e: DragEvent, kind: ArchNodeKind) {
@@ -332,6 +337,15 @@ onUnmounted(() => {
             @click="builderTool = 'connect'"
           >
             <Link2 :size="15" />
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            title="Auto layout"
+            aria-label="Auto layout"
+            @click="autoLayout"
+          >
+            <Network :size="15" />
           </button>
         </div>
       </template>
