@@ -148,7 +148,35 @@ onUnmounted(() => {
 
 <template>
   <div class="arch-view">
-    <!-- Single-mode body: preview XOR code -->
+    <header class="arch-top-panel no-drag">
+      <div class="mode-switch" role="tablist" aria-label="Architecture view mode">
+        <button
+          type="button"
+          role="tab"
+          class="mode-btn"
+          :class="{ active: mode === 'preview' }"
+          :aria-selected="mode === 'preview'"
+          title="Preview"
+          @click="setMode('preview')"
+        >
+          <Eye :size="14" />
+          <span>Preview</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="mode-btn"
+          :class="{ active: mode === 'code' }"
+          :aria-selected="mode === 'code'"
+          title="Code"
+          @click="setMode('code')"
+        >
+          <Code2 :size="14" />
+          <span>Code</span>
+        </button>
+      </div>
+    </header>
+
     <div class="arch-body">
       <MermaidPreview
         v-if="mode === 'preview'"
@@ -167,99 +195,39 @@ onUnmounted(() => {
         <p v-if="previewError" class="code-error">{{ previewError }}</p>
       </div>
     </div>
-
-    <!-- Minimal mode switch — sits above global bottom bar -->
-    <div class="mode-switch no-drag" role="tablist" aria-label="Architecture view mode">
-      <button
-        type="button"
-        role="tab"
-        class="mode-btn"
-        :class="{ active: mode === 'preview' }"
-        :aria-selected="mode === 'preview'"
-        title="Preview"
-        @click="setMode('preview')"
-      >
-        <Eye :size="14" />
-        <span>Preview</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="mode-btn"
-        :class="{ active: mode === 'code' }"
-        :aria-selected="mode === 'code'"
-        title="Code"
-        @click="setMode('code')"
-      >
-        <Code2 :size="14" />
-        <span>Code</span>
-      </button>
-    </div>
   </div>
 </template>
 
 <style scoped>
 .arch-view {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: var(--bg-panel);
 }
 
-.arch-body {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
-.code-pane {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  padding-bottom: var(--bottom-bar-clearance);
+.arch-top-panel {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 12px;
   background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 5;
 }
 
-.arch-monaco {
-  width: 100%;
-  height: 100%;
-}
-
-.code-error {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(var(--bottom-bar-clearance) + 8px);
-  margin: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 95, 95, 0.1);
-  border: 1px solid rgba(255, 95, 95, 0.22);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-family: var(--font-code);
-  line-height: 1.4;
-  pointer-events: none;
-}
-
-/* Floating toggle — centered above global bottom bar, same language as app chrome */
 .mode-switch {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--bottom-bar-clearance) + 8px);
-  transform: translateX(-50%);
-  z-index: 20;
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 3px;
   border-radius: 10px;
-  background: rgba(10, 13, 24, 0.85);
+  background: rgba(10, 13, 24, 0.55);
   border: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .mode-btn {
@@ -292,6 +260,42 @@ onUnmounted(() => {
 .mode-btn.active {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.arch-body {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.code-pane {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding-bottom: var(--bottom-bar-clearance);
+  background: var(--bg-panel);
+}
+
+.arch-monaco {
+  width: 100%;
+  height: 100%;
+}
+
+.code-error {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--bottom-bar-clearance) + 8px);
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 95, 95, 0.1);
+  border: 1px solid rgba(255, 95, 95, 0.22);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-code);
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 :deep(.monaco-editor),
