@@ -90,9 +90,66 @@ function setZoom(next: number) {
   emitViewport()
 }
 
+/** Bounding box of all nodes in world space */
+function contentBounds() {
+  const nodes = model.value.nodes
+  if (!nodes.length) return null
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x)
+    minY = Math.min(minY, n.y)
+    maxX = Math.max(maxX, n.x + NODE_W)
+    maxY = Math.max(maxY, n.y + NODE_H)
+  }
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX,
+    height: maxY - minY,
+    cx: (minX + maxX) / 2,
+    cy: (minY + maxY) / 2,
+  }
+}
+
+/**
+ * Fit & center the graph in the visible stage.
+ * Auto-layout alone packs to the left of world space; this pans so content sits in the middle.
+ */
 function fitView() {
-  zoom.value = 1
-  pan.value = { x: 0, y: 0 }
+  const el = stageRef.value
+  const bounds = contentBounds()
+  if (!el || !bounds) {
+    zoom.value = 1
+    pan.value = { x: 0, y: 0 }
+    emitViewport()
+    return
+  }
+
+  const vw = el.clientWidth
+  const vh = el.clientHeight
+  // Leave room for floating toolbar (top) and app bottom bar
+  const padX = 64
+  const padY = 88
+  const availW = Math.max(120, vw - padX * 2)
+  const availH = Math.max(120, vh - padY * 2)
+
+  const scaleX = availW / Math.max(bounds.width, 1)
+  const scaleY = availH / Math.max(bounds.height, 1)
+  // Prefer 1:1 when it fits; only shrink if needed
+  const nextZoom = Math.min(1, scaleX, scaleY, 2.5)
+  const z = Math.max(0.35, Number(nextZoom.toFixed(3)))
+
+  // Center content in viewport: pan = viewCenter - worldCenter * zoom
+  pan.value = {
+    x: vw / 2 - bounds.cx * z,
+    y: vh / 2 - bounds.cy * z + 8, // slight optical bias below toolbar
+  }
+  zoom.value = z
   emitViewport()
 }
 
@@ -117,7 +174,7 @@ function loadFromSource(src: string) {
     model.value = mermaidToModel(src)
     selectedIds.value = []
     connectSourceId.value = null
-    fitView()
+    nextTick(() => fitView())
   } finally {
     nextTick(() => {
       suppressEmit = false
