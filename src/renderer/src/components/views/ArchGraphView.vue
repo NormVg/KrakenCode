@@ -3,20 +3,21 @@ import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
+import { Code2, Eye } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
 import MermaidPreview from '../architecture/MermaidPreview.vue'
 import { useDebouncedValue } from '../architecture/composables/useArchDiagram'
 import { DEFAULT_ARCH_DIAGRAM } from '../architecture/templates'
 
+type ArchMode = 'preview' | 'code'
+
 const projectsStore = useProjectsStore()
 const { activeProject, isLoaded } = storeToRefs(projectsStore)
 
+const mode = ref<ArchMode>('preview')
 const localSource = ref(DEFAULT_ARCH_DIAGRAM)
 const debouncedSource = useDebouncedValue(localSource, 300)
 const previewError = ref<string | null>(null)
-const splitRatio = ref(40)
-const isDraggingSplit = ref(false)
-const rootRef = ref<HTMLElement | null>(null)
 const previewRef = ref<InstanceType<typeof MermaidPreview> | null>(null)
 
 let syncingFromStore = false
@@ -65,6 +66,13 @@ const editorOptions = {
   },
 }
 
+function setMode(next: ArchMode) {
+  mode.value = next
+  if (next === 'preview') {
+    nextTick(() => previewRef.value?.fitView())
+  }
+}
+
 function loadFromProject() {
   const stored = activeProject.value?.architecture
   const next = stored?.trim() ? stored : DEFAULT_ARCH_DIAGRAM
@@ -72,9 +80,9 @@ function loadFromProject() {
   syncingFromStore = true
   localSource.value = next
   previewError.value = null
-  previewRef.value?.fitView()
   nextTick(() => {
     syncingFromStore = false
+    if (mode.value === 'preview') previewRef.value?.fitView()
   })
 }
 
@@ -110,34 +118,21 @@ watch(localSource, () => {
   scheduleSave()
 })
 
-function onSplitPointerDown(e: PointerEvent) {
-  isDraggingSplit.value = true
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-}
-
-function onSplitPointerMove(e: PointerEvent) {
-  if (!isDraggingSplit.value || !rootRef.value) return
-  const rect = rootRef.value.getBoundingClientRect()
-  const pct = ((e.clientX - rect.left) / rect.width) * 100
-  splitRatio.value = Math.min(70, Math.max(22, pct))
-}
-
-function onSplitPointerUp(e: PointerEvent) {
-  if (!isDraggingSplit.value) return
-  isDraggingSplit.value = false
-  try {
-    ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-  } catch {
-    /* noop */
-  }
-}
-
 function onKeyDown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
     e.preventDefault()
     if (activeProject.value) {
       projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
     }
+  }
+  // Toggle modes with Cmd/Ctrl+E when focused in graph (avoid inputs)
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
+    const t = e.target as HTMLElement | null
+    if (t?.closest?.('.monaco-editor')) {
+      // allow while editing code too
+    }
+    e.preventDefault()
+    setMode(mode.value === 'preview' ? 'code' : 'preview')
   }
 }
 
@@ -152,82 +147,86 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="rootRef" class="arch-view" :class="{ resizing: isDraggingSplit }">
-    <section class="editor-pane" :style="{ width: `${splitRatio}%` }">
-      <VueMonacoEditor
-        v-model:value="localSource"
-        language="markdown"
-        :options="editorOptions"
-        class="arch-monaco"
-      />
-      <p v-if="previewError" class="editor-error">{{ previewError }}</p>
-    </section>
-
-    <div
-      class="split-handle"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize panes"
-      @pointerdown="onSplitPointerDown"
-      @pointermove="onSplitPointerMove"
-      @pointerup="onSplitPointerUp"
-      @pointercancel="onSplitPointerUp"
-    />
-
-    <section class="preview-pane">
+  <div class="arch-view">
+    <!-- Single-mode body: preview XOR code -->
+    <div class="arch-body">
       <MermaidPreview
+        v-if="mode === 'preview'"
         ref="previewRef"
         :source="debouncedSource"
         @error="previewError = $event"
       />
-    </section>
+
+      <div v-else class="code-pane">
+        <VueMonacoEditor
+          v-model:value="localSource"
+          language="markdown"
+          :options="editorOptions"
+          class="arch-monaco"
+        />
+        <p v-if="previewError" class="code-error">{{ previewError }}</p>
+      </div>
+    </div>
+
+    <!-- Minimal mode switch — sits above global bottom bar -->
+    <div class="mode-switch no-drag" role="tablist" aria-label="Architecture view mode">
+      <button
+        type="button"
+        role="tab"
+        class="mode-btn"
+        :class="{ active: mode === 'preview' }"
+        :aria-selected="mode === 'preview'"
+        title="Preview"
+        @click="setMode('preview')"
+      >
+        <Eye :size="14" />
+        <span>Preview</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="mode-btn"
+        :class="{ active: mode === 'code' }"
+        :aria-selected="mode === 'code'"
+        title="Code"
+        @click="setMode('code')"
+      >
+        <Code2 :size="14" />
+        <span>Code</span>
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .arch-view {
-  display: flex;
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: var(--bg-panel);
-  position: relative;
 }
 
-.arch-view.resizing {
-  cursor: col-resize;
-  user-select: none;
-}
-
-.editor-pane,
-.preview-pane {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+.arch-body {
+  width: 100%;
   height: 100%;
+  min-height: 0;
+}
+
+.code-pane {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding-bottom: var(--bottom-bar-clearance);
   background: var(--bg-panel);
 }
 
-.editor-pane {
-  flex: 0 0 auto;
-  border-right: 1px solid var(--border-color);
-  position: relative;
-  /* Keep last lines above global bottom bar */
-  padding-bottom: var(--bottom-bar-clearance);
-}
-
-.preview-pane {
-  flex: 1 1 auto;
-}
-
 .arch-monaco {
-  flex: 1;
   width: 100%;
-  min-height: 0;
+  height: 100%;
 }
 
-.editor-error {
+.code-error {
   position: absolute;
   left: 12px;
   right: 12px;
@@ -244,29 +243,55 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.split-handle {
-  width: 5px;
-  flex: 0 0 5px;
-  cursor: col-resize;
-  position: relative;
-  z-index: 4;
-  background: transparent;
-}
-
-.split-handle::after {
-  content: '';
+/* Floating toggle — centered above global bottom bar, same language as app chrome */
+.mode-switch {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 2px;
-  width: 1px;
-  background: var(--border-color);
-  transition: background 140ms ease-out;
+  left: 50%;
+  bottom: calc(var(--bottom-bar-clearance) + 8px);
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(10, 13, 24, 0.85);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.split-handle:hover::after,
-.resizing .split-handle::after {
-  background: rgba(157, 161, 211, 0.35);
+.mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted-dark);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
+}
+
+.mode-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn:active {
+  transform: scale(0.96);
+}
+
+.mode-btn.active {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 :deep(.monaco-editor),
