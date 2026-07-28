@@ -6,6 +6,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/apple-icon-squircle.png?asset'
 import { createOllama } from 'ai-sdk-ollama'
 import { streamText } from 'ai'
+import { execSync } from 'child_process'
 import * as pty from 'node-pty'
 
 let aiModel: any = null
@@ -13,6 +14,50 @@ let aiModel: any = null
 // ─── PTY Session Registry ────────────────────────────────────────────────────
 // Maps session ID → IPty instance. Supports multiple concurrent terminals.
 const ptyProcesses = new Map<string, pty.IPty>()
+
+// ─── Shell Environment Resolver ──────────────────────────────────────────────
+// On macOS/Linux, packaged Electron apps launch without a login shell, so they
+// get a bare-bones PATH. This function asks the user's own shell for its real
+// environment by running it as a login shell and capturing `env` output.
+// This is the same approach used by VS Code's "resolveShellEnv" internally.
+// Works universally — any machine, any shell, any user configuration.
+// ─────────────────────────────────────────────────────────────────────────────
+let resolvedShellEnv: Record<string, string> | null = null
+
+function resolveShellEnv(shell: string): Record<string, string> {
+  if (resolvedShellEnv) return resolvedShellEnv
+
+  try {
+    // Spawn a login shell and ask it to print its entire environment.
+    // -l = login shell (sources ~/.zprofile, ~/.profile, etc.)
+    // -c = run command then exit
+    const raw = execSync(`${shell} -lc env`, {
+      encoding: 'utf8',
+      timeout: 5000,
+      // Provide a minimal starting env so the shell can bootstrap itself
+      env: { HOME: os.homedir(), USER: os.userInfo().username, SHELL: shell },
+    })
+
+    const env: Record<string, string> = { ...process.env } as Record<string, string>
+
+    for (const line of raw.split('\n')) {
+      const idx = line.indexOf('=')
+      if (idx > 0) {
+        const key = line.slice(0, idx)
+        const value = line.slice(idx + 1)
+        env[key] = value
+      }
+    }
+
+    resolvedShellEnv = env
+    return env
+  } catch (err) {
+    // If resolution fails for any reason, fall back gracefully to process.env.
+    console.warn('[pty] Shell env resolution failed, using process.env as fallback:', err)
+    resolvedShellEnv = process.env as Record<string, string>
+    return resolvedShellEnv
+  }
+}
 
 
 function createWindow(): void {
@@ -245,27 +290,20 @@ app.whenReady().then(() => {
     // Use the active project directory, home dir, or cwd as working directory
     const workingDir = cwd && cwd.length > 0 ? cwd : os.homedir()
 
+    // Resolve the full shell environment once (cached for subsequent terminals).
+    // This asks the user's own shell what its real environment is — universal,
+    // works on any machine regardless of how tools were installed.
+    const shellEnv = resolveShellEnv(shell)
+
     const ptyProcess = pty.spawn(shell, ['-l'], {
       name: 'xterm-256color',
       cols: cols || 80,
       rows: rows || 24,
       cwd: workingDir,
       env: {
-        ...process.env,
+        ...shellEnv,
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
-        // Ensure Homebrew and common tool paths are available in packaged app.
-        // macOS .app bundles don't inherit the user's shell PATH, so we inject it.
-        PATH: [
-          '/opt/homebrew/bin',
-          '/opt/homebrew/sbin',
-          '/usr/local/bin',
-          '/usr/bin',
-          '/bin',
-          '/usr/sbin',
-          '/sbin',
-          process.env.PATH || '',
-        ].filter(Boolean).join(':'),
       }
     })
 
