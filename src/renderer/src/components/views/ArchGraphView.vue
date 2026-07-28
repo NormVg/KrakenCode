@@ -12,18 +12,20 @@ import {
   Copy,
   Check,
   Hand,
+  MousePointer2,
 } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
 import MermaidPreview from '../architecture/MermaidPreview.vue'
+import ArchBuilder from '../architecture/builder/ArchBuilder.vue'
 import { useDebouncedValue } from '../architecture/composables/useArchDiagram'
 import { DEFAULT_ARCH_DIAGRAM } from '../architecture/templates'
 
-type ArchMode = 'preview' | 'code'
+type ArchMode = 'builder' | 'preview' | 'code'
 
 const projectsStore = useProjectsStore()
 const { activeProject, isLoaded } = storeToRefs(projectsStore)
 
-const mode = ref<ArchMode>('preview')
+const mode = ref<ArchMode>('builder')
 const localSource = ref(DEFAULT_ARCH_DIAGRAM)
 const debouncedSource = useDebouncedValue(localSource, 300)
 const previewError = ref<string | null>(null)
@@ -91,13 +93,16 @@ function setMode(next: ArchMode) {
   }
 }
 
+function onBuilderSource(src: string) {
+  localSource.value = src
+}
+
 function syncZoomLabel() {
   const preview = previewRef.value
   if (!preview) {
     zoomLabel.value = 100
     return
   }
-  // Exposed computed may be unwrapped on the component public instance
   const z = preview.zoomPercent as number | { value: number } | undefined
   zoomLabel.value = typeof z === 'number' ? z : (z?.value ?? 100)
 }
@@ -189,22 +194,14 @@ function onKeyDown(e: KeyboardEvent) {
       projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
     }
   }
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
-    e.preventDefault()
-    setMode(mode.value === 'preview' ? 'code' : 'preview')
-  }
   if (mode.value !== 'preview') return
-  if (e.key === '=' || e.key === '+') {
-    if (e.metaKey || e.ctrlKey) {
-      e.preventDefault()
-      zoomIn()
-    }
+  if ((e.key === '=' || e.key === '+') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    zoomIn()
   }
-  if (e.key === '-' || e.key === '_') {
-    if (e.metaKey || e.ctrlKey) {
-      e.preventDefault()
-      zoomOut()
-    }
+  if ((e.key === '-' || e.key === '_') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    zoomOut()
   }
   if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault()
@@ -225,9 +222,18 @@ onUnmounted(() => {
 
 <template>
   <div class="arch-view">
-    <!-- Canvas-native toolbar (matches app chrome, #0A0D18) -->
     <div class="arch-toolbar no-drag">
       <div class="tool-group" role="tablist" aria-label="View mode">
+        <button
+          type="button"
+          class="tool-btn text"
+          :class="{ active: mode === 'builder' }"
+          title="Build with drag and drop"
+          @click="setMode('builder')"
+        >
+          <MousePointer2 :size="14" />
+          <span>Build</span>
+        </button>
         <button
           type="button"
           class="tool-btn text"
@@ -242,7 +248,7 @@ onUnmounted(() => {
           type="button"
           class="tool-btn text"
           :class="{ active: mode === 'code' }"
-          title="Code"
+          title="Mermaid code"
           @click="setMode('code')"
         >
           <Code2 :size="14" />
@@ -257,7 +263,7 @@ onUnmounted(() => {
           <button type="button" class="tool-btn" title="Zoom out" @click="zoomOut">
             <Minus :size="14" />
           </button>
-          <span class="zoom-readout" title="Zoom level">{{ zoomLabel }}%</span>
+          <span class="zoom-readout">{{ zoomLabel }}%</span>
           <button type="button" class="tool-btn" title="Zoom in" @click="zoomIn">
             <Plus :size="14" />
           </button>
@@ -273,7 +279,7 @@ onUnmounted(() => {
             type="button"
             class="tool-btn"
             :class="{ active: panTool }"
-            title="Pan (drag canvas)"
+            title="Pan"
             @click="panTool = !panTool"
           >
             <Hand :size="14" />
@@ -296,8 +302,14 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <ArchBuilder
+      v-if="mode === 'builder'"
+      :source="localSource"
+      @update:source="onBuilderSource"
+    />
+
     <MermaidPreview
-      v-if="mode === 'preview'"
+      v-else-if="mode === 'preview'"
       ref="previewRef"
       :source="debouncedSource"
       :pan-enabled="panTool"
@@ -326,13 +338,12 @@ onUnmounted(() => {
   background: #1C1C2A;
 }
 
-/* Floating toolbar — dark chrome only (#0A0D18), canvas stays light panel */
 .arch-toolbar {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 20;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 4px;
