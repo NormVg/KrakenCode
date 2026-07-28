@@ -163,7 +163,7 @@ defineExpose({ rootEl })
     }"
     @pointerdown="onPointerDown"
     @click.stop="emit('select', node.id, $event.shiftKey)"
-    @dblclick="onDblClick"
+    @dblclick.stop.prevent="onDblClick"
   >
     <div v-if="!isText" class="node-kind">{{ kindLabel }}</div>
 

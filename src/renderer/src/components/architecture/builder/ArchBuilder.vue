@@ -589,7 +589,6 @@ defineExpose({
       @dragover="onCanvasDragOver"
       @drop="onCanvasDrop"
       @click.self="clearSelection"
-      @dblclick.self="fitView"
     >
       <div class="world" :style="worldStyle" @click.self="clearSelection">
         <svg class="edge-layer">
