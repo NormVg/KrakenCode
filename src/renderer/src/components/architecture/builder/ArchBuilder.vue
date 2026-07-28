@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import type { ArchEdge, ArchModel, ArchNode, ArchNodeKind } from './types'
-import { KIND_DEFAULT_LABEL, KIND_COLORS, PALETTE_ITEMS } from './types'
+import { KIND_DEFAULT_LABEL } from './types'
 import {
   mermaidToModel,
   modelToMermaid,
@@ -11,8 +11,9 @@ import {
 import BuilderNodeCard from './BuilderNodeCard.vue'
 
 const props = defineProps<{
-  /** Current Mermaid source (synced from parent) */
   source: string
+  /** select = drag/move, connect = link two nodes */
+  tool?: 'select' | 'connect'
 }>()
 
 const emit = defineEmits<{
@@ -22,11 +23,12 @@ const emit = defineEmits<{
 const model = ref<ArchModel>({ nodes: [], edges: [] })
 const selectedIds = ref<string[]>([])
 const connectSourceId = ref<string | null>(null)
-const tool = ref<'select' | 'connect'>('select')
 const canvasRef = ref<HTMLElement | null>(null)
 const editingId = ref<string | null>(null)
 const editLabel = ref('')
 const editTech = ref('')
+
+const activeTool = computed(() => props.tool ?? 'select')
 
 let dragState: {
   id: string
@@ -39,15 +41,11 @@ let dragState: {
 let suppressEmit = false
 let emitTimer: ReturnType<typeof setTimeout> | null = null
 
-const selectedId = computed(() =>
-  selectedIds.value.length === 1 ? selectedIds.value[0] : null,
-)
+const selectedNode = computed(() => {
+  if (selectedIds.value.length !== 1) return null
+  return model.value.nodes.find((n) => n.id === selectedIds.value[0]) ?? null
+})
 
-const selectedNode = computed(() =>
-  model.value.nodes.find((n) => n.id === selectedId.value) ?? null,
-)
-
-// SVG edges between node centers
 const edgePaths = computed(() => {
   const NODE_W = 168
   const NODE_H = 72
@@ -60,7 +58,6 @@ const edgePaths = computed(() => {
       const y1 = s.y + NODE_H / 2
       const x2 = t.x + NODE_W / 2
       const y2 = t.y + NODE_H / 2
-      // Simple curved path
       const mx = (x1 + x2) / 2
       const my = (y1 + y2) / 2 - 24
       return {
@@ -104,7 +101,6 @@ function scheduleEmit() {
 watch(
   () => props.source,
   (src, prev) => {
-    // Only re-parse when parent source changed externally (not our own emit)
     if (src === prev) return
     const compiled = modelToMermaid(model.value)
     if (src.trim() === compiled.trim()) return
@@ -113,13 +109,41 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => props.tool,
+  () => {
+    connectSourceId.value = null
+  },
+)
+
 watch(model, () => scheduleEmit(), { deep: true })
 
-// ── Palette drop ─────────────────────────────────────────────────────────────
-function onPaletteDragStart(e: DragEvent, kind: ArchNodeKind) {
-  if (!e.dataTransfer) return
-  e.dataTransfer.setData('application/kraken-arch-kind', kind)
-  e.dataTransfer.effectAllowed = 'copy'
+function canvasCenter(): { x: number; y: number } {
+  const el = canvasRef.value
+  if (!el) return { x: 80, y: 100 }
+  return {
+    x: el.scrollLeft + el.clientWidth / 2 - 84,
+    y: el.scrollTop + el.clientHeight / 2 - 40,
+  }
+}
+
+/** Place a new node (from top bar click or drop) */
+function addNode(kind: ArchNodeKind, x?: number, y?: number) {
+  const pos = x != null && y != null ? { x, y } : canvasCenter()
+  // Slight offset if stacking many at center
+  const jitter = model.value.nodes.length * 12
+  const node: ArchNode = {
+    id: newNodeId(kind),
+    kind,
+    label: KIND_DEFAULT_LABEL[kind],
+    x: Math.max(16, pos.x + (jitter % 48)),
+    y: Math.max(16, pos.y + (jitter % 36)),
+  }
+  model.value.nodes.push(node)
+  selectedIds.value = [node.id]
+  editingId.value = node.id
+  editLabel.value = node.label
+  editTech.value = ''
 }
 
 function onCanvasDragOver(e: DragEvent) {
@@ -137,24 +161,8 @@ function onCanvasDrop(e: DragEvent) {
   addNode(kind, Math.max(16, x), Math.max(16, y))
 }
 
-function addNode(kind: ArchNodeKind, x: number, y: number) {
-  const node: ArchNode = {
-    id: newNodeId(kind),
-    kind,
-    label: KIND_DEFAULT_LABEL[kind],
-    x,
-    y,
-  }
-  model.value.nodes.push(node)
-  selectedIds.value = [node.id]
-  editingId.value = node.id
-  editLabel.value = node.label
-  editTech.value = ''
-}
-
-// ── Select / connect ─────────────────────────────────────────────────────────
 function selectNode(id: string, additive: boolean) {
-  if (tool.value === 'connect') {
+  if (activeTool.value === 'connect') {
     if (!connectSourceId.value) {
       connectSourceId.value = id
       selectedIds.value = [id]
@@ -164,7 +172,6 @@ function selectNode(id: string, additive: boolean) {
       connectSourceId.value = null
       return
     }
-    // Create edge if missing
     const exists = model.value.edges.some(
       (e) => e.source === connectSourceId.value && e.target === id,
     )
@@ -198,10 +205,9 @@ function clearSelection() {
   editingId.value = null
 }
 
-// ── Drag nodes ───────────────────────────────────────────────────────────────
 function onNodePointerDown(id: string, e: PointerEvent) {
   if (e.button !== 0) return
-  if (tool.value === 'connect') return
+  if (activeTool.value === 'connect') return
 
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
@@ -234,14 +240,12 @@ function onCanvasPointerUp() {
   dragState = null
 }
 
-// ── Edit ─────────────────────────────────────────────────────────────────────
 function startEdit(id: string) {
   const node = model.value.nodes.find((n) => n.id === id)
   if (!node) return
   editingId.value = id
   editLabel.value = node.label
   editTech.value = node.tech ?? ''
-  tool.value = 'select'
 }
 
 function applyEdit() {
@@ -258,7 +262,6 @@ function cancelEdit() {
   editingId.value = null
 }
 
-// ── Delete ───────────────────────────────────────────────────────────────────
 function deleteSelection() {
   if (editingId.value) return
   const ids = new Set(selectedIds.value)
@@ -286,11 +289,6 @@ function onKeyDown(e: KeyboardEvent) {
   }
   if (e.key === 'Escape') {
     clearSelection()
-    tool.value = 'select'
-  }
-  if (e.key === 'c' && !e.metaKey && !e.ctrlKey) {
-    tool.value = tool.value === 'connect' ? 'select' : 'connect'
-    connectSourceId.value = null
   }
 }
 
@@ -299,59 +297,16 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown)
   if (emitTimer) clearTimeout(emitTimer)
 })
+
+defineExpose({ addNode })
 </script>
 
 <template>
   <div class="arch-builder">
-    <!-- Left palette -->
-    <aside class="palette no-drag">
-      <div class="palette-title">Elements</div>
-      <p class="palette-hint">Drag onto canvas</p>
-      <div
-        v-for="item in PALETTE_ITEMS"
-        :key="item.kind"
-        class="palette-item"
-        draggable="true"
-        :style="{ '--accent': KIND_COLORS[item.kind] }"
-        @dragstart="onPaletteDragStart($event, item.kind)"
-      >
-        <span class="palette-dot" />
-        <div class="palette-meta">
-          <span class="palette-label">{{ item.label }}</span>
-          <span class="palette-desc">{{ item.description }}</span>
-        </div>
-      </div>
-
-      <div class="palette-footer">
-        <div class="tool-row">
-          <button
-            type="button"
-            class="mini-btn"
-            :class="{ active: tool === 'select' }"
-            @click="tool = 'select'; connectSourceId = null"
-          >
-            Move
-          </button>
-          <button
-            type="button"
-            class="mini-btn"
-            :class="{ active: tool === 'connect' }"
-            @click="tool = 'connect'; connectSourceId = null"
-          >
-            Connect
-          </button>
-        </div>
-        <p class="shortcut-hint">
-          <kbd>C</kbd> connect · <kbd>Del</kbd> delete · dbl-click edit
-        </p>
-      </div>
-    </aside>
-
-    <!-- Canvas -->
     <div
       ref="canvasRef"
       class="builder-canvas"
-      :class="{ connecting: tool === 'connect' }"
+      :class="{ connecting: activeTool === 'connect' }"
       @dragover="onCanvasDragOver"
       @drop="onCanvasDrop"
       @pointermove="onCanvasPointerMove"
@@ -394,11 +349,10 @@ onUnmounted(() => {
       />
 
       <div v-if="model.nodes.length === 0" class="empty-canvas">
-        Drag a service, database, or queue from the left
+        Click a type in the top bar to add a node
       </div>
     </div>
 
-    <!-- Inline edit popover -->
     <div v-if="editingId && selectedNode" class="edit-popover no-drag" @keydown.stop>
       <label class="field">
         <span>Label</span>
@@ -419,168 +373,21 @@ onUnmounted(() => {
 <style scoped>
 .arch-builder {
   position: relative;
-  display: flex;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: #1C1C2A;
 }
 
-.palette {
-  width: 180px;
-  flex: 0 0 180px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 56px 10px 16px;
-  background: #0A0D18;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  overflow-y: auto;
-  z-index: 5;
-}
-
-.palette-title {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.35);
-  padding: 0 4px;
-  margin: 0;
-}
-
-.palette-hint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.25);
-  margin: 0 0 6px;
-  padding: 0 4px;
-}
-
-.palette-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  cursor: grab;
-  transition: border-color 140ms ease-out, background 140ms ease-out, transform 120ms ease-out;
-}
-
-.palette-item:hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.palette-item:active {
-  cursor: grabbing;
-  transform: scale(0.98);
-}
-
-.palette-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  flex-shrink: 0;
-}
-
-.palette-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.palette-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.palette-desc {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.palette-footer {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tool-row {
-  display: flex;
-  gap: 4px;
-}
-
-.mini-btn {
-  flex: 1;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
-}
-
-.mini-btn:hover {
-  color: #E2E8F0;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.mini-btn:active {
-  transform: scale(0.96);
-}
-
-.mini-btn.active {
-  color: #E2E8F0;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.mini-btn.primary {
-  background: rgba(147, 116, 190, 0.2);
-  border-color: rgba(147, 116, 190, 0.35);
-  color: #c4b0e8;
-}
-
-.shortcut-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.28);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.shortcut-hint kbd {
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  font-family: inherit;
-}
-
 .builder-canvas {
   position: relative;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  height: 100%;
   overflow: auto;
   background-color: #1C1C2A;
   background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.2px, transparent 1.2px);
   background-size: 22px 22px;
   padding-bottom: var(--bottom-bar-clearance);
-  /* Room for floating top toolbar */
   padding-top: 4px;
 }
 
@@ -613,7 +420,7 @@ onUnmounted(() => {
   font-size: 13px;
   text-align: center;
   pointer-events: none;
-  max-width: 260px;
+  max-width: 280px;
   line-height: 1.5;
 }
 
@@ -666,5 +473,33 @@ onUnmounted(() => {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+}
+
+.mini-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out, transform 120ms ease-out;
+}
+
+.mini-btn:hover {
+  color: #E2E8F0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mini-btn:active {
+  transform: scale(0.96);
+}
+
+.mini-btn.primary {
+  background: rgba(147, 116, 190, 0.2);
+  border-color: rgba(147, 116, 190, 0.35);
+  color: #c4b0e8;
 }
 </style>

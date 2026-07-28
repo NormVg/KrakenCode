@@ -13,14 +13,31 @@ import {
   Check,
   Hand,
   MousePointer2,
+  Link2,
+  Server,
+  Database,
+  ListOrdered,
+  Globe,
+  Smartphone,
 } from 'lucide-vue-next'
 import { useProjectsStore } from '../../stores/projects'
 import MermaidPreview from '../architecture/MermaidPreview.vue'
 import ArchBuilder from '../architecture/builder/ArchBuilder.vue'
 import { useDebouncedValue } from '../architecture/composables/useArchDiagram'
 import { DEFAULT_ARCH_DIAGRAM } from '../architecture/templates'
+import type { ArchNodeKind } from '../architecture/builder/types'
+import { KIND_COLORS } from '../architecture/builder/types'
 
 type ArchMode = 'builder' | 'preview' | 'code'
+type BuilderTool = 'select' | 'connect'
+
+const NODE_TOOLS: Array<{ kind: ArchNodeKind; label: string; icon: typeof Server }> = [
+  { kind: 'service', label: 'Service', icon: Server },
+  { kind: 'database', label: 'Database', icon: Database },
+  { kind: 'queue', label: 'Queue', icon: ListOrdered },
+  { kind: 'external', label: 'External', icon: Globe },
+  { kind: 'client', label: 'Client', icon: Smartphone },
+]
 
 const projectsStore = useProjectsStore()
 const { activeProject, isLoaded } = storeToRefs(projectsStore)
@@ -30,6 +47,8 @@ const localSource = ref(DEFAULT_ARCH_DIAGRAM)
 const debouncedSource = useDebouncedValue(localSource, 300)
 const previewError = ref<string | null>(null)
 const previewRef = ref<InstanceType<typeof MermaidPreview> | null>(null)
+const builderRef = ref<InstanceType<typeof ArchBuilder> | null>(null)
+const builderTool = ref<BuilderTool>('select')
 const zoomLabel = ref(100)
 const panTool = ref(true)
 const copied = ref(false)
@@ -82,6 +101,7 @@ const editorOptions = {
 }
 
 const showZoomTools = computed(() => mode.value === 'preview')
+const showBuilderTools = computed(() => mode.value === 'builder')
 
 function setMode(next: ArchMode) {
   mode.value = next
@@ -91,10 +111,23 @@ function setMode(next: ArchMode) {
       syncZoomLabel()
     })
   }
+  if (next === 'builder') {
+    builderTool.value = 'select'
+  }
 }
 
 function onBuilderSource(src: string) {
   localSource.value = src
+}
+
+function addNode(kind: ArchNodeKind) {
+  builderRef.value?.addNode(kind)
+}
+
+function onPaletteDragStart(e: DragEvent, kind: ArchNodeKind) {
+  if (!e.dataTransfer) return
+  e.dataTransfer.setData('application/kraken-arch-kind', kind)
+  e.dataTransfer.effectAllowed = 'copy'
 }
 
 function syncZoomLabel() {
@@ -256,6 +289,53 @@ onUnmounted(() => {
         </button>
       </div>
 
+      <!-- Builder: node types + tools live in the top bar only -->
+      <template v-if="showBuilderTools">
+        <div class="tool-divider" />
+
+        <div class="tool-group" aria-label="Add node">
+          <button
+            v-for="item in NODE_TOOLS"
+            :key="item.kind"
+            type="button"
+            class="tool-btn text kind-btn"
+            :title="`Add ${item.label} (or drag onto canvas)`"
+            :style="{ '--kind': KIND_COLORS[item.kind] }"
+            draggable="true"
+            @click="addNode(item.kind)"
+            @dragstart="onPaletteDragStart($event, item.kind)"
+          >
+            <component :is="item.icon" :size="13" class="kind-icon" />
+            <span>{{ item.label }}</span>
+          </button>
+        </div>
+
+        <div class="tool-divider" />
+
+        <div class="tool-group" aria-label="Builder tools">
+          <button
+            type="button"
+            class="tool-btn text"
+            :class="{ active: builderTool === 'select' }"
+            title="Move nodes"
+            @click="builderTool = 'select'"
+          >
+            <MousePointer2 :size="14" />
+            <span>Move</span>
+          </button>
+          <button
+            type="button"
+            class="tool-btn text"
+            :class="{ active: builderTool === 'connect' }"
+            title="Connect nodes (click A then B)"
+            @click="builderTool = 'connect'"
+          >
+            <Link2 :size="14" />
+            <span>Connect</span>
+          </button>
+        </div>
+      </template>
+
       <template v-if="showZoomTools">
         <div class="tool-divider" />
 
@@ -304,7 +384,9 @@ onUnmounted(() => {
 
     <ArchBuilder
       v-if="mode === 'builder'"
+      ref="builderRef"
       :source="localSource"
+      :tool="builderTool"
       @update:source="onBuilderSource"
     />
 
@@ -403,6 +485,19 @@ onUnmounted(() => {
 .tool-btn.active {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.kind-btn {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.kind-btn .kind-icon {
+  color: var(--kind);
+}
+
+.kind-btn:hover {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--kind) 14%, transparent);
 }
 
 .zoom-readout {
