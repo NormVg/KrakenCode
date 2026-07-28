@@ -35,16 +35,16 @@ export function useAutoLayout() {
         'elk.direction': direction,
       },
       children: nodes
-        .filter(n => !n.parentId) // Only top-level nodes; groups handle children
+        .filter(n => !n.parentNode) // Only top-level nodes; groups handle children
         .map((n: Node) => ({
           id: n.id,
           width: getNodeWidth(n.type),
           height: getNodeHeight(n.type),
-          layoutOptions: n.type === 'group'
+          layoutOptions: (n.type === 'group'
             ? { 'elk.padding': '[top=40,left=16,bottom=16,right=16]' }
-            : {},
+            : {}) as Record<string, string>,
           children: nodes
-            .filter(child => child.parentId === n.id)
+            .filter(child => child.parentNode === n.id)
             .map(child => ({
               id: child.id,
               width: getNodeWidth(child.type),
@@ -71,7 +71,7 @@ export function useAutoLayout() {
         for (const group of layout.children ?? []) {
           const child = group.children?.find(c => c.id === node.id)
           if (child) {
-            return { ...node, position: { x: child.x ?? 0, y: child.y ?? 0 } }
+            return { ...node, position: { x: (child as any).x ?? 0, y: (child as any).y ?? 0 } }
           }
         }
         return node

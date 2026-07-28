@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
@@ -31,7 +31,7 @@ const nodeTypes = {
   <div class="arch-canvas-container">
     <VueFlow
       id="arch-canvas"
-      :node-types="nodeTypes"
+      :node-types="nodeTypes as any"
       :default-viewport="{ zoom: 1 }"
       :min-zoom="0.1"
       :max-zoom="4"

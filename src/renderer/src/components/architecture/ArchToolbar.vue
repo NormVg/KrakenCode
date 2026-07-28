@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Play, Download, Trash2, Maximize, MousePointer2, Network } from 'lucide-vue-next'
+import { Trash2, Maximize, Network } from 'lucide-vue-next'
 import { useArchGraph } from './composables/useArchGraph'
 import { useAutoLayout } from './composables/useAutoLayout'
 

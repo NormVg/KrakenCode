@@ -24,6 +24,8 @@ declare global {
         createItem: (itemPath: string, type: 'file' | 'folder') => Promise<boolean>
         deleteItem: (itemPath: string) => Promise<boolean>
         renameItem: (oldPath: string, newPath: string) => Promise<boolean>
+        moveItem: (source: string, dest: string) => Promise<boolean>
+        copyItem: (source: string, dest: string) => Promise<boolean>
       }
       pty: {
         create: (id: string, cols: number, rows: number, cwd?: string) => Promise<{ success: boolean; pid?: number }>

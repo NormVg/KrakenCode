@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { diffLines, diffWords, type Change } from 'diff'
+import { ref, computed } from 'vue'
+import { diffLines, diffWords } from 'diff'
 import { Columns2, Rows2 } from 'lucide-vue-next'
 
 // ─── Types ───────────────────────────────────────────────────────────────────

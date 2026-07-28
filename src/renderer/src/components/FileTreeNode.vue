@@ -129,19 +129,19 @@ const onDragStart = (e: DragEvent) => {
   e.dataTransfer?.setData('application/kraken-file', props.node.path)
 }
 
-const onDragOver = (e: DragEvent) => {
+const onDragOver = () => {
   if (props.node.type === 'folder') {
     isDragOver.value = true
   }
 }
 
-const onDragEnter = (e: DragEvent) => {
+const onDragEnter = () => {
   if (props.node.type === 'folder') {
     isDragOver.value = true
   }
 }
 
-const onDragLeave = (e: DragEvent) => {
+const onDragLeave = () => {
   isDragOver.value = false
 }
 

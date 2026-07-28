@@ -1,6 +1,7 @@
 import { ref, readonly } from 'vue'
 import {
   useVueFlow,
+  MarkerType,
   type Node,
   type Edge,
 } from '@vue-flow/core'
@@ -31,7 +32,7 @@ export function useArchGraph() {
         type: n.type,
         position: n.position,
         data: n.data,
-        parentId: n.parentId,
+        parentNode: n.parentId,
         style: n.style,
         // Groups should not be draggable out of position without children
         selectable: true,
@@ -49,7 +50,7 @@ export function useArchGraph() {
         style: { stroke: 'rgba(255,255,255,0.18)', strokeWidth: 1.5 },
         labelStyle: { fill: 'rgba(255,255,255,0.4)', fontSize: '11px' },
         labelBgStyle: { fill: '#141420', fillOpacity: 0.8 },
-        markerEnd: { type: 'arrowclosed', color: 'rgba(255,255,255,0.25)' },
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.25)' },
       }))
 
       setNodes(nodes)
@@ -73,7 +74,7 @@ export function useArchGraph() {
         type: n.type as any,
         position: n.position,
         data: n.data as AnyNodeData,
-        parentId: n.parentId,
+        parentId: n.parentNode,
       })),
       edges: getEdges.value.map(e => ({
         id: e.id,
@@ -96,7 +97,7 @@ export function useArchGraph() {
       type: node.type,
       position: node.position,
       data: node.data,
-      parentId: node.parentId,
+      parentNode: node.parentId,
       selectable: true,
       draggable: true,
     }
@@ -115,7 +116,7 @@ export function useArchGraph() {
       style: { stroke: 'rgba(255,255,255,0.18)', strokeWidth: 1.5 },
       labelStyle: { fill: 'rgba(255,255,255,0.4)', fontSize: '11px' },
       labelBgStyle: { fill: '#141420', fillOpacity: 0.8 },
-      markerEnd: { type: 'arrowclosed', color: 'rgba(255,255,255,0.25)' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.25)' },
     }
     addEdges([vfEdge])
   }
