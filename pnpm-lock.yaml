@@ -107,6 +107,9 @@ importers:
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@electron-toolkit/eslint-config-prettier':
         specifier: 3.0.0
