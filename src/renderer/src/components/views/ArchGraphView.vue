@@ -11,7 +11,7 @@ import {
   Copy,
   Check,
   MousePointer2,
-  Link2,
+  ArrowRight,
   Server,
   Database,
   ListOrdered,
@@ -299,7 +299,7 @@ onUnmounted(() => {
             :tabindex="isBuilder ? 0 : -1"
             @click="builderTool = 'connect'"
           >
-            <Link2 :size="15" />
+            <ArrowRight :size="15" />
           </button>
           <button
             type="button"

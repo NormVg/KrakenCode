@@ -537,22 +537,24 @@ defineExpose({
             <marker
               id="arch-arrow"
               viewBox="0 0 10 10"
-              refX="8"
+              refX="9"
               refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto"
+              markerUnits="strokeWidth"
             >
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B90C4" />
             </marker>
             <marker
               id="arch-arrow-selected"
               viewBox="0 0 10 10"
-              refX="8"
+              refX="9"
               refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto"
+              markerUnits="strokeWidth"
             >
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#c4b0e8" />
             </marker>
