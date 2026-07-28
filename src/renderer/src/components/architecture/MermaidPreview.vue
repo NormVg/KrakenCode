@@ -52,20 +52,20 @@ function ensureMermaid() {
     },
     themeVariables: {
       darkMode: true,
-      background: '#0A0D18',
+      background: '#1C1C2A',
       primaryColor: '#1C1C2A',
       primaryTextColor: '#E2E8F0',
       primaryBorderColor: 'rgba(157, 161, 211, 0.4)',
       secondaryColor: '#1C1C2A',
-      tertiaryColor: '#0A0D18',
+      tertiaryColor: '#141420',
       lineColor: '#9DA1D3',
       textColor: '#E2E8F0',
       mainBkg: '#1C1C2A',
       nodeBorder: 'rgba(157, 161, 211, 0.4)',
-      clusterBkg: 'rgba(28, 28, 42, 0.9)',
+      clusterBkg: 'rgba(28, 28, 42, 0.95)',
       clusterBorder: 'rgba(255, 255, 255, 0.08)',
       titleColor: '#9DA1D3',
-      edgeLabelBackground: '#0A0D18',
+      edgeLabelBackground: '#1C1C2A',
       actorBkg: '#1C1C2A',
       actorBorder: 'rgba(157, 161, 211, 0.4)',
       actorTextColor: '#E2E8F0',
@@ -270,7 +270,11 @@ defineExpose({
   width: 100%;
   height: 100%;
   min-width: 0;
-  background: #0A0D18;
+  /* Light panel surface + subtle dot grid */
+  background-color: #1C1C2A;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-position: center center;
   overflow: hidden;
   cursor: grab;
   touch-action: none;

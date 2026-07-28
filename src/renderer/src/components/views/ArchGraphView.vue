@@ -47,12 +47,12 @@ monaco.editor.defineTheme('kraken-arch', {
     { token: 'number', foreground: 'FF5F5F' },
   ],
   colors: {
-    'editor.background': '#0A0D18',
+    'editor.background': '#1C1C2A',
     'editor.foreground': '#E2E8F0',
     'editorLineNumber.foreground': '#71738E',
     'editorCursor.foreground': '#E2E8F0',
     'editor.selectionBackground': '#313244',
-    'editor.lineHighlightBackground': '#12151f',
+    'editor.lineHighlightBackground': '#181825',
   },
 })
 
@@ -323,10 +323,10 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0A0D18;
+  background: #1C1C2A;
 }
 
-/* Floating toolbar — same language as global bottom bar */
+/* Floating toolbar — dark chrome only (#0A0D18), canvas stays light panel */
 .arch-toolbar {
   position: absolute;
   top: 12px;
@@ -339,8 +339,8 @@ onUnmounted(() => {
   padding: 4px 6px;
   border-radius: 12px;
   background-color: #0A0D18;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
 }
 
 .tool-group {
@@ -409,7 +409,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   padding-bottom: var(--bottom-bar-clearance);
-  background: #0A0D18;
+  background: #1C1C2A;
 }
 
 .arch-monaco {
@@ -437,6 +437,6 @@ onUnmounted(() => {
 :deep(.monaco-editor),
 :deep(.monaco-editor .margin),
 :deep(.monaco-editor-background) {
-  background-color: #0A0D18 !important;
+  background-color: #1C1C2A !important;
 }
 </style>
