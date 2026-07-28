@@ -60,7 +60,7 @@ function onLabelKeydown(e: KeyboardEvent) {
     emit('cancel-edit')
     return
   }
-  // Text blocks: Enter = newline with shift not needed; plain Enter commits for single-line kinds
+  // Single-line: Enter commits. Text: ⌘/Ctrl+Enter commits (Enter = newline).
   if (e.key === 'Enter' && !isText.value) {
     e.preventDefault()
     commit()
@@ -70,6 +70,20 @@ function onLabelKeydown(e: KeyboardEvent) {
     commit()
   }
   e.stopPropagation()
+}
+
+/** Don't exit edit when tabbing between label/tech inside the same card */
+function onFieldBlur(e: FocusEvent) {
+  const next = e.relatedTarget as Node | null
+  const root = (e.currentTarget as HTMLElement).closest('.builder-node')
+  if (next && root?.contains(next)) return
+  // Defer so a click on the other field can take focus first
+  requestAnimationFrame(() => {
+    if (!props.editing) return
+    const active = document.activeElement
+    if (active && root?.contains(active)) return
+    commit()
+  })
 }
 
 function onPointerDown(e: PointerEvent) {
@@ -112,7 +126,7 @@ function onPointerDown(e: PointerEvent) {
         class="inline-input inline-textarea"
         rows="3"
         @keydown="onLabelKeydown"
-        @blur="commit"
+        @blur="onFieldBlur"
         @pointerdown.stop
         @click.stop
       />
@@ -122,7 +136,7 @@ function onPointerDown(e: PointerEvent) {
           v-model="labelDraft"
           class="inline-input"
           @keydown="onLabelKeydown"
-          @blur="commit"
+          @blur="onFieldBlur"
           @pointerdown.stop
           @click.stop
         />
@@ -131,7 +145,7 @@ function onPointerDown(e: PointerEvent) {
           class="inline-input tech"
           placeholder="tech (optional)"
           @keydown="onLabelKeydown"
-          @blur="commit"
+          @blur="onFieldBlur"
           @pointerdown.stop
           @click.stop
         />
