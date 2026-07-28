@@ -148,86 +148,79 @@ onUnmounted(() => {
 
 <template>
   <div class="arch-view">
-    <header class="arch-top-panel no-drag">
-      <div class="mode-switch" role="tablist" aria-label="Architecture view mode">
-        <button
-          type="button"
-          role="tab"
-          class="mode-btn"
-          :class="{ active: mode === 'preview' }"
-          :aria-selected="mode === 'preview'"
-          title="Preview"
-          @click="setMode('preview')"
-        >
-          <Eye :size="14" />
-          <span>Preview</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="mode-btn"
-          :class="{ active: mode === 'code' }"
-          :aria-selected="mode === 'code'"
-          title="Code"
-          @click="setMode('code')"
-        >
-          <Code2 :size="14" />
-          <span>Code</span>
-        </button>
-      </div>
-    </header>
+    <!-- Floats on canvas — no separate bar or divider -->
+    <div class="mode-switch no-drag" role="tablist" aria-label="Architecture view mode">
+      <button
+        type="button"
+        role="tab"
+        class="mode-btn"
+        :class="{ active: mode === 'preview' }"
+        :aria-selected="mode === 'preview'"
+        title="Preview"
+        @click="setMode('preview')"
+      >
+        <Eye :size="14" />
+        <span>Preview</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="mode-btn"
+        :class="{ active: mode === 'code' }"
+        :aria-selected="mode === 'code'"
+        title="Code"
+        @click="setMode('code')"
+      >
+        <Code2 :size="14" />
+        <span>Code</span>
+      </button>
+    </div>
 
-    <div class="arch-body">
-      <MermaidPreview
-        v-if="mode === 'preview'"
-        ref="previewRef"
-        :source="debouncedSource"
-        @error="previewError = $event"
+    <MermaidPreview
+      v-if="mode === 'preview'"
+      ref="previewRef"
+      :source="debouncedSource"
+      @error="previewError = $event"
+    />
+
+    <div v-else class="code-pane">
+      <VueMonacoEditor
+        v-model:value="localSource"
+        language="markdown"
+        :options="editorOptions"
+        class="arch-monaco"
       />
-
-      <div v-else class="code-pane">
-        <VueMonacoEditor
-          v-model:value="localSource"
-          language="markdown"
-          :options="editorOptions"
-          class="arch-monaco"
-        />
-        <p v-if="previewError" class="code-error">{{ previewError }}</p>
-      </div>
+      <p v-if="previewError" class="code-error">{{ previewError }}</p>
     </div>
   </div>
 </template>
 
 <style scoped>
 .arch-view {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: var(--bg-panel);
 }
 
-.arch-top-panel {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 44px;
-  padding: 0 12px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-color);
-  z-index: 5;
-}
-
+/* Overlay pill on the canvas, top-center */
 .mode-switch {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 3px;
   border-radius: 10px;
-  background: rgba(10, 13, 24, 0.55);
+  background: rgba(28, 28, 42, 0.92);
   border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 6px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .mode-btn {
@@ -260,12 +253,6 @@ onUnmounted(() => {
 .mode-btn.active {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.08);
-}
-
-.arch-body {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
 }
 
 .code-pane {
