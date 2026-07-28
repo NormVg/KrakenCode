@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import type { ArchNode } from './types'
-import { KIND_COLORS, KIND_DEFAULT_LABEL } from './types'
+import { KIND_DEFAULT_LABEL, resolveNodeColor } from './types'
 
 const props = defineProps<{
   node: ArchNode
@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const rootEl = ref<HTMLElement | null>(null)
 const labelEl = ref<HTMLElement | null>(null)
 const techEl = ref<HTMLElement | null>(null)
-const accent = computed(() => KIND_COLORS[props.node.kind])
+const accent = computed(() => resolveNodeColor(props.node))
 const isText = computed(() => props.node.kind === 'text')
 const kindLabel = computed(() => props.node.kind)
 

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import type { ArchModel, ArchNode, ArchNodeKind } from './types'
-import { KIND_DEFAULT_LABEL } from './types'
+import {
+  ARCH_COLOR_SWATCHES,
+  DEFAULT_EDGE_COLOR,
+  KIND_DEFAULT_LABEL,
+  resolveEdgeColor,
+  resolveNodeColor,
+} from './types'
 import {
   mermaidToModel,
   modelToMermaid,
@@ -83,7 +89,14 @@ const edgePaths = computed(() => {
       const t = model.value.nodes.find((n) => n.id === e.target)
       if (!s || !t) return null
       const { d, mx, my } = edgePath(s, t)
-      return { id: e.id, d, label: e.label, lx: mx, ly: my }
+      return {
+        id: e.id,
+        d,
+        label: e.label,
+        lx: mx,
+        ly: my,
+        color: resolveEdgeColor(e),
+      }
     })
     .filter(Boolean) as Array<{
     id: string
@@ -91,8 +104,54 @@ const edgePaths = computed(() => {
     label?: string
     lx: number
     ly: number
+    color: string
   }>
 })
+
+const showColorBar = computed(
+  () => selectedIds.value.length > 0 || !!selectedEdgeId.value,
+)
+
+const colorBarLabel = computed(() => {
+  if (selectedEdgeId.value) return 'Arrow color'
+  if (selectedIds.value.length > 1) return `Color · ${selectedIds.value.length} nodes`
+  return 'Element color'
+})
+
+const activeColor = computed(() => {
+  if (selectedEdgeId.value) {
+    const e = model.value.edges.find((x) => x.id === selectedEdgeId.value)
+    return e ? resolveEdgeColor(e) : DEFAULT_EDGE_COLOR
+  }
+  const id = selectedIds.value[0]
+  if (!id) return ''
+  const n = model.value.nodes.find((x) => x.id === id)
+  return n ? resolveNodeColor(n) : ''
+})
+
+function applyColor(hex: string) {
+  if (selectedEdgeId.value) {
+    const e = model.value.edges.find((x) => x.id === selectedEdgeId.value)
+    if (e) e.color = hex
+    return
+  }
+  for (const id of selectedIds.value) {
+    const n = model.value.nodes.find((x) => x.id === id)
+    if (n) n.color = hex
+  }
+}
+
+function resetColor() {
+  if (selectedEdgeId.value) {
+    const e = model.value.edges.find((x) => x.id === selectedEdgeId.value)
+    if (e) e.color = undefined
+    return
+  }
+  for (const id of selectedIds.value) {
+    const n = model.value.nodes.find((x) => x.id === id)
+    if (n) n.color = undefined
+  }
+}
 
 const worldStyle = computed(() => ({
   transform: `translate(${pan.value.x}px, ${pan.value.y}px) scale(${zoom.value})`,
@@ -630,7 +689,9 @@ defineExpose({
         <svg class="edge-layer">
           <defs>
             <marker
-              id="arch-arrow"
+              v-for="edge in edgePaths"
+              :id="`arch-arrow-${edge.id}`"
+              :key="`m-${edge.id}`"
               viewBox="0 0 10 10"
               refX="9"
               refY="5"
@@ -639,23 +700,10 @@ defineExpose({
               orient="auto"
               markerUnits="strokeWidth"
             >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B90C4" />
-            </marker>
-            <marker
-              id="arch-arrow-selected"
-              viewBox="0 0 10 10"
-              refX="9"
-              refY="5"
-              markerWidth="7"
-              markerHeight="7"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#c4b0e8" />
+              <path d="M 0 0 L 10 5 L 0 10 z" :fill="edge.color" />
             </marker>
           </defs>
           <g v-for="edge in edgePaths" :key="edge.id">
-            <!-- Wide invisible hit target -->
             <path
               :d="edge.d"
               class="edge-hit"
@@ -666,7 +714,8 @@ defineExpose({
               :d="edge.d"
               class="edge-path"
               :class="{ selected: selectedEdgeId === edge.id }"
-              :marker-end="selectedEdgeId === edge.id ? 'url(#arch-arrow-selected)' : 'url(#arch-arrow)'"
+              :style="{ stroke: edge.color }"
+              :marker-end="`url(#arch-arrow-${edge.id})`"
               @pointerdown.stop
               @click.stop="selectEdge(edge.id)"
             />
@@ -691,6 +740,32 @@ defineExpose({
           Click a type in the top bar to add a node · double-click to edit
         </div>
       </div>
+    </div>
+
+    <!-- Color picker for selected node(s) or arrow -->
+    <div
+      v-if="showColorBar"
+      class="color-bar no-drag"
+      role="toolbar"
+      :aria-label="colorBarLabel"
+    >
+      <span class="color-bar-label">{{ colorBarLabel }}</span>
+      <div class="color-swatches">
+        <button
+          v-for="swatch in ARCH_COLOR_SWATCHES"
+          :key="swatch.id"
+          type="button"
+          class="swatch"
+          :class="{ active: activeColor.toLowerCase() === swatch.value.toLowerCase() }"
+          :style="{ '--swatch': swatch.value }"
+          :title="swatch.label"
+          :aria-label="swatch.label"
+          @click="applyColor(swatch.value)"
+        />
+      </div>
+      <button type="button" class="color-reset" title="Reset to default" @click="resetColor">
+        Reset
+      </button>
     </div>
   </div>
 </template>
@@ -756,22 +831,105 @@ defineExpose({
 
 .edge-path {
   fill: none;
-  stroke: #8B90C4;
   stroke-width: 1.75;
   pointer-events: stroke;
   cursor: pointer;
-  transition: stroke 140ms ease-out, stroke-width 140ms ease-out;
+  transition: stroke 140ms ease-out, stroke-width 140ms ease-out, filter 140ms ease-out;
 }
 
 .edge-path.selected {
-  stroke: #c4b0e8;
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 4px rgba(147, 116, 190, 0.55));
+  filter: drop-shadow(0 0 5px currentColor);
+  opacity: 1;
 }
 
 .edge-path:hover:not(.selected) {
-  stroke: #a8add4;
   stroke-width: 2.1;
+}
+
+.color-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bottom-bar-clearance) + 12px);
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #0A0D18;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+  animation: colorBarIn 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes colorBarIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.color-bar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  padding-right: 2px;
+}
+
+.color-swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: var(--swatch);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out, border-color 140ms ease-out;
+}
+
+.swatch:hover {
+  transform: scale(1.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.swatch:active {
+  transform: scale(0.94);
+}
+
+.swatch.active {
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12), 0 0 10px color-mix(in srgb, var(--swatch) 45%, transparent);
+}
+
+.color-reset {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 140ms ease-out, background 140ms ease-out;
+}
+
+.color-reset:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .empty-canvas {

@@ -34,6 +34,11 @@ function nodeShape(kind: ArchNodeKind, id: string, label: string): string {
   }
 }
 
+function extractStroke(styleBody: string): string | undefined {
+  const m = styleBody.match(/stroke\s*:\s*(#[0-9A-Fa-f]{3,8})/i)
+  return m?.[1]
+}
+
 /** Emit flowchart in top-down order (by y, then x) — hierarchy-friendly, no kind subgraphs. */
 export function modelToMermaid(model: ArchModel): string {
   const lines: string[] = ['flowchart TB']
@@ -57,6 +62,17 @@ export function modelToMermaid(model: ArchModel): string {
       lines.push(`  ${from} --> ${to}`)
     }
   }
+
+  // Persist custom colors via mermaid style / linkStyle
+  for (const n of sorted) {
+    if (!n.color) continue
+    const mid = mermaidId(n.id)
+    lines.push(`  style ${mid} stroke:${n.color},color:${n.color}`)
+  }
+  model.edges.forEach((e, i) => {
+    if (!e.color) return
+    lines.push(`  linkStyle ${i} stroke:${e.color},stroke-width:1.5px`)
+  })
 
   return `${lines.join('\n')}\n`
 }
@@ -129,6 +145,7 @@ export function mermaidToModel(source: string): ArchModel {
   // Pass 2: edges
   for (const rawLine of source.split('\n')) {
     const line = rawLine.trim()
+    if (line.startsWith('style ') || line.startsWith('linkStyle ')) continue
     const edge = line.match(EDGE_RE)
     if (!edge) continue
     const sourceId = edge[1]
@@ -142,6 +159,24 @@ export function mermaidToModel(source: string): ArchModel {
       target: targetId,
       label: label || undefined,
     })
+  }
+
+  // Pass 3: colors
+  for (const rawLine of source.split('\n')) {
+    const line = rawLine.trim()
+    const styleMatch = line.match(/^style\s+([A-Za-z][\w]*)\s+(.+)$/)
+    if (styleMatch) {
+      const stroke = extractStroke(styleMatch[2])
+      const node = nodes.get(styleMatch[1])
+      if (node && stroke) node.color = stroke
+      continue
+    }
+    const linkMatch = line.match(/^linkStyle\s+(\d+)\s+(.+)$/)
+    if (linkMatch) {
+      const idx = Number(linkMatch[1])
+      const stroke = extractStroke(linkMatch[2])
+      if (stroke && edges[idx]) edges[idx].color = stroke
+    }
   }
 
   // Hierarchical layout — never leave a flat random grid
