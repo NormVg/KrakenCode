@@ -250,6 +250,22 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
       </button>
+
+      <div class="tool-divider" />
+
+      <!-- Zoom Out -->
+      <button class="tool-btn" title="Zoom Out  (-)" @click="() => zoomOut({ duration: 200 })">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+
+      <!-- Zoom In -->
+      <button class="tool-btn" title="Zoom In  (+)" @click="() => zoomIn({ duration: 200 })">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ ACTIVE TOOL TIP -->
@@ -280,27 +296,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
     >
       <Background
         variant="dots"
-        pattern-color="rgba(255,255,255,0.06)"
-        :gap="24"
+        pattern-color="rgba(255,255,255,0.09)"
+        :gap="28"
         :size="1.5"
       />
 
     </VueFlow>
 
-    <!-- ═══════════════════════════════════════════════════ ZOOM CONTROLS (BL) -->
-    <div class="zoom-controls">
-      <button class="zoom-btn" title="Zoom Out" @click="() => zoomOut({ duration: 200 })">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-      <div class="zoom-divider" />
-      <button class="zoom-btn" title="Zoom In" @click="() => zoomIn({ duration: 200 })">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-    </div>
+
 
     <!-- Edge toggle hint -->
 
@@ -324,7 +327,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
   position: relative;
   width: 100%;
   height: 100%;
-  background: #0d0d14;
+  background: #181825;
   overflow: hidden;
 }
 
