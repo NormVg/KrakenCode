@@ -303,7 +303,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
     </div>
 
     <!-- Edge toggle hint -->
-    <div class="edge-hint">Click a connection line to toggle dashed · Del to delete selected</div>
+
 
     <!-- ════════════════════════════════════════════════════════════ EDIT MODAL -->
     <NodeEditModal
@@ -435,11 +435,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* ─── Zoom Controls (bottom-left) ──────────────────────────────────────────── */
+/* ─── Zoom Controls (top-left, below toolbar) ─────────────────────────────── */
 .zoom-controls {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  top: 72px;
+  left: 16px;
   z-index: 20;
   display: flex;
   flex-direction: row;
@@ -478,17 +478,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ─── Edge toggle hint (bottom-right) ─────────────────────────────────────── */
-.edge-hint {
-  position: absolute;
-  bottom: 28px;
-  right: 148px; /* offset from minimap */
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.15);
-  pointer-events: none;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
+
 
 /* ─── MiniMap ──────────────────────────────────────────────────────────────── */
 :deep(.arch-minimap) {
