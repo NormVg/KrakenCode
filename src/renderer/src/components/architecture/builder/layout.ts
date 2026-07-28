@@ -153,9 +153,24 @@ function barycenter(
   return sum / preds.length
 }
 
+type Side = 'top' | 'bottom' | 'left' | 'right'
+
+function anchor(n: ArchNode, side: Side) {
+  switch (side) {
+    case 'top':
+      return { x: n.x + NODE_W / 2, y: n.y }
+    case 'bottom':
+      return { x: n.x + NODE_W / 2, y: n.y + NODE_H }
+    case 'left':
+      return { x: n.x, y: n.y + NODE_H / 2 }
+    case 'right':
+      return { x: n.x + NODE_W, y: n.y + NODE_H / 2 }
+  }
+}
+
 /**
- * Route edge from the best exit side of source to best entry side of target.
- * Avoids always-bottom→top paths that cut through nodes when targets sit to the side.
+ * Orthogonal (square) edge routing — right angles only.
+ * Cleaner for architecture diagrams than bezier curves.
  */
 export function edgePath(
   s: ArchNode,
@@ -168,37 +183,14 @@ export function edgePath(
   const dx = tcx - scx
   const dy = tcy - scy
 
-  type Side = 'top' | 'bottom' | 'left' | 'right'
-  const anchor = (n: ArchNode, side: Side) => {
-    switch (side) {
-      case 'top':
-        return { x: n.x + NODE_W / 2, y: n.y }
-      case 'bottom':
-        return { x: n.x + NODE_W / 2, y: n.y + NODE_H }
-      case 'left':
-        return { x: n.x, y: n.y + NODE_H / 2 }
-      case 'right':
-        return { x: n.x + NODE_W, y: n.y + NODE_H / 2 }
-    }
-  }
-
-  // Prefer vertical routing for hierarchy (dy dominates), else horizontal
   let fromSide: Side
   let toSide: Side
-  if (Math.abs(dy) >= Math.abs(dx) * 0.65) {
-    if (dy >= 0) {
-      fromSide = 'bottom'
-      toSide = 'top'
-    } else {
-      fromSide = 'top'
-      toSide = 'bottom'
-    }
-  } else if (dx >= 0) {
-    fromSide = 'right'
-    toSide = 'left'
+  if (Math.abs(dy) >= Math.abs(dx) * 0.55) {
+    fromSide = dy >= 0 ? 'bottom' : 'top'
+    toSide = dy >= 0 ? 'top' : 'bottom'
   } else {
-    fromSide = 'left'
-    toSide = 'right'
+    fromSide = dx >= 0 ? 'right' : 'left'
+    toSide = dx >= 0 ? 'left' : 'right'
   }
 
   const a = anchor(s, fromSide)
@@ -208,22 +200,30 @@ export function edgePath(
   const x2 = b.x
   const y2 = b.y
 
-  // Soft elbow: control points extend outward from each side so the curve
-  // doesn't dive through the node body
-  const pull = Math.max(28, Math.min(80, Math.hypot(x2 - x1, y2 - y1) * 0.4))
-  let c1x = x1
-  let c1y = y1
-  let c2x = x2
-  let c2y = y2
-  if (fromSide === 'bottom') c1y += pull
-  if (fromSide === 'top') c1y -= pull
-  if (fromSide === 'left') c1x -= pull
-  if (fromSide === 'right') c1x += pull
-  if (toSide === 'bottom') c2y += pull
-  if (toSide === 'top') c2y -= pull
-  if (toSide === 'left') c2x -= pull
-  if (toSide === 'right') c2x += pull
+  // Straight line when already aligned (within 1px)
+  if (Math.abs(x1 - x2) < 1.5) {
+    return { d: `M ${x1} ${y1} L ${x2} ${y2}`, mx: x1, my: (y1 + y2) / 2 }
+  }
+  if (Math.abs(y1 - y2) < 1.5) {
+    return { d: `M ${x1} ${y1} L ${x2} ${y2}`, mx: (x1 + x2) / 2, my: y1 }
+  }
 
-  const d = `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`
-  return { d, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 }
+  // Elbow: vertical-first for hierarchy, horizontal-first for side links
+  let midX: number
+  let midY: number
+  let d: string
+
+  if (fromSide === 'bottom' || fromSide === 'top') {
+    // V → H → V  (or simple mid-Y elbow)
+    midY = (y1 + y2) / 2
+    d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`
+    midX = (x1 + x2) / 2
+  } else {
+    // H → V → H
+    midX = (x1 + x2) / 2
+    d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
+    midY = (y1 + y2) / 2
+  }
+
+  return { d, mx: midX, my: midY }
 }
