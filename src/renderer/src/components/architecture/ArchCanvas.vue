@@ -40,7 +40,7 @@ const nodeTypes = {
     >
       <Background pattern-color="rgba(255, 255, 255, 0.05)" :gap="24" :size="1" />
       
-      <Controls class="arch-controls" />
+      <Controls position="top-left" class="arch-controls" />
       
       <MiniMap class="arch-minimap" :node-color="(node) => {
         if (node.type === 'database') return '#3B82F6'
