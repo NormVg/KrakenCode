@@ -245,7 +245,7 @@ app.whenReady().then(() => {
     // Use the active project directory, home dir, or cwd as working directory
     const workingDir = cwd && cwd.length > 0 ? cwd : os.homedir()
 
-    const ptyProcess = pty.spawn(shell, [], {
+    const ptyProcess = pty.spawn(shell, ['-l'], {
       name: 'xterm-256color',
       cols: cols || 80,
       rows: rows || 24,
@@ -254,6 +254,18 @@ app.whenReady().then(() => {
         ...process.env,
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
+        // Ensure Homebrew and common tool paths are available in packaged app.
+        // macOS .app bundles don't inherit the user's shell PATH, so we inject it.
+        PATH: [
+          '/opt/homebrew/bin',
+          '/opt/homebrew/sbin',
+          '/usr/local/bin',
+          '/usr/bin',
+          '/bin',
+          '/usr/sbin',
+          '/sbin',
+          process.env.PATH || '',
+        ].filter(Boolean).join(':'),
       }
     })
 
