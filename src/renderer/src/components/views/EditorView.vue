@@ -3,7 +3,7 @@ import { ref, shallowRef, watch, computed } from 'vue'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
 import { X, FileCode2, FileJson } from 'lucide-vue-next'
-import { useEditorStore } from '../../stores/editor'
+import { useEditorStore } from '../../stores/editor.store'
 import { storeToRefs } from 'pinia'
 
 const editorStore = useEditorStore()

@@ -1,3 +1,5 @@
+import type { ModelConfig, ModelConfigResult } from '../../../shared/types'
+
 export interface StreamChatOptions {
   id: string
   message: string
@@ -19,39 +21,43 @@ export const ChatService = {
       if (!isFinished) {
         isFinished = true
         onError('Stream timed out — the model may be unresponsive.')
-        window.api.removeChatListeners(id)
+        window.api.agent.removeChatListeners(id)
       }
     }, timeoutMs)
 
-    window.api.onChatChunk(id, (chunk: string) => {
+    window.api.agent.onChatChunk(id, (chunk: string) => {
       if (isFinished) return
       onChunk(chunk)
     })
 
-    window.api.onChatEnd(id, () => {
+    window.api.agent.onChatEnd(id, () => {
       if (isFinished) return
       isFinished = true
       clearTimeout(streamTimeout)
       onEnd()
-      window.api.removeChatListeners(id)
+      window.api.agent.removeChatListeners(id)
     })
 
-    window.api.onChatError(id, (err: string) => {
+    window.api.agent.onChatError(id, (err: string) => {
       if (isFinished) return
       isFinished = true
       clearTimeout(streamTimeout)
       onError(err)
-      window.api.removeChatListeners(id)
+      window.api.agent.removeChatListeners(id)
     })
 
-    window.api.streamChat(id, message, { system })
+    window.api.agent.streamChat(id, message, { system })
 
     return {
       cleanup: () => {
         isFinished = true
         clearTimeout(streamTimeout)
-        window.api.removeChatListeners(id)
+        window.api.agent.removeChatListeners(id)
       }
     }
+  },
+
+  async setModel(config: ModelConfig): Promise<ModelConfigResult> {
+    return await window.api.agent.setModel(config)
   }
 }

@@ -20,7 +20,7 @@ import {
   Network,
   Type,
 } from 'lucide-vue-next'
-import { useProjectsStore } from '../../stores/projects'
+import { useWorkspaceStore } from '../../stores/workspace.store'
 import ArchBuilder from '../architecture/builder/ArchBuilder.vue'
 import { DEFAULT_ARCH_DIAGRAM } from '../architecture/templates'
 import type { ArchNodeKind } from '../architecture/builder/types'
@@ -38,8 +38,8 @@ const NODE_TOOLS: Array<{ kind: ArchNodeKind; label: string; icon: typeof Server
   { kind: 'text', label: 'Text', icon: Type },
 ]
 
-const projectsStore = useProjectsStore()
-const { activeProject, isLoaded } = storeToRefs(projectsStore)
+const workspaceStore = useWorkspaceStore()
+const { activeWorkspace, isLoaded } = storeToRefs(workspaceStore)
 
 const mode = ref<ArchMode>('builder')
 const localSource = ref(DEFAULT_ARCH_DIAGRAM)
@@ -166,7 +166,7 @@ async function copySource() {
 }
 
 function loadFromProject() {
-  const stored = activeProject.value?.architecture
+  const stored = activeWorkspace.value?.architecture
   const next = stored?.trim() ? stored : DEFAULT_ARCH_DIAGRAM
   if (next === localSource.value) return
   syncingFromStore = true
@@ -178,17 +178,17 @@ function loadFromProject() {
 
 function scheduleSave() {
   if (syncingFromStore) return
-  if (!activeProject.value || !isLoaded.value) return
+  if (!activeWorkspace.value || !isLoaded.value) return
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
-    if (syncingFromStore || !activeProject.value) return
-    if (activeProject.value.architecture === localSource.value) return
-    projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
+    if (syncingFromStore || !activeWorkspace.value) return
+    if (activeWorkspace.value.architecture === localSource.value) return
+    workspaceStore.setArchitecture(localSource.value)
   }, 450)
 }
 
 watch(
-  () => activeProject.value?.id,
+  () => activeWorkspace.value?.id,
   () => {
     loadFromProject()
   },
@@ -196,7 +196,7 @@ watch(
 )
 
 watch(
-  () => activeProject.value?.architecture,
+  () => activeWorkspace.value?.architecture,
   (arch) => {
     if (arch == null) return
     if (arch === localSource.value) return
@@ -211,8 +211,8 @@ watch(localSource, () => {
 function onKeyDown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
     e.preventDefault()
-    if (activeProject.value) {
-      projectsStore.setProjectArchitecture(activeProject.value.id, localSource.value)
+    if (activeWorkspace.value) {
+      workspaceStore.setArchitecture(localSource.value)
     }
   }
 }

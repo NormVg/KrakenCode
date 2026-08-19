@@ -4,13 +4,13 @@ import { FileSystemService } from '../services/filesystem.service'
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { RotateCw, FilePlus, FolderPlus } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
-import { useProjectsStore } from '../stores/projects'
-import { useEditorStore } from '../stores/editor'
+import { useWorkspaceStore } from '../stores/workspace.store'
+import { useEditorStore } from '../stores/editor.store'
 import FileTreeNode from './FileTreeNode.vue'
 
-const projectsStore = useProjectsStore()
+const workspaceStore = useWorkspaceStore()
 const editorStore = useEditorStore()
-const { activeProject } = storeToRefs(projectsStore)
+const { activeWorkspace } = storeToRefs(workspaceStore)
 
 const files = ref<any[]>([])
 const isDragOverRoot = ref(false)
@@ -22,8 +22,8 @@ const newItemName = ref('')
 const newItemInputRef = ref<HTMLInputElement | null>(null)
 
 const loadTree = async () => {
-  if (activeProject.value?.path) {
-    const rawFiles = await FileSystemService.readDirectory(activeProject.value.path)
+  if (activeWorkspace.value?.path) {
+    const rawFiles = await FileSystemService.readDirectory(activeWorkspace.value.path)
     files.value = rawFiles.map((f: any) => ({
       ...f,
       isOpen: false,
@@ -39,7 +39,7 @@ onMounted(() => {
   loadTree()
 })
 
-watch(() => activeProject.value?.path, () => {
+watch(() => activeWorkspace.value?.path, () => {
   loadTree()
 })
 
@@ -70,7 +70,7 @@ const commitCreate = async () => {
 
   const basePath = creatingInNode.value
     ? creatingInNode.value.path
-    : activeProject.value?.path
+    : activeWorkspace.value?.path
 
   if (!basePath) { cancelCreate(); return }
 
@@ -116,9 +116,9 @@ const onDragLeaveRoot = () => { isDragOverRoot.value = false }
 
 const onDropRoot = async (e: DragEvent) => {
   isDragOverRoot.value = false
-  if (!activeProject.value?.path) return
+  if (!activeWorkspace.value?.path) return
 
-  const targetDir = activeProject.value.path
+  const targetDir = activeWorkspace.value.path
 
   const internalData = e.dataTransfer?.getData('application/kraken-file')
   if (internalData) {

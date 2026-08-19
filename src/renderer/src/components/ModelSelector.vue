@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useConfigStore } from '../stores/config'
+import { useConfigStore } from '../stores/config.store'
 import { ChevronDown, Check } from 'lucide-vue-next'
 
 const configStore = useConfigStore()

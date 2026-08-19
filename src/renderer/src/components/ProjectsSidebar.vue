@@ -1,24 +1,38 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Settings, FolderPlus, Folder, Plus, MessageSquare, MoreHorizontal, Edit2, Trash2 } from 'lucide-vue-next'
-import { useProjectsStore } from '../stores/projects'
-import { useChatStore } from '../stores/chat'
+import { useWorkspaceStore } from '../stores/workspace.store'
+import { useSessionStore } from '../stores/session.store'
 
 const emit = defineEmits(['open-settings'])
 
-const projectsStore = useProjectsStore()
-const chatStore = useChatStore()
-const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
+const workspaceStore = useWorkspaceStore()
+const sessionStore = useSessionStore()
+const { workspaces, activeWorkspaceId, activeSessionId } = storeToRefs(workspaceStore)
+const { sessions } = storeToRefs(sessionStore)
 
 const activeMenuId = ref<string | null>(null)
 const editingChatId = ref<string | null>(null)
 const editTitle = ref('')
 
-const handleAddChat = (projectId: string, event: Event) => {
+// Load sessions when active workspace changes
+watch(activeWorkspaceId, async (newId) => {
+  if (newId) {
+    await sessionStore.loadSessions()
+    const activeSession = workspaceStore.activeWorkspace?.activeSessionId
+    if (activeSession) {
+      await sessionStore.loadMessages(activeSession)
+    }
+  } else {
+    sessionStore.sessions = []
+  }
+}, { immediate: true })
+
+const handleAddChat = async (event: Event) => {
   event.stopPropagation()
-  chatStore.createChat(projectId)
-  projectsStore.activeView = 'agent'
+  await sessionStore.createSession()
+  await workspaceStore.setActiveView('agent')
 }
 
 const toggleMenu = (chatId: string) => {
@@ -31,15 +45,15 @@ const startEdit = (chatId: string, currentTitle: string) => {
   activeMenuId.value = null
 }
 
-const saveEdit = (projectId: string, chatId: string) => {
+const saveEdit = async (chatId: string) => {
   if (editTitle.value.trim()) {
-    chatStore.renameChat(projectId, chatId, editTitle.value.trim())
+    await sessionStore.renameSession(chatId, editTitle.value.trim())
   }
   editingChatId.value = null
 }
 
-const handleDelete = (projectId: string, chatId: string) => {
-  chatStore.deleteChat(projectId, chatId)
+const handleDelete = async (chatId: string) => {
+  await sessionStore.deleteSession(chatId)
   activeMenuId.value = null
 }
 
@@ -63,7 +77,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
         <button class="icon-btn" title="Settings" @click="emit('open-settings')">
           <Settings :size="16" stroke-width="2" />
         </button>
-        <button class="icon-btn" title="Add Project" @click="projectsStore.addProject()">
+        <button class="icon-btn" title="Add Project" @click="workspaceStore.addWorkspace()">
           <FolderPlus :size="16" stroke-width="2" />
         </button>
       </div>
@@ -72,26 +86,26 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
     <!-- Project List -->
     <div class="projects-list-wrapper">
       <div class="projects-list">
-        <div v-for="project in projects" :key="project.id" class="project-group">
+        <div v-for="project in workspaces" :key="project.id" class="project-group">
           <!-- Project Folder -->
-          <div class="project-folder" :class="{ 'active-folder': activeProjectId === project.id }" @click="projectsStore.activeProjectId = project.id; projectsStore.saveData()">
+          <div class="project-folder" :class="{ 'active-folder': activeWorkspaceId === project.id }" @click="workspaceStore.selectWorkspace(project.id)">
             <div class="folder-title">
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
             </div>
-            <button class="icon-btn add-chat-btn" title="New Session" @click="handleAddChat(project.id, $event)">
+            <button class="icon-btn add-chat-btn" title="New Session" @click="handleAddChat($event)">
               <Plus :size="14" stroke-width="2" />
             </button>
           </div>
 
           <!-- Project Items (Chat Sessions) -->
-          <div class="project-items" v-if="project.items && project.items.length > 0">
+          <div class="project-items" v-if="sessions && sessions.length > 0">
             <div
-              v-for="item in project.items"
+              v-for="item in sessions"
               :key="item.id"
               class="project-item"
-              :class="{ 'active': activeChatId === item.id }"
-              @click="chatStore.selectChat(project.id, item.id)"
+              :class="{ 'active': activeSessionId === item.id }"
+              @click="sessionStore.selectSession(item.id)"
             >
               <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
                 <MessageSquare :size="14" />
@@ -102,8 +116,8 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                   <input
                     type="text"
                     v-model="editTitle"
-                    @keyup.enter="saveEdit(project.id, item.id)"
-                    @blur="saveEdit(project.id, item.id)"
+                    @keyup.enter="saveEdit(item.id)"
+                    @blur="saveEdit(item.id)"
                     @click.stop
                     autofocus
                     class="edit-input"
@@ -112,7 +126,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                 <template v-else>
                   <span class="item-title">{{ item.title || 'New Chat' }}</span>
                   <div class="item-meta">
-                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ item.time }}</span>
+                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ new Date(item.updatedAt).toLocaleDateString() }}</span>
                     <div class="chat-menu">
                       <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
                         <MoreHorizontal :size="14" />
@@ -121,7 +135,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                         <button class="dropdown-item" @click.stop="startEdit(item.id, item.title || 'New Chat')">
                           <Edit2 :size="12" /> Rename
                         </button>
-                        <button class="dropdown-item delete" @click.stop="handleDelete(project.id, item.id)">
+                        <button class="dropdown-item delete" @click.stop="handleDelete(item.id)">
                           <Trash2 :size="12" /> Delete
                         </button>
                       </div>
@@ -133,9 +147,9 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
           </div>
         </div>
 
-        <div v-if="projects.length === 0" class="empty-state">
+        <div v-if="workspaces.length === 0" class="empty-state">
           <p>No projects yet.</p>
-          <button class="btn-primary" @click="projectsStore.addProject()">Add Project</button>
+          <button class="btn-primary" @click="workspaceStore.addWorkspace()">Add Project</button>
         </div>
     </div>
   </div>

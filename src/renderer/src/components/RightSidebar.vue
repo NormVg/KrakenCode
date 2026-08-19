@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useProjectsStore } from '../stores/projects'
+import { useWorkspaceStore } from '../stores/workspace.store'
 import ScratchpadPanel from './ScratchpadPanel.vue'
 import FileExplorerPanel from './FileExplorerPanel.vue'
 
-const projectsStore = useProjectsStore()
-const { activeView } = storeToRefs(projectsStore)
+const workspaceStore = useWorkspaceStore()
+const { activeView } = storeToRefs(workspaceStore)
 
 // Define the shape of a tab
 export interface SidebarTab {

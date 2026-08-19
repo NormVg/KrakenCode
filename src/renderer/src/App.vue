@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useConfigStore } from './stores/config'
-import { useProjectsStore } from './stores/projects'
+import { useConfigStore } from './stores/config.store'
+import { useWorkspaceStore } from './stores/workspace.store'
 import SettingsModal from './components/SettingsModal.vue'
 import ProjectsSidebar from './components/ProjectsSidebar.vue'
 import RightSidebar from './components/RightSidebar.vue'
@@ -68,11 +68,11 @@ watch(isSetup, (newVal) => {
 // Chat state moved to AgentView.vue
 
 // Projects State
-const projectsStore = useProjectsStore()
+const workspaceStore = useWorkspaceStore()
 
 // Auto-initialize if possible
 onMounted(async () => {
-  await projectsStore.loadData()
+  await workspaceStore.loadWorkspaces()
   if (!isSetup.value) {
     try {
       const success = await configStore.initializeAgent()
@@ -119,7 +119,7 @@ onMounted(async () => {
           :key="key"
           :is="view.component"
           class="app-view"
-          :class="{ 'app-view-hidden': projectsStore.activeView !== key }"
+          :class="{ 'app-view-hidden': workspaceStore.activeView !== key }"
         />
       </div>
 
@@ -130,9 +130,9 @@ onMounted(async () => {
             <PanelLeft :size="16" />
           </button>
           <div class="chat-breadcrumbs">
-            <span class="muted">{{ projectsStore.activeProject?.name || 'No Project' }}</span>
+            <span class="muted">{{ workspaceStore.activeWorkspace?.name || 'No Project' }}</span>
             <span class="divider">/</span>
-            <span>{{ views[projectsStore.activeView].label }}</span>
+            <span>{{ views[workspaceStore.activeView].label }}</span>
           </div>
         </div>
 
@@ -143,8 +143,8 @@ onMounted(async () => {
               v-for="(view, key) in views"
               :key="key"
               class="bottom-tab-btn"
-              :class="{ active: projectsStore.activeView === key }"
-              @click="projectsStore.activeView = key"
+              :class="{ active: workspaceStore.activeView === key }"
+              @click="workspaceStore.setActiveView(key as any)"
               :title="view.label"
             >
               <component :is="view.icon" :size="16" />

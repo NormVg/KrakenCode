@@ -3,11 +3,11 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Ghostty, Terminal, FitAddon } from 'ghostty-web'
 import ghosttyWasmUrl from 'ghostty-web/ghostty-vt.wasm?url'
-import { useProjectsStore } from '../../stores/projects'
+import { useWorkspaceStore } from '../../stores/workspace.store'
 import { TerminalService } from '../../services/terminal.service'
 
-const projectsStore = useProjectsStore()
-const { activeProject } = storeToRefs(projectsStore)
+const workspaceStore = useWorkspaceStore()
+const { activeWorkspace } = storeToRefs(workspaceStore)
 
 const terminalContainer = ref<HTMLElement | null>(null)
 
@@ -78,7 +78,7 @@ onMounted(async () => {
     const dims = fitAddon.proposeDimensions() ?? { cols: 80, rows: 24 }
 
     // Spawn real shell in the active project directory (falls back to $HOME)
-    const cwd = activeProject.value?.path || ''
+    const cwd = activeWorkspace.value?.path || ''
     await TerminalService.create(sessionId, dims.cols, dims.rows, cwd)
 
     // Shell → Terminal: pipe PTY output into Ghostty for rendering

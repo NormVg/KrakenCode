@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useConfigStore } from '../stores/config'
+import { useConfigStore } from '../stores/config.store'
 
 const emit = defineEmits(['close'])
 const activeTab = ref('models')

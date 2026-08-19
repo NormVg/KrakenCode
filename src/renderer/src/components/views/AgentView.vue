@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useConfigStore } from '../../stores/config'
-import { useProjectsStore } from '../../stores/projects'
-import { useChatStore } from '../../stores/chat'
+import { useConfigStore } from '../../stores/config.store'
+import { useWorkspaceStore } from '../../stores/workspace.store'
+import { useSessionStore } from '../../stores/session.store'
 import { ChatService } from '../../services/chat.service'
 import ChatMessage from '../ChatMessage.vue'
 import ChatInput from '../ChatInput.vue'
@@ -15,8 +15,8 @@ import {
 
 const configStore = useConfigStore()
 const { isSetup } = storeToRefs(configStore)
-const projectsStore = useProjectsStore()
-const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
+const sessionStore = useSessionStore()
 
 const prompt = ref('')
 const isLoading = ref(false)
@@ -39,60 +39,57 @@ const processNextMessage = async () => {
 }
 
 /** Apply architecture-mermaid fences from the finished agent reply. */
-const applyArchitectureFromAgentReply = () => {
-  const last = chatStore.activeChat?.messages.at(-1)
+const applyArchitectureFromAgentReply = async () => {
+  const last = sessionStore.messages.at(-1)
   if (!last || last.role !== 'agent' || !last.content) return
 
   const { displayContent, mermaidSource, didUpdate } = extractArchitectureUpdate(last.content)
   if (!didUpdate || !mermaidSource) return
 
-  const projectId = projectsStore.activeProjectId
-  if (projectId) {
-    projectsStore.setProjectArchitecture(projectId, mermaidSource)
-  }
-  chatStore.replaceActiveChatLastAgentContent(displayContent)
+  await workspaceStore.setArchitecture(mermaidSource)
+  await sessionStore.replaceMessageContent(last.id, displayContent)
 }
 
 const executeMessage = async (text: string) => {
-  if (projectsStore.projects.length === 0) {
-    const proj = await projectsStore.addProject()
+  if (workspaceStore.workspaces.length === 0) {
+    const proj = await workspaceStore.addWorkspace()
     if (!proj) return // User cancelled directory selection
   }
-  
-  if (!chatStore.activeChat) {
-    chatStore.createChat(projectsStore.activeProjectId!)
+
+  if (!sessionStore.activeSession) {
+    await sessionStore.createSession()
   }
-  
-  chatStore.addMessageToActiveChat({ role: 'user', content: text })
+
+  await sessionStore.addMessage('user', text)
   scrollToBottom()
-  
+
   isLoading.value = true
-  const msgId = Date.now().toString()
-  chatStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
-  
-  const project = projectsStore.activeProject
+  const agentMsg = await sessionStore.addMessage('agent', '', true)
+  if (!agentMsg) return
+
+  const project = workspaceStore.activeWorkspace
   const system = buildArchitectureSystemPrompt({
     projectName: project?.name,
     projectPath: project?.path,
-    architecture: project?.architecture,
+    architecture: project?.architecture ?? undefined,
   })
 
   ChatService.streamMessage({
-    id: msgId,
+    id: agentMsg.id,
     message: text,
     system,
     onChunk: (chunk) => {
-      chatStore.updateActiveChatStreamingMessage(chunk)
+      sessionStore.appendToMessage(agentMsg.id, chunk)
       scrollToBottom()
     },
     onEnd: () => {
-      chatStore.endActiveChatStreamingMessage()
+      sessionStore.finalizeMessage(agentMsg.id)
       applyArchitectureFromAgentReply()
       isLoading.value = false
       processNextMessage()
     },
     onError: (err) => {
-      chatStore.appendErrorToActiveChat(err)
+      sessionStore.appendErrorToMessage(agentMsg.id, err)
       isLoading.value = false
       processNextMessage()
     }
@@ -121,7 +118,7 @@ const removeQueuedMessage = (index: number) => {
 <template>
   <div class="agent-view">
     <!-- Empty Conversation State -->
-    <div v-if="isSetup && (!chatStore.activeChat || chatStore.activeChat.messages.length === 0)" class="empty-conversation-state">
+    <div v-if="isSetup && (!sessionStore.activeSession || sessionStore.messages.length === 0)" class="empty-conversation-state">
       <img src="../../assets/banner.png" alt="Kraken Logo" class="empty-banner" />
       <div class="centered-composer composer-width">
         <ChatInput 
@@ -134,12 +131,12 @@ const removeQueuedMessage = (index: number) => {
     </div>
 
     <!-- Chat History -->
-    <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && chatStore.activeChat && chatStore.activeChat.messages.length > 0">
+    <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && sessionStore.activeSession && sessionStore.messages.length > 0">
       <div class="chat-container">
-        <template v-if="chatStore.activeChat && chatStore.activeChat.messages.length > 0">
+        <template v-if="sessionStore.activeSession && sessionStore.messages.length > 0">
           <div class="top-spacer" style="height: 60px;"></div>
           <ChatMessage 
-            v-for="(msg, index) in chatStore.activeChat.messages" 
+            v-for="(msg, index) in sessionStore.messages" 
             :key="msg.id || index" 
             :role="msg.role" 
             :content="msg.content"
@@ -156,7 +153,7 @@ const removeQueuedMessage = (index: number) => {
 
     <!-- Floating Input Container -->
     <div
-      v-if="isSetup && chatStore.activeChat && chatStore.activeChat.messages.length > 0"
+      v-if="isSetup && sessionStore.activeSession && sessionStore.messages.length > 0"
       class="floating-input-container composer-width no-drag"
     >
       <div class="floating-composer-wrapper no-drag">
