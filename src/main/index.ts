@@ -7,6 +7,7 @@ import icon from '../../resources/apple-icon-squircle.png?asset'
 import { createOllama } from 'ai-sdk-ollama'
 import { streamText } from 'ai'
 import { execSync } from 'child_process'
+import * as crypto from 'crypto'
 import * as pty from 'node-pty'
 
 let aiModel: any = null
@@ -231,7 +232,9 @@ app.whenReady().then(() => {
     try {
       const userDataPath = app.getPath('userData')
       const filePath = join(userDataPath, `${filename}.json`)
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
+      const tmpPath = `${filePath}.${crypto.randomUUID()}.tmp`
+      await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf-8')
+      await fs.rename(tmpPath, filePath)
       return true
     } catch (error) {
       console.error('Failed to write store', error)
