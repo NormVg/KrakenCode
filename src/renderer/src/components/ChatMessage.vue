@@ -30,8 +30,27 @@ const props = defineProps<{
           mode="chat" 
           :content="props.content" 
           :final="!props.isStreaming" 
-          :is-dark="true" 
-          :code-block-props="{ theme: { dark: 'vitesse-dark', light: 'vitesse-light' } }"
+          :is-dark="true"
+          code-renderer="shiki"
+          :code-block-props="{
+            showHeader: true,
+            showCopyButton: true,
+            showExpandButton: true,
+            themes: ['vitesse-dark', 'vitesse-light'],
+          }"
+          :mermaid-props="{
+            showHeader: true,
+            showCopyButton: true,
+            showExportButton: true,
+            showFullscreenButton: true,
+            showZoomControls: true,
+            enableWheelZoom: true,
+            enableMermaidInteractions: true,
+            showModeToggle: true,
+          }"
+          :show-tooltips="true"
+          :fade="true"
+          :smooth-streaming="true"
         />
       </div>
       
