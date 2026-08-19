@@ -84,10 +84,13 @@ export function extractArchitectureUpdate(agentContent: string): ArchitectureUpd
     }
   }
 
-  const confirmation =
-    '\n\n---\n**Architecture updated** — open the Graph view to see the live Mermaid preview.\n'
+  // Keep a standard ```mermaid block in the chat so markstream-vue renders it
+  // as a rich SVG diagram inline. Also append a subtle confirmation note.
+  const inlineDiagram =
+    '\n\n```mermaid\n' + mermaidSource + '\n```\n\n' +
+    '> ✅ **Architecture saved** — also visible in the Graph view.\n'
 
-  const displayContent = agentContent.replace(FENCE_RE, confirmation).trim()
+  const displayContent = agentContent.replace(FENCE_RE, inlineDiagram).trim()
 
   return {
     displayContent,
