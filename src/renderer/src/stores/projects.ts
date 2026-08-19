@@ -76,12 +76,14 @@ export const useProjectsStore = defineStore('projects', () => {
 
   const saveData = async () => {
     if (!isLoaded.value) return
-    const data = {
+    // Vue reactive proxies cannot be serialized by Electron's structured
+    // clone algorithm across IPC. Convert to plain objects first.
+    const data = JSON.parse(JSON.stringify({
       projects: projects.value,
       activeProjectId: activeProjectId.value,
       activeChatId: activeChatId.value,
       activeView: activeView.value
-    }
+    }))
     await window.api.storeWrite('kraken_projects', data)
   }
 
