@@ -6,12 +6,6 @@
  * 2. setMermaidWorker() / setKaTeXWorker() — inject the web workers that
  *    do the actual parsing/rendering off the main thread
  * 3. A loader function that lazy-imports the mermaid/katex packages
- *
- * Without the workers, every render call fails with WORKER_INIT_ERROR
- * and the diagram falls through to plain code text.
- *
- * The worker files are copied to /public/workers/ because markstream-vue's
- * package.json exports map doesn't expose them for subpath imports.
  */
 import {
   enableMermaid,
@@ -20,6 +14,11 @@ import {
   setKaTeXWorker,
 } from 'markstream-vue'
 
+// Import workers using Vite's ?worker&inline suffix. This bundles them as data URIs
+// and perfectly bypasses CSP/module issues with file:// URIs in Electron.
+import MermaidWorker from 'markstream-vue/workers/mermaidParser.worker?worker&inline'
+import KatexWorker from 'markstream-vue/workers/katexRenderer.worker?worker&inline'
+
 let initialized = false
 
 export function initMarkstream(): void {
@@ -27,8 +26,8 @@ export function initMarkstream(): void {
   initialized = true
 
   // Inject the workers before enabling the features.
-  setMermaidWorker(new Worker('workers/mermaidParser.worker.js', { type: 'module' }))
-  setKaTeXWorker(new Worker('workers/katexRenderer.worker.js', { type: 'module' }))
+  setMermaidWorker(new MermaidWorker())
+  setKaTeXWorker(new KatexWorker())
 
   // Mermaid — lazy-load the library (the worker imports it too, but the
   // main thread needs it for the final SVG render step).
