@@ -82,6 +82,22 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // DevTools: F12 toggles in any environment (the optimizer only handles
+  // dev mode and can miss edge cases). Also Cmd/Ctrl+Shift+I as a fallback.
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.type !== 'keyDown') return
+    const isF12 = input.code === 'F12'
+    const isCmdShiftI =
+      (input.control || input.meta) && input.shift && input.code === 'KeyI'
+    if (isF12 || isCmdShiftI) {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools()
+      } else {
+        mainWindow.webContents.openDevTools({ mode: 'undocked' })
+      }
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }

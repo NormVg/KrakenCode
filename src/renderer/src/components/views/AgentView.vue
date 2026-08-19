@@ -75,12 +75,25 @@ const executeMessage = async (text: string) => {
   const msgId = Date.now().toString()
   projectsStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
   
+  // Safety net: if the stream never sends end/error (e.g. Ollama drops
+  // the connection silently), reset after 120s so the agent doesn't
+  // get stuck in a loading state forever.
+  const streamTimeout = setTimeout(() => {
+    if (isLoading.value) {
+      projectsStore.appendErrorToActiveChat('Stream timed out — the model may be unresponsive.')
+      isLoading.value = false
+      window.api.removeChatListeners(msgId)
+      processNextMessage()
+    }
+  }, 120_000)
+
   window.api.onChatChunk(msgId, (chunk) => {
     projectsStore.updateActiveChatStreamingMessage(chunk)
     scrollToBottom()
   })
 
   window.api.onChatEnd(msgId, () => {
+    clearTimeout(streamTimeout)
     projectsStore.endActiveChatStreamingMessage()
     applyArchitectureFromAgentReply()
     isLoading.value = false
@@ -89,6 +102,7 @@ const executeMessage = async (text: string) => {
   })
 
   window.api.onChatError(msgId, (err) => {
+    clearTimeout(streamTimeout)
     projectsStore.appendErrorToActiveChat(err)
     isLoading.value = false
     window.api.removeChatListeners(msgId)
