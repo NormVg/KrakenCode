@@ -3,18 +3,21 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Settings, FolderPlus, Folder, Plus, MessageSquare, MoreHorizontal, Edit2, Trash2 } from 'lucide-vue-next'
 import { useProjectsStore } from '../stores/projects'
+import { useChatStore } from '../stores/chat'
 
 const emit = defineEmits(['open-settings'])
 
 const projectsStore = useProjectsStore()
+const chatStore = useChatStore()
 const { projects, activeProjectId, activeChatId } = storeToRefs(projectsStore)
 
 const activeMenuId = ref<string | null>(null)
 const editingChatId = ref<string | null>(null)
 const editTitle = ref('')
 
-const handleCreateChat = (projectId: string) => {
-  projectsStore.createChat(projectId)
+const handleAddChat = (projectId: string, event: Event) => {
+  event.stopPropagation()
+  chatStore.createChat(projectId)
   projectsStore.activeView = 'agent'
 }
 
@@ -22,21 +25,21 @@ const toggleMenu = (chatId: string) => {
   activeMenuId.value = activeMenuId.value === chatId ? null : chatId
 }
 
-const startEdit = (chatId: string, title: string) => {
+const startEdit = (chatId: string, currentTitle: string) => {
   editingChatId.value = chatId
-  editTitle.value = title
+  editTitle.value = currentTitle
   activeMenuId.value = null
 }
 
 const saveEdit = (projectId: string, chatId: string) => {
   if (editTitle.value.trim()) {
-    projectsStore.renameChat(projectId, chatId, editTitle.value.trim())
+    chatStore.renameChat(projectId, chatId, editTitle.value.trim())
   }
   editingChatId.value = null
 }
 
 const handleDelete = (projectId: string, chatId: string) => {
-  projectsStore.deleteChat(projectId, chatId)
+  chatStore.deleteChat(projectId, chatId)
   activeMenuId.value = null
 }
 
@@ -76,7 +79,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
             </div>
-            <button class="icon-btn add-chat-btn" title="New Session" @click.stop="handleCreateChat(project.id)">
+            <button class="icon-btn add-chat-btn" title="New Session" @click="handleAddChat(project.id, $event)">
               <Plus :size="14" stroke-width="2" />
             </button>
           </div>
@@ -88,7 +91,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               :key="item.id"
               class="project-item"
               :class="{ 'active': activeChatId === item.id }"
-              @click="projectsStore.selectChat(project.id, item.id)"
+              @click="chatStore.selectChat(project.id, item.id)"
             >
               <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
                 <MessageSquare :size="14" />

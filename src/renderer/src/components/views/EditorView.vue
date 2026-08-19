@@ -3,11 +3,11 @@ import { ref, shallowRef, watch, computed } from 'vue'
 import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
 import { X, FileCode2, FileJson } from 'lucide-vue-next'
-import { useProjectsStore } from '../../stores/projects'
+import { useEditorStore } from '../../stores/editor'
 import { storeToRefs } from 'pinia'
 
-const projectsStore = useProjectsStore()
-const { openFiles, activeFileId } = storeToRefs(projectsStore)
+const editorStore = useEditorStore()
+const { openFiles, activeFileId } = storeToRefs(editorStore)
 
 // Configure Vite Web Workers for Monaco
 import editorWorker from 'monaco-editor/editor/editor.worker.js?worker'
@@ -94,12 +94,12 @@ let saveTimeout: any = null
 const handleEditorChange = (value: string) => {
   if (!activeFileId.value) return
   
-  projectsStore.updateFileContent(activeFileId.value, value)
+  editorStore.updateFileContent(activeFileId.value, value)
   
   // Debounced Auto-Save
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(() => {
-    projectsStore.saveFile(activeFileId.value as string)
+    editorStore.saveFile(activeFileId.value as string)
   }, 1000)
 }
 
@@ -109,7 +109,7 @@ const selectTab = (id: string) => {
 
 const closeTab = (id: string, event: Event) => {
   event.stopPropagation()
-  projectsStore.closeFile(id)
+  editorStore.closeFile(id)
 }
 
 const handleMount = (editor: any) => {
@@ -118,7 +118,7 @@ const handleMount = (editor: any) => {
   // Add Cmd+S save hotkey
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
     if (activeFileId.value) {
-      projectsStore.saveFile(activeFileId.value)
+      editorStore.saveFile(activeFileId.value)
     }
   })
 }

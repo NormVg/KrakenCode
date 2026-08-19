@@ -3,6 +3,8 @@ import { ref, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from '../../stores/config'
 import { useProjectsStore } from '../../stores/projects'
+import { useChatStore } from '../../stores/chat'
+import { ChatService } from '../../services/chat.service'
 import ChatMessage from '../ChatMessage.vue'
 import ChatInput from '../ChatInput.vue'
 import QueuedMessages from '../QueuedMessages.vue'
@@ -14,6 +16,7 @@ import {
 const configStore = useConfigStore()
 const { isSetup } = storeToRefs(configStore)
 const projectsStore = useProjectsStore()
+const chatStore = useChatStore()
 
 const prompt = ref('')
 const isLoading = ref(false)
@@ -37,7 +40,7 @@ const processNextMessage = async () => {
 
 /** Apply architecture-mermaid fences from the finished agent reply. */
 const applyArchitectureFromAgentReply = () => {
-  const last = projectsStore.activeChat?.messages.at(-1)
+  const last = chatStore.activeChat?.messages.at(-1)
   if (!last || last.role !== 'agent' || !last.content) return
 
   const { displayContent, mermaidSource, didUpdate } = extractArchitectureUpdate(last.content)
@@ -47,68 +50,26 @@ const applyArchitectureFromAgentReply = () => {
   if (projectId) {
     projectsStore.setProjectArchitecture(projectId, mermaidSource)
   }
-  projectsStore.replaceActiveChatLastAgentContent(displayContent)
+  chatStore.replaceActiveChatLastAgentContent(displayContent)
 }
 
 const executeMessage = async (text: string) => {
   if (projectsStore.projects.length === 0) {
-    const proj = {
-      id: crypto.randomUUID(),
-      name: 'Default Workspace',
-      path: '',
-      items: [],
-      architecture: undefined as string | undefined,
-    }
-    projectsStore.projects.push(proj)
-    projectsStore.activeProjectId = proj.id
-    projectsStore.saveData()
+    const proj = await projectsStore.addProject()
+    if (!proj) return // User cancelled directory selection
   }
   
-  if (!projectsStore.activeChat) {
-    projectsStore.createChat(projectsStore.activeProjectId!)
+  if (!chatStore.activeChat) {
+    chatStore.createChat(projectsStore.activeProjectId!)
   }
   
-  projectsStore.addMessageToActiveChat({ role: 'user', content: text })
+  chatStore.addMessageToActiveChat({ role: 'user', content: text })
   scrollToBottom()
   
   isLoading.value = true
   const msgId = Date.now().toString()
-  projectsStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
+  chatStore.addMessageToActiveChat({ id: msgId, role: 'agent', content: '', isStreaming: true })
   
-  // Safety net: if the stream never sends end/error (e.g. Ollama drops
-  // the connection silently), reset after 120s so the agent doesn't
-  // get stuck in a loading state forever.
-  const streamTimeout = setTimeout(() => {
-    if (isLoading.value) {
-      projectsStore.appendErrorToActiveChat('Stream timed out — the model may be unresponsive.')
-      isLoading.value = false
-      window.api.removeChatListeners(msgId)
-      processNextMessage()
-    }
-  }, 120_000)
-
-  window.api.onChatChunk(msgId, (chunk) => {
-    projectsStore.updateActiveChatStreamingMessage(chunk)
-    scrollToBottom()
-  })
-
-  window.api.onChatEnd(msgId, () => {
-    clearTimeout(streamTimeout)
-    projectsStore.endActiveChatStreamingMessage()
-    applyArchitectureFromAgentReply()
-    isLoading.value = false
-    window.api.removeChatListeners(msgId)
-    processNextMessage()
-  })
-
-  window.api.onChatError(msgId, (err) => {
-    clearTimeout(streamTimeout)
-    projectsStore.appendErrorToActiveChat(err)
-    isLoading.value = false
-    window.api.removeChatListeners(msgId)
-    processNextMessage()
-  })
-
   const project = projectsStore.activeProject
   const system = buildArchitectureSystemPrompt({
     projectName: project?.name,
@@ -116,7 +77,26 @@ const executeMessage = async (text: string) => {
     architecture: project?.architecture,
   })
 
-  window.api.streamChat(msgId, text, { system })
+  ChatService.streamMessage({
+    id: msgId,
+    message: text,
+    system,
+    onChunk: (chunk) => {
+      chatStore.updateActiveChatStreamingMessage(chunk)
+      scrollToBottom()
+    },
+    onEnd: () => {
+      chatStore.endActiveChatStreamingMessage()
+      applyArchitectureFromAgentReply()
+      isLoading.value = false
+      processNextMessage()
+    },
+    onError: (err) => {
+      chatStore.appendErrorToActiveChat(err)
+      isLoading.value = false
+      processNextMessage()
+    }
+  })
 }
 
 const handleChat = async () => {
@@ -141,7 +121,7 @@ const removeQueuedMessage = (index: number) => {
 <template>
   <div class="agent-view">
     <!-- Empty Conversation State -->
-    <div v-if="isSetup && (!projectsStore.activeChat || projectsStore.activeChat.messages.length === 0)" class="empty-conversation-state">
+    <div v-if="isSetup && (!chatStore.activeChat || chatStore.activeChat.messages.length === 0)" class="empty-conversation-state">
       <img src="../../assets/banner.png" alt="Kraken Logo" class="empty-banner" />
       <div class="centered-composer composer-width">
         <ChatInput 
@@ -154,12 +134,12 @@ const removeQueuedMessage = (index: number) => {
     </div>
 
     <!-- Chat History -->
-    <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
+    <div class="chat-history" ref="chatHistoryRef" v-if="isSetup && chatStore.activeChat && chatStore.activeChat.messages.length > 0">
       <div class="chat-container">
-        <template v-if="projectsStore.activeChat && projectsStore.activeChat.messages.length > 0">
+        <template v-if="chatStore.activeChat && chatStore.activeChat.messages.length > 0">
           <div class="top-spacer" style="height: 60px;"></div>
           <ChatMessage 
-            v-for="(msg, index) in projectsStore.activeChat.messages" 
+            v-for="(msg, index) in chatStore.activeChat.messages" 
             :key="msg.id || index" 
             :role="msg.role" 
             :content="msg.content"
@@ -176,7 +156,7 @@ const removeQueuedMessage = (index: number) => {
 
     <!-- Floating Input Container -->
     <div
-      v-if="isSetup && projectsStore.activeChat && projectsStore.activeChat.messages.length > 0"
+      v-if="isSetup && chatStore.activeChat && chatStore.activeChat.messages.length > 0"
       class="floating-input-container composer-width no-drag"
     >
       <div class="floating-composer-wrapper no-drag">

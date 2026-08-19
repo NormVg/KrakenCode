@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { File, Folder, FolderOpen, ChevronRight, ChevronDown, MoreHorizontal, FilePlus, FolderPlus, Pencil, Trash2 } from 'lucide-vue-next'
+import { FileSystemService } from '../services/filesystem.service'
 
 const props = defineProps<{
   node: any
@@ -32,7 +33,7 @@ const toggleFolder = async () => {
 const loadChildren = async () => {
   isLoading.value = true
   try {
-    const rawFiles = await window.api.fs.readDirectory(props.node.path)
+    const rawFiles = await FileSystemService.readDirectory(props.node.path)
     props.node.children = rawFiles.map((f: any) => ({
       ...f,
       isOpen: false,
@@ -93,7 +94,7 @@ const commitInlineCreate = async () => {
     return
   }
   const fullPath = `${props.node.path}/${name}`
-  await window.api.fs.createItem(fullPath, inlineCreateType.value)
+  await FileSystemService.createItem(fullPath, inlineCreateType.value)
   cancelInlineCreate()
   // Reload this folder's children
   props.node.childrenLoaded = false
@@ -157,7 +158,7 @@ const onDrop = async (e: DragEvent) => {
     const fileName = internalData.split('/').pop()
     const destPath = `${targetDir}/${fileName}`
     if (internalData !== destPath) {
-      await window.api.fs.moveItem(internalData, destPath)
+      await FileSystemService.moveItem(internalData, destPath)
       emit('refreshTree')
     }
     return
@@ -169,7 +170,7 @@ const onDrop = async (e: DragEvent) => {
       const file = e.dataTransfer.files[i]
       const sourcePath = (file as any).path
       if (sourcePath) {
-        await window.api.fs.copyItem(sourcePath, `${targetDir}/${file.name}`)
+        await FileSystemService.copyItem(sourcePath, `${targetDir}/${file.name}`)
       }
     }
     emit('refreshTree')

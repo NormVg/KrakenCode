@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { FileSystemService } from '../services/filesystem.service'
+
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { RotateCw, FilePlus, FolderPlus } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '../stores/projects'
+import { useEditorStore } from '../stores/editor'
 import FileTreeNode from './FileTreeNode.vue'
 
 const projectsStore = useProjectsStore()
+const editorStore = useEditorStore()
 const { activeProject } = storeToRefs(projectsStore)
 
 const files = ref<any[]>([])
@@ -19,7 +23,7 @@ const newItemInputRef = ref<HTMLInputElement | null>(null)
 
 const loadTree = async () => {
   if (activeProject.value?.path) {
-    const rawFiles = await window.api.fs.readDirectory(activeProject.value.path)
+    const rawFiles = await FileSystemService.readDirectory(activeProject.value.path)
     files.value = rawFiles.map((f: any) => ({
       ...f,
       isOpen: false,
@@ -40,7 +44,7 @@ watch(() => activeProject.value?.path, () => {
 })
 
 const handleOpenFile = (node: any) => {
-  projectsStore.openFile(node)
+  editorStore.openFile(node)
 }
 
 // Start inline creation
@@ -71,7 +75,7 @@ const commitCreate = async () => {
   if (!basePath) { cancelCreate(); return }
 
   const fullPath = `${basePath}/${name}`
-  await window.api.fs.createItem(fullPath, creatingType.value)
+  await FileSystemService.createItem(fullPath, creatingType.value)
 
   if (creatingInNode.value) {
     creatingInNode.value.childrenLoaded = false
@@ -94,14 +98,14 @@ const handleRenameItem = async (payload: { node: any; newName: string }) => {
   segments.pop()
   segments.push(newName)
   const newPath = segments.join('/')
-  await window.api.fs.renameItem(node.path, newPath)
+  await FileSystemService.renameItem(node.path, newPath)
   // Update any open editor tab that had the old path
-  projectsStore.renameOpenFile(node.path, newPath, newName)
+  editorStore.renameOpenFile(node.path, newPath, newName)
   loadTree()
 }
 
 const handleDeleteItem = async (node: any) => {
-  await window.api.fs.deleteItem(node.path)
+  await FileSystemService.deleteItem(node.path)
   loadTree()
 }
 
@@ -121,7 +125,7 @@ const onDropRoot = async (e: DragEvent) => {
     const fileName = internalData.split('/').pop()
     const destPath = `${targetDir}/${fileName}`
     if (internalData !== destPath) {
-      await window.api.fs.moveItem(internalData, destPath)
+      await FileSystemService.moveItem(internalData, destPath)
       loadTree()
     }
     return
@@ -132,7 +136,7 @@ const onDropRoot = async (e: DragEvent) => {
       const file = e.dataTransfer.files[i]
       const sourcePath = (file as any).path
       if (sourcePath) {
-        await window.api.fs.copyItem(sourcePath, `${targetDir}/${file.name}`)
+        await FileSystemService.copyItem(sourcePath, `${targetDir}/${file.name}`)
       }
     }
     loadTree()

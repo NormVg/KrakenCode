@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { Ghostty, Terminal, FitAddon } from 'ghostty-web'
 import ghosttyWasmUrl from 'ghostty-web/ghostty-vt.wasm?url'
 import { useProjectsStore } from '../../stores/projects'
+import { TerminalService } from '../../services/terminal.service'
 
 const projectsStore = useProjectsStore()
 const { activeProject } = storeToRefs(projectsStore)
@@ -28,7 +29,7 @@ function schedulePtyResize() {
     fitAddon.fit()
     const dims = fitAddon.proposeDimensions()
     if (dims) {
-      window.api.pty.resize(sessionId, dims.cols, dims.rows)
+      TerminalService.resize(sessionId, dims.cols, dims.rows)
     }
   }, 60)
 }
@@ -78,15 +79,15 @@ onMounted(async () => {
 
     // Spawn real shell in the active project directory (falls back to $HOME)
     const cwd = activeProject.value?.path || ''
-    await window.api.pty.create(sessionId, dims.cols, dims.rows, cwd)
+    await TerminalService.create(sessionId, dims.cols, dims.rows, cwd)
 
     // Shell → Terminal: pipe PTY output into Ghostty for rendering
-    window.api.pty.onData(sessionId, (data: string) => {
+    TerminalService.onData(sessionId, (data: string) => {
       if (!isDisposed) term?.write(data)
     })
 
     // Shell exited — show a faint notice and allow restart
-    window.api.pty.onExit(sessionId, (exitCode: number) => {
+    TerminalService.onExit(sessionId, (exitCode: number) => {
       if (!isDisposed) {
         term?.write(`\r\n\x1b[2m[Process exited with code ${exitCode}]\x1b[0m\r\n`)
       }
@@ -94,7 +95,7 @@ onMounted(async () => {
 
     // Terminal → Shell: pipe keystrokes / paste to the PTY
     term.onData((data: string) => {
-      if (!isDisposed) window.api.pty.write(sessionId, data)
+      if (!isDisposed) TerminalService.write(sessionId, data)
     })
 
     // Refit + resize PTY when the panel dimensions change
@@ -119,8 +120,8 @@ onUnmounted(() => {
   if (resizeThrottle) clearTimeout(resizeThrottle)
   resizeObserver?.disconnect()
   // Remove IPC listeners before killing so the exit event doesn't fire into a dead component
-  window.api.pty.removeListeners(sessionId)
-  window.api.pty.kill(sessionId)
+  TerminalService.removeListeners(sessionId)
+  TerminalService.kill(sessionId)
   term?.dispose()
   resizeObserver = null
   fitAddon = null
