@@ -1,68 +1,13 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
-import * as os from 'os'
-import * as fs from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/apple-icon-squircle.png?asset'
-import { createOllama } from 'ai-sdk-ollama'
-import { streamText } from 'ai'
-import { execSync } from 'child_process'
-import * as crypto from 'crypto'
-import * as pty from 'node-pty'
-
-let aiModel: any = null
-
-// ─── PTY Session Registry ────────────────────────────────────────────────────
-// Maps session ID → IPty instance. Supports multiple concurrent terminals.
-const ptyProcesses = new Map<string, pty.IPty>()
-
-// ─── Shell Environment Resolver ──────────────────────────────────────────────
-// On macOS/Linux, packaged Electron apps launch without a login shell, so they
-// get a bare-bones PATH. This function asks the user's own shell for its real
-// environment by running it as a login shell and capturing `env` output.
-// This is the same approach used by VS Code's "resolveShellEnv" internally.
-// Works universally — any machine, any shell, any user configuration.
-// ─────────────────────────────────────────────────────────────────────────────
-let resolvedShellEnv: Record<string, string> | null = null
-
-function resolveShellEnv(shell: string): Record<string, string> {
-  if (resolvedShellEnv) return resolvedShellEnv
-
-  try {
-    // Spawn a login shell and ask it to print its entire environment.
-    // -l = login shell (sources ~/.zprofile, ~/.profile, etc.)
-    // -c = run command then exit
-    const raw = execSync(`${shell} -lc env`, {
-      encoding: 'utf8',
-      timeout: 5000,
-      // Provide a minimal starting env so the shell can bootstrap itself
-      env: { HOME: os.homedir(), USER: os.userInfo().username, SHELL: shell },
-    })
-
-    const env: Record<string, string> = { ...process.env } as Record<string, string>
-
-    for (const line of raw.split('\n')) {
-      const idx = line.indexOf('=')
-      if (idx > 0) {
-        const key = line.slice(0, idx)
-        const value = line.slice(idx + 1)
-        env[key] = value
-      }
-    }
-
-    resolvedShellEnv = env
-    return env
-  } catch (err) {
-    // If resolution fails for any reason, fall back gracefully to process.env.
-    console.warn('[pty] Shell env resolution failed, using process.env as fallback:', err)
-    resolvedShellEnv = process.env as Record<string, string>
-    return resolvedShellEnv
-  }
-}
-
+import { initDatabase, closeDatabase } from './database/connection'
+import { registerAllIpc } from './ipc'
+import { ptyService } from './services/pty.service'
+import { IPC } from '../shared/constants/ipc-channels'
 
 function createWindow(): void {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -83,8 +28,7 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  // DevTools: F12 toggles in any environment (the optimizer only handles
-  // dev mode and can miss edge cases). Also Cmd/Ctrl+Shift+I as a fallback.
+  // DevTools: F12 toggles in any environment. Also Cmd/Ctrl+Shift+I as fallback.
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.type !== 'keyDown') return
     const isF12 = input.code === 'F12'
@@ -104,22 +48,15 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  ipcMain.on('window-minimize', () => {
-    mainWindow.minimize()
+  // Window controls
+  ipcMain.on(IPC.WINDOW_MINIMIZE, () => mainWindow.minimize())
+  ipcMain.on(IPC.WINDOW_MAXIMIZE, () => {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
   })
-  ipcMain.on('window-maximize', () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow.maximize()
-    }
-  })
-  ipcMain.on('window-close', () => {
-    mainWindow.close()
-  })
+  ipcMain.on(IPC.WINDOW_CLOSE, () => mainWindow.close())
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // Load the renderer
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -127,278 +64,37 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Remove native application menu (File, Edit, View, Window, Help)
+  // Remove native application menu
   Menu.setApplicationMenu(null)
 
-  // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  // Initialize database
+  initDatabase()
 
-  ipcMain.handle('agent:setModel', (_, config) => {
-    try {
-      if (config.provider === 'ollama-local') {
-        const ollama = createOllama({
-          baseURL: "http://127.0.0.1:11434",
-        });
-        aiModel = ollama(config.model || 'gemma4:31b-cloud');
-        return { success: true };
-      }
-
-      if (config.provider === 'ollama-cloud') {
-        const apiKey = config.apiKey || process.env.OLLAMA_API_KEY;
-        const ollama = createOllama({
-          baseURL: "https://ollama.com",
-          headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined
-        });
-        aiModel = ollama(config.model || 'gemma4:31b-cloud');
-        return { success: true };
-      }
-
-      return { success: false, error: 'Provider not supported yet' };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.on('agent:stream-chat', async (event, payload) => {
-    const { id, message, system } = payload as {
-      id: string
-      message: string
-      system?: string
-    }
-
-    try {
-      if (!aiModel) {
-        event.sender.send(`agent:chat:error:${id}`, "Model not configured. Please select a model first.");
-        return;
-      }
-
-      const { textStream } = streamText({
-        model: aiModel,
-        ...(system?.trim() ? { system: system.trim() } : {}),
-        prompt: message,
-      });
-
-      for await (const chunk of textStream) {
-        event.sender.send(`agent:chat:chunk:${id}`, chunk);
-      }
-      event.sender.send(`agent:chat:end:${id}`);
-    } catch (err: any) {
-      event.sender.send(`agent:chat:error:${id}`, err.message);
-    }
-  });
-
-  ipcMain.handle('dialog:openDirectory', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openDirectory', 'createDirectory']
-    })
-    if (canceled || filePaths.length === 0) {
-      return null
-    }
-    const path = filePaths[0]
-    // Get the folder name from the path (cross-platform compatible)
-    const name = path.replace(/\\/g, '/').split('/').pop() || 'Unnamed Project'
-    return { path, name }
-  })
-
-  ipcMain.handle('store:read', async (_, filename: string) => {
-    try {
-      const userDataPath = app.getPath('userData')
-      const filePath = join(userDataPath, `${filename}.json`)
-      const data = await fs.readFile(filePath, 'utf-8')
-      return JSON.parse(data)
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        return null // File doesn't exist yet
-      }
-      throw error
-    }
-  })
-
-  ipcMain.handle('store:write', async (_, filename: string, data: any) => {
-    try {
-      const userDataPath = app.getPath('userData')
-      const filePath = join(userDataPath, `${filename}.json`)
-      const tmpPath = `${filePath}.${crypto.randomUUID()}.tmp`
-      await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf-8')
-      await fs.rename(tmpPath, filePath)
-      return true
-    } catch (error) {
-      console.error('Failed to write store', error)
-      return false
-    }
-  })
-
-  // File System Operations
-  ipcMain.handle('fs:readDirectory', async (_, dirPath: string) => {
-    try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true })
-      const items = entries.map(dirent => ({
-        name: dirent.name,
-        path: join(dirPath, dirent.name),
-        type: dirent.isDirectory() ? 'folder' : 'file'
-      }))
-
-      // Sort folders first, then alphabetically
-      items.sort((a, b) => {
-        if (a.type === b.type) return a.name.localeCompare(b.name)
-        return a.type === 'folder' ? -1 : 1
-      })
-
-      return items
-    } catch (error: any) {
-      console.error('Failed to read directory:', error)
-      return []
-    }
-  })
-
-  ipcMain.handle('fs:readFile', async (_, filePath: string) => {
-    return await fs.readFile(filePath, 'utf-8')
-  })
-
-  ipcMain.handle('fs:writeFile', async (_, filePath: string, content: string) => {
-    await fs.writeFile(filePath, content, 'utf-8')
-    return true
-  })
-
-  ipcMain.handle('fs:createItem', async (_, itemPath: string, type: 'file' | 'folder') => {
-    if (type === 'folder') {
-      await fs.mkdir(itemPath, { recursive: true })
-    } else {
-      await fs.writeFile(itemPath, '', 'utf-8')
-    }
-    return true
-  })
-
-  ipcMain.handle('fs:deleteItem', async (_, itemPath: string) => {
-    await fs.rm(itemPath, { recursive: true, force: true })
-    return true
-  })
-
-  ipcMain.handle('fs:renameItem', async (_, oldPath: string, newPath: string) => {
-    await fs.rename(oldPath, newPath)
-    return true
-  })
-
-  ipcMain.handle('fs:moveItem', async (_, source: string, dest: string) => {
-    await fs.rename(source, dest)
-    return true
-  })
-
-  ipcMain.handle('fs:copyItem', async (_, source: string, dest: string) => {
-    await fs.cp(source, dest, { recursive: true })
-    return true
-  })
-
-  // ─── PTY Handlers ──────────────────────────────────────────────────────────
-
-  // pty:create — spawn a shell and start forwarding output to the renderer
-  ipcMain.handle('pty:create', (event, { id, cols, rows, cwd }: {
-    id: string
-    cols: number
-    rows: number
-    cwd?: string
-  }) => {
-    // Resolve shell: honour SHELL env var, fall back to zsh → bash → sh
-    const shell = process.env.SHELL ||
-      (process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh')
-
-    // Use the active project directory, home dir, or cwd as working directory
-    const workingDir = cwd && cwd.length > 0 ? cwd : os.homedir()
-
-    // Resolve the full shell environment once (cached for subsequent terminals).
-    // This asks the user's own shell what its real environment is — universal,
-    // works on any machine regardless of how tools were installed.
-    const shellEnv = resolveShellEnv(shell)
-
-    const ptyProcess = pty.spawn(shell, ['-l'], {
-      name: 'xterm-256color',
-      cols: cols || 80,
-      rows: rows || 24,
-      cwd: workingDir,
-      env: {
-        ...shellEnv,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-      }
-    })
-
-    ptyProcesses.set(id, ptyProcess)
-
-    // Forward PTY output → renderer
-    ptyProcess.onData((data) => {
-      event.sender.send(`pty:data:${id}`, data)
-    })
-
-    // Notify renderer when process exits
-    ptyProcess.onExit(({ exitCode }) => {
-      event.sender.send(`pty:exit:${id}`, exitCode)
-      ptyProcesses.delete(id)
-    })
-
-    return { success: true, pid: ptyProcess.pid }
-  })
-
-  // pty:write — send keystrokes / data to the PTY
-  ipcMain.on('pty:write', (_, { id, data }: { id: string; data: string }) => {
-    const ptyProcess = ptyProcesses.get(id)
-    if (ptyProcess) {
-      ptyProcess.write(data)
-    }
-  })
-
-  // pty:resize — update PTY dimensions when the terminal panel is resized
-  ipcMain.on('pty:resize', (_, { id, cols, rows }: { id: string; cols: number; rows: number }) => {
-    const ptyProcess = ptyProcesses.get(id)
-    if (ptyProcess) {
-      ptyProcess.resize(cols, rows)
-    }
-  })
-
-  // pty:kill — explicitly destroy a PTY session
-  ipcMain.on('pty:kill', (_, { id }: { id: string }) => {
-    const ptyProcess = ptyProcesses.get(id)
-    if (ptyProcess) {
-      ptyProcess.kill()
-      ptyProcesses.delete(id)
-    }
-  })
+  // Register all IPC handlers
+  registerAllIpc()
 
   createWindow()
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
+  app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  // Kill all active PTY sessions before quitting
-  for (const [id, ptyProcess] of ptyProcesses) {
-    try { ptyProcess.kill() } catch { /* already dead */ }
-    ptyProcesses.delete(id)
-  }
+  // Kill all PTY sessions before quitting
+  ptyService.killAll()
+
+  // Close database
+  closeDatabase()
+
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
