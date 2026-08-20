@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import MarkdownRender from 'markstream-vue'
 import { Copy, Check } from 'lucide-vue-next'
 import 'markstream-vue/index.css'
+import ToolCallBlock, { type ToolCall } from './ToolCallBlock.vue'
 
 const props = defineProps<{
   role: 'user' | 'agent'
   content: string
   isStreaming?: boolean
+  toolCalls?: ToolCall[]
 }>()
 
 const isCopied = ref(false)
@@ -19,6 +21,22 @@ const copyToClipboard = () => {
     isCopied.value = false
   }, 2000)
 }
+
+/** Group tool calls by toolCallId, keeping only the latest status */
+const resolvedToolCalls = computed((): ToolCall[] => {
+  if (!props.toolCalls || props.toolCalls.length === 0) return []
+  const map = new Map<string, ToolCall>()
+  for (const tc of props.toolCalls) {
+    const existing = map.get(tc.toolCallId)
+    if (!existing) {
+      map.set(tc.toolCallId, tc)
+    } else if (tc.status !== 'running') {
+      // Later status updates override 'running'
+      map.set(tc.toolCallId, tc)
+    }
+  }
+  return Array.from(map.values())
+})
 </script>
 
 <template>
@@ -37,7 +55,17 @@ const copyToClipboard = () => {
     
     <!-- Agent Message (Box-less) -->
     <div v-else class="agent-wrapper">
-      <div class="markdown-body">
+      <!-- Tool calls render above the text content -->
+      <div v-if="resolvedToolCalls.length > 0" class="tool-calls-section">
+        <ToolCallBlock
+          v-for="tc in resolvedToolCalls"
+          :key="tc.toolCallId"
+          :tool="tc"
+        />
+      </div>
+
+      <!-- Text content -->
+      <div v-if="content" class="markdown-body">
         <MarkdownRender 
           mode="chat" 
           :content="props.content" 
@@ -66,7 +94,7 @@ const copyToClipboard = () => {
         />
       </div>
       
-      <button class="copy-btn" :title="isCopied ? 'Copied!' : 'Copy'" @click="copyToClipboard">
+      <button v-if="content" class="copy-btn" :title="isCopied ? 'Copied!' : 'Copy'" @click="copyToClipboard">
         <Check v-if="isCopied" :size="13" class="icon-success" />
         <Copy v-else :size="13" />
       </button>
@@ -91,7 +119,7 @@ const copyToClipboard = () => {
 /* User Message */
 .user-bubble {
   position: relative;
-  background-color: var(--bg-dark); /* #0A0D18 */
+  background-color: var(--bg-dark);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 16px 20px;
@@ -130,7 +158,7 @@ const copyToClipboard = () => {
 }
 
 .copy-btn .icon-success {
-  color: #10B981; /* teal/green */
+  color: #10B981;
 }
 
 .message:hover .copy-btn {
@@ -151,6 +179,13 @@ const copyToClipboard = () => {
   padding: 0 8px;
   align-self: flex-start;
   width: 100%;
+}
+
+.tool-calls-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .markdown-body {

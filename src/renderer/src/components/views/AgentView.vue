@@ -9,6 +9,7 @@ import ChatMessage from '../ChatMessage.vue'
 import ChatInput from '../ChatInput.vue'
 import QueuedMessages from '../QueuedMessages.vue'
 import PixelLoader from '../PixelLoader.vue'
+import type { ToolCall } from '../ToolCallBlock.vue'
 import {
   extractArchitectureUpdate,
 } from '../../utils/architectureAgent'
@@ -27,6 +28,8 @@ const chatHistoryRef = ref<HTMLElement | null>(null)
 let resizeObserver: ResizeObserver | null = null
 /** Tracks the number of in-flight tool calls to toggle the tooling phase */
 let activeToolCount = 0
+/** Tool calls for the currently streaming agent message, keyed by message ID */
+const messageToolCalls = ref<Record<string, ToolCall[]>>({})
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -151,13 +154,38 @@ const executeMessage = async (text: string) => {
       if (event.phase === 'start') {
         activeToolCount++
         loadPhase.value = 'tooling'
+        // Add the tool call as 'running'
+        if (!messageToolCalls.value[agentMsg.id]) {
+          messageToolCalls.value[agentMsg.id] = []
+        }
+        messageToolCalls.value[agentMsg.id] = [
+          ...messageToolCalls.value[agentMsg.id],
+          {
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            status: 'running' as const
+          }
+        ]
       } else {
         activeToolCount = Math.max(0, activeToolCount - 1)
+        // Update the tool call status
+        const calls = messageToolCalls.value[agentMsg.id]
+        if (calls) {
+          messageToolCalls.value[agentMsg.id] = calls.map((c) =>
+            c.toolCallId === event.toolCallId
+              ? {
+                  ...c,
+                  status: event.status === 'failed' ? 'failed' as const : event.status === 'rejected' ? 'rejected' as const : 'completed' as const
+                }
+              : c
+          )
+        }
         // Return to streaming if text was already flowing and no tools remain
         if (activeToolCount === 0 && loadPhase.value === 'tooling') {
           loadPhase.value = 'streaming'
         }
       }
+      scrollToBottom()
     },
     onEnd: () => {
       sessionStore.finalizeMessage(agentMsg.id)
@@ -172,6 +200,13 @@ const executeMessage = async (text: string) => {
       isLoading.value = false
       loadPhase.value = 'thinking'
       activeToolCount = 0
+      // Mark any running tools as failed
+      const calls = messageToolCalls.value[agentMsg.id]
+      if (calls) {
+        messageToolCalls.value[agentMsg.id] = calls.map((c) =>
+          c.status === 'running' ? { ...c, status: 'failed' as const } : c
+        )
+      }
       processNextMessage()
     }
   })
@@ -232,6 +267,7 @@ const handleStop = async () => {
             :role="msg.role" 
             :content="msg.content"
             :is-streaming="msg.isStreaming"
+            :tool-calls="msg.role === 'agent' ? messageToolCalls[msg.id] : undefined"
           />
           <div v-if="isLoading" class="message agent loading-indicator">
             <PixelLoader :variant="loadPhase" :size="5" />
