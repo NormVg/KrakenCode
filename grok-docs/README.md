@@ -20,6 +20,10 @@ Grok-Build is a terminal-based AI coding agent built in Rust. It is not a thin w
 | [07-loops.md](07-loops.md) | Loops | Workflow engine (Rhai-scripted), hooks system, multi-step task coordination |
 | [08-ui.md](08-ui.md) | UI | Terminal pager, markdown rendering, Mermaid diagrams, scrollback blocks |
 | [09-architecture.md](09-architecture.md) | Architecture | Crate structure, design patterns, key takeaways for Kraken |
+| [10-folder-structure-recommendation.md](10-folder-structure-recommendation.md) | Folder Structure | Recommended project structure for Kraken based on grok-build patterns |
+| [11-workspace-architecture.md](11-workspace-architecture.md) | Workspace | Per-workspace isolation: editor, terminal, agents, views, scratchpad |
+| [12-system-prompts.md](12-system-prompts.md) | System Prompts | Base prompt, subagent prompt, apply-patch prompt, orchestrator body, goal-system prompts, template rendering |
+| [13-code-editing-workflow.md](13-code-editing-workflow.md) | Code Editing | How grok-build reads, searches, edits, and creates code — dedicated tools vs raw bash, the editing loop, hashline workflow |
 
 ## Key Design Principles
 
