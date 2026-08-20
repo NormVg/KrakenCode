@@ -361,17 +361,17 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 .project-item.active {
   background-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  border-radius: 0 6px 6px 0;
 }
 
-/* Active session indicator — floating pill */
+/* Active session indicator — flush left edge */
 .active-bar {
   position: absolute;
-  left: 6px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 3px;
-  height: 14px;
-  border-radius: 3px;
+  border-radius: 0;
   background: linear-gradient(180deg, #B197D9, #5EEAD4);
 }
 
