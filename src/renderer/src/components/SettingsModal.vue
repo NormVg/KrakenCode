@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from '../stores/config.store'
-import { ArrowLeft, Check, Search, Cpu, Cloud, HardDrive } from 'lucide-vue-next'
+import { ArrowLeft, Check, Search, Cpu, Cloud, HardDrive, Settings, Palette } from 'lucide-vue-next'
 
 const emit = defineEmits(['close'])
 
@@ -10,7 +10,14 @@ const configStore = useConfigStore()
 const { provider, model, apiKey, setupError, isSetup } = storeToRefs(configStore)
 const { initializeAgent } = configStore
 
+const activeTab = ref('models')
 const searchQuery = ref('')
+
+const tabs = [
+  { id: 'general', label: 'General', icon: Settings },
+  { id: 'models', label: 'Models', icon: Cpu },
+  { id: 'customizations', label: 'Customizations', icon: Palette },
+]
 
 interface ModelOption {
   id: string
@@ -33,10 +40,10 @@ const localModels: ModelOption[] = [
 ]
 
 const cloudModels: ModelOption[] = [
-  { id: 'qwen2.5-coder:32b', name: 'Qwen 2.5 Coder 32B (Cloud)', size: 'Hosted', description: 'Best coding model via Ollama Cloud. No local GPU needed.', tags: ['coding', 'recommended'] },
-  { id: 'llama3.1:70b', name: 'Llama 3.1 70B (Cloud)', size: 'Hosted', description: 'Large general-purpose model with strong reasoning.', tags: ['general', 'reasoning'] },
-  { id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B (Cloud)', size: 'Hosted', description: 'Reasoning-focused model with chain-of-thought.', tags: ['reasoning', 'coding'] },
-  { id: 'qwen2.5:32b', name: 'Qwen 2.5 32B (Cloud)', size: 'Hosted', description: 'Large general-purpose model with strong multilingual support.', tags: ['general'] },
+  { id: 'qwen2.5-coder:32b', name: 'Qwen 2.5 Coder 32B', size: 'Cloud', description: 'Best coding model via Ollama Cloud. No local GPU needed.', tags: ['coding', 'recommended'] },
+  { id: 'llama3.1:70b', name: 'Llama 3.1 70B', size: 'Cloud', description: 'Large general-purpose model with strong reasoning.', tags: ['general', 'reasoning'] },
+  { id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B', size: 'Cloud', description: 'Reasoning-focused model with chain-of-thought.', tags: ['reasoning', 'coding'] },
+  { id: 'qwen2.5:32b', name: 'Qwen 2.5 32B', size: 'Cloud', description: 'Large general-purpose model with strong multilingual support.', tags: ['general'] },
 ]
 
 const availableModels = computed(() => {
@@ -67,7 +74,6 @@ const handleSave = async () => {
 
 const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   provider.value = p
-  // Reset model selection when switching provider
   const first = (p === 'ollama-cloud' ? cloudModels : localModels)[0]
   if (first) {
     selectedModelId.value = first.id
@@ -78,103 +84,138 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
 
 <template>
   <div class="settings-page">
-    <!-- Header -->
-    <header class="settings-header no-drag">
+    <!-- Sidebar -->
+    <aside class="settings-sidebar">
       <button class="back-btn" @click="emit('close')">
-        <ArrowLeft :size="18" />
+        <ArrowLeft :size="16" stroke-width="2" />
+        <span>Back</span>
       </button>
-      <div class="header-text">
-        <h1>Models</h1>
-        <p>Choose the model that powers your agent</p>
-      </div>
-    </header>
 
-    <div class="settings-body">
-      <!-- Provider Toggle -->
-      <div class="provider-section">
-        <div class="provider-cards">
+      <div class="sidebar-section">
+        <div class="section-label">Settings</div>
+        <nav class="tab-nav">
           <button
-            :class="['provider-card', { active: provider === 'ollama-local' }]"
-            @click="setProvider('ollama-local')"
+            v-for="tab in tabs"
+            :key="tab.id"
+            :class="['tab-btn', { active: activeTab === tab.id }]"
+            @click="activeTab = tab.id"
           >
-            <HardDrive :size="20" class="provider-icon" />
-            <div class="provider-info">
-              <span class="provider-name">Local</span>
-              <span class="provider-desc">Runs on your machine via Ollama</span>
-            </div>
+            <component :is="tab.icon" :size="15" stroke-width="2" />
+            <span>{{ tab.label }}</span>
           </button>
-
-          <button
-            :class="['provider-card', { active: provider === 'ollama-cloud' }]"
-            @click="setProvider('ollama-cloud')"
-          >
-            <Cloud :size="20" class="provider-icon" />
-            <div class="provider-info">
-              <span class="provider-name">Cloud</span>
-              <span class="provider-desc">Hosted via Ollama Cloud</span>
-            </div>
-          </button>
-        </div>
-
-        <!-- API Key for cloud -->
-        <div v-if="provider === 'ollama-cloud'" class="api-key-section">
-          <label>API Key</label>
-          <input v-model="apiKey" type="password" placeholder="Enter your Ollama Cloud API key" />
-        </div>
+        </nav>
       </div>
+    </aside>
 
-      <!-- Search -->
-      <div class="search-section">
-        <Search :size="16" class="search-icon" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search models..."
-          class="search-input"
-        />
-      </div>
+    <!-- Content -->
+    <main class="settings-content">
+      <div class="scroll-area">
+        <!-- Models Tab -->
+        <template v-if="activeTab === 'models'">
+          <div class="page-header">
+            <h1>Agent Configuration</h1>
+            <p>Configure the LLM provider and model for Kraken.</p>
+          </div>
 
-      <!-- Model List -->
-      <div class="model-list">
-        <button
-          v-for="m in availableModels"
-          :key="m.id"
-          :class="['model-item', { selected: selectedModelId === m.id }]"
-          @click="selectModel(m.id)"
-        >
-          <div class="model-item-main">
-            <div class="model-item-header">
-              <Cpu :size="16" class="model-icon" />
-              <span class="model-name">{{ m.name }}</span>
-              <span class="model-size">{{ m.size }}</span>
-            </div>
-            <p class="model-desc">{{ m.description }}</p>
-            <div class="model-tags">
-              <span
-                v-for="tag in m.tags"
-                :key="tag"
-                :class="['tag', `tag-${tag}`]"
-              >{{ tag }}</span>
+          <!-- Provider -->
+          <div class="field-group">
+            <label class="field-label">Provider</label>
+            <div class="provider-row">
+              <button
+                :class="['provider-pill', { active: provider === 'ollama-local' }]"
+                @click="setProvider('ollama-local')"
+              >
+                <HardDrive :size="14" stroke-width="2" />
+                <span>Ollama (Local)</span>
+              </button>
+              <button
+                :class="['provider-pill', { active: provider === 'ollama-cloud' }]"
+                @click="setProvider('ollama-cloud')"
+              >
+                <Cloud :size="14" stroke-width="2" />
+                <span>Ollama (Cloud)</span>
+              </button>
             </div>
           </div>
-          <div v-if="selectedModelId === m.id" class="model-check">
-            <Check :size="18" />
-          </div>
-        </button>
 
-        <div v-if="availableModels.length === 0" class="empty-models">
-          No models found matching "{{ searchQuery }}"
-        </div>
+          <!-- API Key (cloud only) -->
+          <div class="field-group" v-if="provider === 'ollama-cloud'">
+            <label class="field-label">API Key</label>
+            <input v-model="apiKey" type="password" placeholder="Enter API Key" class="text-input" />
+          </div>
+
+          <!-- Model Search -->
+          <div class="field-group">
+            <label class="field-label">Model</label>
+            <div class="search-box">
+              <Search :size="14" stroke-width="2" class="search-icon" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search models..."
+                class="search-input"
+              />
+            </div>
+          </div>
+
+          <!-- Model List -->
+          <div class="model-list">
+            <button
+              v-for="m in availableModels"
+              :key="m.id"
+              :class="['model-row', { selected: selectedModelId === m.id }]"
+              @click="selectModel(m.id)"
+            >
+              <div class="model-row-content">
+                <div class="model-row-top">
+                  <span class="model-row-name">{{ m.name }}</span>
+                  <span class="model-row-size">{{ m.size }}</span>
+                </div>
+                <p class="model-row-desc">{{ m.description }}</p>
+                <div class="model-row-tags">
+                  <span
+                    v-for="tag in m.tags"
+                    :key="tag"
+                    :class="['tag', `tag-${tag}`]"
+                  >{{ tag }}</span>
+                </div>
+              </div>
+              <Check v-if="selectedModelId === m.id" :size="16" stroke-width="2" class="model-check" />
+            </button>
+
+            <div v-if="availableModels.length === 0" class="empty-models">
+              No models found matching "{{ searchQuery }}"
+            </div>
+          </div>
+        </template>
+
+        <!-- General Tab -->
+        <template v-else-if="activeTab === 'general'">
+          <div class="page-header">
+            <h1>General</h1>
+            <p>Basic application settings.</p>
+          </div>
+          <div class="empty-tab">No general settings yet.</div>
+        </template>
+
+        <!-- Customizations Tab -->
+        <template v-else-if="activeTab === 'customizations'">
+          <div class="page-header">
+            <h1>Customizations</h1>
+            <p>Customize the appearance and behavior.</p>
+          </div>
+          <div class="empty-tab">No customization options yet.</div>
+        </template>
       </div>
 
       <!-- Footer -->
       <div class="settings-footer">
         <div v-if="setupError" class="error-msg">{{ setupError }}</div>
         <button class="save-btn" @click="handleSave">
-          {{ isSetup ? 'Save' : 'Initialize Agent' }}
+          {{ isSetup ? 'Save Configuration' : 'Initialize Agent' }}
         </button>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -185,36 +226,39 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   background-color: var(--bg-dark);
   z-index: 100;
   display: flex;
-  flex-direction: column;
-  animation: pageIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pageIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes pageIn {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-/* Header */
-.settings-header {
+/* Sidebar */
+.settings-sidebar {
+  width: 220px;
+  background-color: var(--bg-panel);
+  padding: 20px 12px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border-color);
+  flex-direction: column;
+  gap: 24px;
   flex-shrink: 0;
 }
 
 .back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: transparent;
   border: none;
   color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.2s;
+  text-align: left;
+  width: 100%;
 }
 
 .back-btn:hover {
@@ -222,137 +266,168 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   color: var(--text-main);
 }
 
-.header-text h1 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-main);
-}
-
-.header-text p {
-  font-size: 0.85rem;
-  margin: 2px 0 0 0;
-  color: var(--text-muted);
-}
-
-/* Body */
-.settings-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  max-width: 720px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-/* Provider Cards */
-.provider-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.provider-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.provider-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.provider-card:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.provider-card.active {
-  background-color: rgba(147, 116, 190, 0.08);
-  border-color: rgba(147, 116, 190, 0.3);
-}
-
-.provider-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.provider-card.active .provider-icon {
-  color: var(--accent-purple);
-}
-
-.provider-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.provider-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.provider-desc {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* API Key */
-.api-key-section {
+.sidebar-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.api-key-section label {
-  font-size: 0.85rem;
+.section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-muted-dark);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+
+.tab-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
   color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
   font-weight: 500;
 }
 
-.api-key-section input {
+/* Content */
+.settings-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px 48px 24px;
+  max-width: 640px;
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-main);
+}
+
+.page-header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Fields */
+.field-group {
+  margin-bottom: 24px;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.text-input {
   width: 100%;
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-main);
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-radius: 8px;
   outline: none;
   font-size: 0.9rem;
   transition: all 0.2s;
 }
 
-.api-key-section input:focus {
-  border-color: rgba(147, 116, 190, 0.3);
+.text-input:focus {
+  border-color: rgba(255, 255, 255, 0.15);
   background-color: rgba(255, 255, 255, 0.04);
 }
 
+.text-input::placeholder {
+  color: var(--text-muted-dark);
+}
+
+/* Provider pills */
+.provider-row {
+  display: flex;
+  gap: 8px;
+}
+
+.provider-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.provider-pill:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.provider-pill.active {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+
 /* Search */
-.search-section {
+.search-box {
   display: flex;
   align-items: center;
   gap: 10px;
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 0 14px;
+  border-radius: 8px;
+  padding: 0 12px;
   transition: all 0.2s;
 }
 
-.search-section:focus-within {
+.search-box:focus-within {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -367,7 +442,7 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   border: none;
   outline: none;
   color: var(--text-main);
-  padding: 12px 0;
+  padding: 10px 0;
   font-size: 0.9rem;
 }
 
@@ -375,119 +450,88 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   color: var(--text-muted-dark);
 }
 
-/* Model List */
+/* Model list */
 .model-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.model-item {
+.model-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  padding: 12px 14px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
   text-align: left;
+  width: 100%;
 }
 
-.model-item:hover {
+.model-row:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.model-row.selected {
   background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
-.model-item.selected {
-  background-color: rgba(147, 116, 190, 0.06);
-  border-color: rgba(147, 116, 190, 0.25);
-}
-
-.model-item-main {
+.model-row-content {
   flex: 1;
   min-width: 0;
 }
 
-.model-item-header {
+.model-row-top {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
-.model-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.model-item.selected .model-icon {
-  color: var(--accent-purple);
-}
-
-.model-name {
-  font-size: 0.9rem;
+.model-row-name {
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--text-main);
 }
 
-.model-size {
-  font-size: 0.75rem;
+.model-row-size {
+  font-size: 0.72rem;
   color: var(--text-muted-dark);
-  background-color: rgba(255, 255, 255, 0.04);
-  padding: 2px 8px;
-  border-radius: 4px;
 }
 
-.model-desc {
-  font-size: 0.82rem;
+.model-row-desc {
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   line-height: 1.4;
 }
 
-.model-tags {
+.model-row-tags {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
 .tag {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 2px 8px;
-  border-radius: 4px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 3px;
   font-weight: 500;
   background-color: rgba(255, 255, 255, 0.04);
   color: var(--text-muted-dark);
 }
 
-.tag-recommended {
-  background-color: rgba(8, 195, 113, 0.1);
-  color: var(--accent-green);
-}
-
-.tag-coding {
-  background-color: rgba(147, 116, 190, 0.1);
-  color: var(--accent-purple);
-}
-
-.tag-fast {
-  background-color: rgba(255, 184, 77, 0.1);
-  color: #FFB84D;
-}
-
-.tag-reasoning {
-  background-color: rgba(94, 234, 212, 0.1);
-  color: #5EEAD4;
-}
-
-.tag-general {
-  background-color: rgba(255, 255, 255, 0.04);
-  color: var(--text-muted);
-}
+.tag-recommended { background-color: rgba(8, 195, 113, 0.08); color: var(--accent-green); }
+.tag-coding { background-color: rgba(147, 116, 190, 0.08); color: var(--accent-purple); }
+.tag-fast { background-color: rgba(255, 184, 77, 0.08); color: #FFB84D; }
+.tag-reasoning { background-color: rgba(94, 234, 212, 0.08); color: #5EEAD4; }
+.tag-general { background-color: rgba(255, 255, 255, 0.04); color: var(--text-muted); }
 
 .model-check {
   color: var(--accent-purple);
@@ -499,8 +543,14 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
 .empty-models {
   text-align: center;
   color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 32px 0;
+}
+
+.empty-tab {
+  color: var(--text-muted);
   font-size: 0.9rem;
-  padding: 40px 0;
+  padding: 20px 0;
 }
 
 /* Footer */
@@ -509,9 +559,9 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  padding-top: 20px;
+  padding: 16px 48px;
   border-top: 1px solid var(--border-color);
-  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .error-msg {
@@ -523,23 +573,15 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   background-color: var(--text-main);
   color: var(--bg-dark);
   border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
+  padding: 8px 20px;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .save-btn:hover {
   background-color: #fff;
-  transform: translateY(-1px);
-}
-
-.save-btn:active {
-  transform: translateY(0);
 }
 </style>
