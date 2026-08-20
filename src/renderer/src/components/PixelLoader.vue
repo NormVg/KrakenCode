@@ -20,6 +20,8 @@
 
 export type LoaderVariant =
   | 'thinking'
+  | 'streaming'
+  | 'tooling'
   | 'reading'
   | 'writing'
   | 'executing'
@@ -48,6 +50,10 @@ const props = withDefaults(defineProps<{
 const DELAYS: Record<LoaderVariant, number[]> = {
   // Center first, then corners — radiates from the center
   thinking:  [200, 0, 200, 0, 0,   0, 200, 0, 200],
+  // Diagonal cascade: top-left → center → bottom-right, then other diagonal
+  streaming: [0,   0, 300, 0, 150, 0, 300, 0, 0],
+  // Clockwise rotation: TL → TR → BR → BL, center anchored
+  tooling:   [0,   0, 150, 0, 0,   0, 450, 0, 300],
   // Left column, then center, then right column
   reading:   [0,   0, 400, 0, 200, 0, 0,   0, 400],
   // Bottom row, then center, then top row
@@ -63,6 +69,8 @@ const DELAYS: Record<LoaderVariant, number[]> = {
 /** Total animation duration per variant (ms) */
 const DURATION: Record<LoaderVariant, number> = {
   thinking:  1200,
+  streaming: 800,
+  tooling:   900,
   reading:   900,
   writing:   1000,
   executing: 700,
@@ -183,6 +191,43 @@ function durationFor(): string {
   40%  { opacity: 1;    transform: scale(1);   }
   60%  { opacity: 1;    transform: scale(1);   }
   100% { opacity: 0.1;  transform: scale(0.8); }
+}
+
+/* ── streaming: teal diagonal flow — text is being generated ───── */
+.pixel-loader--streaming .pixel-loader__square {
+  background: #5EEAD4;
+  animation-name: px-streaming;
+  animation-timing-function: ease;
+}
+.pixel-loader--streaming .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.35) 0%, transparent 70%);
+}
+@keyframes px-streaming {
+  0%   { opacity: 0.08; transform: translateX(-1px) scale(0.9); }
+  35%  { opacity: 1;    transform: translateX(0) scale(1);      }
+  65%  { opacity: 0.7;  transform: translateX(0.5px) scale(1);  }
+  100% { opacity: 0.08; transform: translateX(-1px) scale(0.9); }
+}
+
+/* ── tooling: amber clockwise spin — executing a tool ──────────── */
+.pixel-loader--tooling .pixel-loader__square {
+  background: #FFB84D;
+  animation-name: px-tooling;
+  animation-timing-function: ease-in-out;
+}
+.pixel-loader--tooling .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(255, 184, 77, 0.4) 0%, transparent 70%);
+  animation: px-bloom-tooling 0.9s ease-in-out infinite;
+}
+@keyframes px-tooling {
+  0%   { opacity: 0.08; transform: rotate(0deg) scale(0.85);   }
+  40%  { opacity: 1;    transform: rotate(0deg) scale(1.05);   }
+  60%  { opacity: 0.9;  transform: rotate(0deg) scale(1);      }
+  100% { opacity: 0.08; transform: rotate(0deg) scale(0.85);   }
+}
+@keyframes px-bloom-tooling {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.5; }
 }
 
 /* ── reading: blue row scan ────────────────────────────────────── */

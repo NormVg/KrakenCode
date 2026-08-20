@@ -21,6 +21,8 @@ const sessionStore = useSessionStore()
 
 const prompt = ref('')
 const isLoading = ref(false)
+/** Tracks what the agent is currently doing — drives PixelLoader variant */
+const loadPhase = ref<'thinking' | 'streaming' | 'tooling'>('thinking')
 const queuedMessages = ref<string[]>([])
 const chatHistoryRef = ref<HTMLElement | null>(null)
 
@@ -40,15 +42,18 @@ const processNextMessage = async () => {
 }
 
 /** Apply architecture-mermaid fences from the finished agent reply. */
-const applyArchitectureFromAgentReply = async () => {
+const applyArchitectureFromAgentReply = () => {
   const last = sessionStore.messages.at(-1)
   if (!last || last.role !== 'agent' || !last.content) return
 
   const { displayContent, mermaidSource, didUpdate } = extractArchitectureUpdate(last.content)
   if (!didUpdate || !mermaidSource) return
 
-  await workspaceStore.setArchitecture(mermaidSource)
-  await sessionStore.replaceMessageContent(last.id, displayContent)
+  const activeWs = workspaceStore.activeWorkspace
+  if (activeWs) {
+    workspaceStore.setArchitecture(mermaidSource)
+  }
+  sessionStore.replaceMessageContent(last.id, displayContent)
 }
 
 const executeMessage = async (text: string) => {
@@ -65,6 +70,7 @@ const executeMessage = async (text: string) => {
   scrollToBottom()
 
   isLoading.value = true
+  loadPhase.value = 'thinking'
   const agentMsg = await sessionStore.addMessage('agent', '', true)
   if (!agentMsg) return
 
@@ -80,6 +86,10 @@ const executeMessage = async (text: string) => {
     message: text,
     system,
     onChunk: (chunk) => {
+      // First chunk transitions from "thinking" to "streaming"
+      if (loadPhase.value === 'thinking') {
+        loadPhase.value = 'streaming'
+      }
       sessionStore.appendToMessage(agentMsg.id, chunk)
       scrollToBottom()
     },
@@ -87,11 +97,13 @@ const executeMessage = async (text: string) => {
       sessionStore.finalizeMessage(agentMsg.id)
       applyArchitectureFromAgentReply()
       isLoading.value = false
+      loadPhase.value = 'thinking'
       processNextMessage()
     },
     onError: (err) => {
       sessionStore.appendErrorToMessage(agentMsg.id, err)
       isLoading.value = false
+      loadPhase.value = 'thinking'
       processNextMessage()
     }
   })
@@ -144,8 +156,8 @@ const removeQueuedMessage = (index: number) => {
             :is-streaming="msg.isStreaming"
           />
           <div v-if="isLoading" class="message agent loading-indicator">
-            <PixelLoader variant="thinking" :size="5" />
-            <span class="loading-label">Thinking...</span>
+            <PixelLoader :variant="loadPhase" :size="5" />
+            <span class="loading-label">{{ loadPhase === 'thinking' ? 'Thinking...' : loadPhase === 'streaming' ? 'Writing...' : 'Using tools...' }}</span>
           </div>
         </template>
       </div>
@@ -274,10 +286,15 @@ const removeQueuedMessage = (index: number) => {
 }
 
 .loading-label {
-  color: #B197D9;
   font-size: 0.82em;
   font-weight: 400;
   letter-spacing: 0.04em;
   opacity: 0.8;
+  transition: color 0.3s ease;
 }
+
+/* Phase-specific label colors — match the PixelLoader variant tones */
+.loading-indicator:has(.pixel-loader--thinking) .loading-label { color: #B197D9; }
+.loading-indicator:has(.pixel-loader--streaming) .loading-label { color: #5EEAD4; }
+.loading-indicator:has(.pixel-loader--tooling) .loading-label { color: #FFB84D; }
 </style>

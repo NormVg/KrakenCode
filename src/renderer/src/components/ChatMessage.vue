@@ -8,6 +8,10 @@ const props = defineProps<{
   content: string
   isStreaming?: boolean
 }>()
+
+const copyToClipboard = () => {
+  navigator.clipboard.writeText(props.content)
+}
 </script>
 
 <template>
@@ -18,7 +22,7 @@ const props = defineProps<{
         {{ content }}
       </div>
       
-      <button class="copy-btn" title="Copy" @click="navigator.clipboard.writeText(content)">
+      <button class="copy-btn" title="Copy" @click="copyToClipboard">
         <Copy :size="13" />
       </button>
     </div>
@@ -54,7 +58,7 @@ const props = defineProps<{
         />
       </div>
       
-      <button class="copy-btn" title="Copy" @click="navigator.clipboard.writeText(content)">
+      <button class="copy-btn" title="Copy" @click="copyToClipboard">
         <Copy :size="13" />
       </button>
     </div>
