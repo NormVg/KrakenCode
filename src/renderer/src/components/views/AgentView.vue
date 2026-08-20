@@ -144,7 +144,7 @@ const removeQueuedMessage = (index: number) => {
             :is-streaming="msg.isStreaming"
           />
           <div v-if="isLoading" class="message agent loading-indicator">
-            <PixelLoader variant="thinking" :size="4" />
+            <PixelLoader variant="thinking" :size="5" />
             <span class="loading-label">Thinking...</span>
           </div>
         </template>
@@ -269,14 +269,15 @@ const removeQueuedMessage = (index: number) => {
   padding: 0 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-height: 24px;
 }
 
 .loading-label {
-  color: var(--text-muted);
-  font-size: 0.85em;
+  color: #B197D9;
+  font-size: 0.82em;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
 }
 </style>

@@ -2,6 +2,9 @@
 /**
  * PixelLoader — universal 3x3 grid loader.
  *
+ * The center square is intentionally omitted — negative space that prevents
+ * the grid from reading as a heavy block and adds intentionality.
+ *
  * Each variant has a distinct color and animation pattern so the user
  * can tell what kind of work is happening at a glance:
  *
@@ -14,7 +17,7 @@
  *
  * Usage:
  *   <PixelLoader variant="thinking" />
- *   <PixelLoader variant="reading" :size="4" />
+ *   <PixelLoader variant="reading" :size="5" />
  */
 
 export type LoaderVariant =
@@ -31,19 +34,19 @@ const props = withDefaults(defineProps<{
   size?: number
 }>(), {
   variant: 'thinking',
-  size: 3
+  size: 5
 })
 
 /**
  * Per-square animation delay (ms) for each variant.
- * Index 0-8 maps to grid positions:
+ * Index 0-7 maps to grid positions (center index 4 is omitted):
  *
  *   0 1 2
- *   3 4 5
+ *   3   5
  *   6 7 8
  */
 const DELAYS: Record<LoaderVariant, number[]> = {
-  // Center first, then diamond, then corners — like a brain pulsing
+  // Diamond edges first, then corners — radiates from the empty center
   thinking:  [300, 150, 300, 150, 0,   150, 300, 150, 300],
   // Row-by-row, left to right — like scanning text
   reading:   [0,   100, 200, 300, 400, 500, 600, 700, 800],
@@ -67,7 +70,8 @@ const DURATION: Record<LoaderVariant, number> = {
   idle:      2500
 }
 
-const squares = Array.from({ length: 9 }, (_, i) => i)
+// 8 squares — center (index 4) is omitted for negative space
+const squares = [0, 1, 2, 3, 5, 6, 7, 8]
 
 function delayFor(index: number): string {
   return `${DELAYS[props.variant][index]}ms`
@@ -84,124 +88,187 @@ function durationFor(): string {
     :class="`pixel-loader--${variant}`"
     :style="{
       '--sq-size': `${size}px`,
-      '--sq-gap': `${Math.max(1, Math.round(size * 0.6))}px`,
-      '--anim-duration': durationFor()
+      '--sq-gap': `${Math.max(2, Math.round(size * 0.5))}px`
     }"
     role="status"
     :aria-label="`Loading: ${variant}`"
   >
-    <div
-      v-for="i in squares"
-      :key="i"
-      class="pixel-loader__square"
-      :style="{ '--anim-delay': delayFor(i) }"
-    />
+    <!-- Radial bloom layer behind the squares -->
+    <div class="pixel-loader__bloom" />
+    <!-- 3x3 grid with center square omitted -->
+    <div class="pixel-loader__grid">
+      <div
+        v-for="i in squares"
+        :key="i"
+        class="pixel-loader__square"
+        :style="{
+          '--anim-delay': delayFor(i),
+          '--anim-duration': durationFor()
+        }"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .pixel-loader {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  contain: layout style;
+}
+
+/* ── Radial bloom: soft glow radiating from center ────────────── */
+.pixel-loader__bloom {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: px-bloom 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes px-bloom {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.55; }
+}
+
+/* ── Grid container ───────────────────────────────────────────── */
+.pixel-loader__grid {
   display: grid;
   grid-template-columns: repeat(3, var(--sq-size));
   grid-template-rows: repeat(3, var(--sq-size));
   gap: var(--sq-gap);
-  /* No contain:strict here — it clips the box-shadow bloom */
-  contain: layout style;
+  position: relative;
+  z-index: 1;
 }
 
+/* ── Individual squares ────────────────────────────────────────── */
 .pixel-loader__square {
   width: var(--sq-size);
   height: var(--sq-size);
   border-radius: 1px;
-  opacity: 0.12;
+  opacity: 0.1;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
   animation-duration: var(--anim-duration);
   animation-delay: var(--anim-delay);
-  will-change: opacity, transform, filter;
+  will-change: opacity, transform;
 }
 
-/* ── Bloom: each square glows with its variant color ──────────── */
-/* The glow intensity is driven by the keyframe opacity, so the bloom
-   breathes in sync with the square. */
+/* ════════════════════════════════════════════════════════════════
+   VARIANTS — each has its own color, bloom color, and keyframes
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── thinking: purple diamond pulse ────────────────────────────── */
 .pixel-loader--thinking .pixel-loader__square {
-  background: #9374BE;
+  background: #B197D9;
   animation-name: px-thinking;
 }
+.pixel-loader--thinking .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(147, 116, 190, 0.45) 0%, transparent 70%);
+}
 @keyframes px-thinking {
-  0%   { opacity: 0.12; transform: scale(0.8); box-shadow: 0 0 3px 1px rgba(147, 116, 190, 0.2); }
-  40%  { opacity: 1;     transform: scale(1);   box-shadow: 0 0 8px 4px rgba(147, 116, 190, 0.8); }
-  60%  { opacity: 1;     transform: scale(1);   box-shadow: 0 0 8px 4px rgba(147, 116, 190, 0.8); }
-  100% { opacity: 0.12; transform: scale(0.8); box-shadow: 0 0 3px 1px rgba(147, 116, 190, 0.2); }
+  0%   { opacity: 0.1;  transform: scale(0.8); }
+  40%  { opacity: 1;    transform: scale(1);   }
+  60%  { opacity: 1;    transform: scale(1);   }
+  100% { opacity: 0.1;  transform: scale(0.8); }
 }
 
-/* ── reading: blue row scan ──────────────────────────────────── */
+/* ── reading: blue row scan ────────────────────────────────────── */
 .pixel-loader--reading .pixel-loader__square {
-  background: #5B8DEF;
+  background: #7BA5F5;
   animation-name: px-reading;
   animation-timing-function: ease;
 }
+.pixel-loader--reading .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(91, 141, 239, 0.4) 0%, transparent 70%);
+}
 @keyframes px-reading {
-  0%   { opacity: 0.1;  box-shadow: 0 0 3px 1px rgba(91, 141, 239, 0.15); }
-  30%  { opacity: 1;    box-shadow: 0 0 8px 4px rgba(91, 141, 239, 0.7);  }
-  60%  { opacity: 0.3;  box-shadow: 0 0 4px 2px rgba(91, 141, 239, 0.3);  }
-  100% { opacity: 0.1;  box-shadow: 0 0 3px 1px rgba(91, 141, 239, 0.15); }
+  0%   { opacity: 0.1; }
+  30%  { opacity: 1;   }
+  60%  { opacity: 0.3; }
+  100% { opacity: 0.1; }
 }
 
-/* ── writing: green bottom-up fill ───────────────────────────── */
+/* ── writing: green bottom-up fill ─────────────────────────────── */
 .pixel-loader--writing .pixel-loader__square {
-  background: #08C371;
+  background: #2DD88C;
   animation-name: px-writing;
 }
+.pixel-loader--writing .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(8, 195, 113, 0.4) 0%, transparent 70%);
+}
 @keyframes px-writing {
-  0%   { opacity: 0.08; transform: scaleY(0.6); box-shadow: 0 0 3px 1px rgba(8, 195, 113, 0.15); }
-  35%  { opacity: 1;     transform: scaleY(1);   box-shadow: 0 0 8px 4px rgba(8, 195, 113, 0.7);  }
-  65%  { opacity: 0.8;   transform: scaleY(1);   box-shadow: 0 0 5px 2px rgba(8, 195, 113, 0.4);  }
-  100% { opacity: 0.08; transform: scaleY(0.6); box-shadow: 0 0 3px 1px rgba(8, 195, 113, 0.15); }
+  0%   { opacity: 0.08; transform: scaleY(0.6); }
+  35%  { opacity: 1;    transform: scaleY(1);   }
+  65%  { opacity: 0.8;  transform: scaleY(1);   }
+  100% { opacity: 0.08; transform: scaleY(0.6); }
 }
 
-/* ── executing: amber cascade waterfall ──────────────────────── */
+/* ── executing: amber cascade waterfall ────────────────────────── */
 .pixel-loader--executing .pixel-loader__square {
-  background: #F5A623;
+  background: #FFB84D;
   animation-name: px-executing;
   animation-timing-function: linear;
 }
+.pixel-loader--executing .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.4) 0%, transparent 70%);
+}
 @keyframes px-executing {
-  0%   { opacity: 0.1;  transform: translateY(-1.5px); box-shadow: 0 0 3px 1px rgba(245, 166, 35, 0.15); }
-  25%  { opacity: 1;    transform: translateY(0);       box-shadow: 0 0 8px 4px rgba(245, 166, 35, 0.7);  }
-  75%  { opacity: 0.5;  transform: translateY(1.5px);   box-shadow: 0 0 4px 2px rgba(245, 166, 35, 0.3);  }
-  100% { opacity: 0.1;  transform: translateY(-1.5px); box-shadow: 0 0 3px 1px rgba(245, 166, 35, 0.15); }
+  0%   { opacity: 0.1;  transform: translateY(-1.5px); }
+  25%  { opacity: 1;    transform: translateY(0);       }
+  75%  { opacity: 0.5;  transform: translateY(1.5px);   }
+  100% { opacity: 0.1;  transform: translateY(-1.5px); }
 }
 
-/* ── searching: cyan sonar ripple ────────────────────────────── */
+/* ── searching: cyan sonar ripple ──────────────────────────────── */
 .pixel-loader--searching .pixel-loader__square {
-  background: #22D3EE;
+  background: #4DE5F7;
   animation-name: px-searching;
   animation-timing-function: ease-out;
 }
+.pixel-loader--searching .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.45) 0%, transparent 70%);
+  animation: px-bloom-searching 1.4s ease-out infinite;
+}
 @keyframes px-searching {
-  0%   { opacity: 0.08; transform: scale(0.5); box-shadow: 0 0 3px 1px rgba(34, 211, 238, 0.15); }
-  30%  { opacity: 1;    transform: scale(1.1); box-shadow: 0 0 10px 5px rgba(34, 211, 238, 0.8);  }
-  100% { opacity: 0.08; transform: scale(0.5); box-shadow: 0 0 3px 1px rgba(34, 211, 238, 0.15); }
+  0%   { opacity: 0.08; transform: scale(0.5); }
+  30%  { opacity: 1;    transform: scale(1.1); }
+  100% { opacity: 0.08; transform: scale(0.5); }
+}
+@keyframes px-bloom-searching {
+  0%   { opacity: 0.15; transform: scale(0.7); }
+  50%  { opacity: 0.6;  transform: scale(1.1); }
+  100% { opacity: 0.15; transform: scale(0.7); }
 }
 
-/* ── idle: muted slow breathe ────────────────────────────────── */
+/* ── idle: muted slow breathe ──────────────────────────────────── */
 .pixel-loader--idle .pixel-loader__square {
-  background: #71738E;
+  background: #8B8DAB;
   animation-name: px-idle;
 }
+.pixel-loader--idle .pixel-loader__bloom {
+  background: radial-gradient(circle, rgba(113, 115, 142, 0.25) 0%, transparent 70%);
+  animation: px-bloom 2.5s ease-in-out infinite;
+}
 @keyframes px-idle {
-  0%   { opacity: 0.08; box-shadow: 0 0 2px 1px rgba(113, 115, 142, 0.1);  }
-  50%  { opacity: 0.35; box-shadow: 0 0 5px 2px rgba(113, 115, 142, 0.3);  }
-  100% { opacity: 0.08; box-shadow: 0 0 2px 1px rgba(113, 115, 142, 0.1);  }
+  0%   { opacity: 0.08; }
+  50%  { opacity: 0.35; }
+  100% { opacity: 0.08; }
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .pixel-loader__square {
     animation: none;
+    opacity: 0.35;
+  }
+  .pixel-loader__bloom {
+    animation: none;
     opacity: 0.3;
-    box-shadow: 0 0 3px 1px currentColor;
   }
 }
 </style>
