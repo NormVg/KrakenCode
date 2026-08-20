@@ -2,11 +2,9 @@
 /**
  * PixelLoader — universal 3x3 grid loader.
  *
- * The center square is intentionally omitted — negative space that prevents
- * the grid from reading as a heavy block and adds intentionality.
- *
- * Each variant has a distinct color and animation pattern so the user
- * can tell what kind of work is happening at a glance:
+ * Displays an X pattern (corners + center) with intentional negative space
+ * at edge-center positions. Each variant has a distinct color and animation
+ * pattern so the user can tell what kind of work is happening at a glance:
  *
  *   thinking  — purple, center-out diamond pulse
  *   reading   — blue, row-by-row left-to-right scan
@@ -39,11 +37,13 @@ const props = withDefaults(defineProps<{
 
 /**
  * Per-square animation delay (ms) for each variant.
- * Index 0-7 maps to grid positions (center index 4):
+ * Indices map to a 3x3 grid:
  *
  *   0 1 2
  *   3 4 5
  *   6 7 8
+ *
+ * Only indices 0, 2, 4, 6, 8 (X pattern) are rendered visible.
  */
 const DELAYS: Record<LoaderVariant, number[]> = {
   // Center first, then corners — radiates from the center
@@ -70,8 +70,9 @@ const DURATION: Record<LoaderVariant, number> = {
   idle:      2500
 }
 
-// 5 squares — X pattern (corners + center)
-const squares = [0, 2, 4, 6, 8]
+// All 9 grid positions; only corners + center (X pattern) are visible
+const VISIBLE = new Set([0, 2, 4, 6, 8])
+const allCells = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 function delayFor(index: number): string {
   return `${DELAYS[props.variant][index]}ms`
@@ -88,19 +89,20 @@ function durationFor(): string {
     :class="`pixel-loader--${variant}`"
     :style="{
       '--sq-size': `${size}px`,
-      '--sq-gap': `${Math.max(2, Math.round(size * 0.5))}px`
+      '--sq-gap': `${Math.max(1, Math.round(size * 0.25))}px`
     }"
     role="status"
     :aria-label="`Loading: ${variant}`"
   >
     <!-- Radial bloom layer behind the squares -->
     <div class="pixel-loader__bloom" />
-    <!-- 3x3 grid with center square omitted -->
+    <!-- 3x3 grid — only X-pattern cells are visible -->
     <div class="pixel-loader__grid">
       <div
-        v-for="i in squares"
+        v-for="i in allCells"
         :key="i"
         class="pixel-loader__square"
+        :class="{ 'pixel-loader__square--hidden': !VISIBLE.has(i) }"
         :style="{
           '--anim-delay': delayFor(i),
           '--anim-duration': durationFor()
@@ -149,13 +151,19 @@ function durationFor(): string {
 .pixel-loader__square {
   width: var(--sq-size);
   height: var(--sq-size);
-  border-radius: 2px;
+  border-radius: 0;
   opacity: 0.1;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
   animation-duration: var(--anim-duration);
   animation-delay: var(--anim-delay);
   will-change: opacity, transform;
+}
+
+/* Hide non-X-pattern cells (edge centers: indices 1, 3, 5, 7) */
+.pixel-loader__square--hidden {
+  visibility: hidden;
+  animation: none;
 }
 
 /* ════════════════════════════════════════════════════════════════
