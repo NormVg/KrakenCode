@@ -11,6 +11,7 @@ const emit = defineEmits(['open-settings'])
 const workspaceStore = useWorkspaceStore()
 const sessionStore = useSessionStore()
 const { workspaces, activeWorkspaceId, activeSessionId } = storeToRefs(workspaceStore)
+const { loadingSessionId } = storeToRefs(sessionStore)
 
 const activeMenuId = ref<string | null>(null)
 const editingChatId = ref<string | null>(null)
@@ -120,6 +121,9 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               :class="{ 'active': activeSessionId === item.id }"
               @click="sessionStore.selectSession(item.id)"
             >
+              <!-- Active indicator bar -->
+              <div class="active-bar" v-if="activeSessionId === item.id"></div>
+
               <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
                 <MessageSquare :size="14" />
               </div>
@@ -137,9 +141,13 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                   />
                 </div>
                 <template v-else>
-                  <span class="item-title">{{ item.title || 'New Chat' }}</span>
+                  <span class="item-title" :class="{ 'is-working': loadingSessionId === item.id }">{{ item.title || 'New Chat' }}</span>
                   <div class="item-meta">
-                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ formatRelativeTime(item.updatedAt) }}</span>
+                    <!-- Working indicator: mini pixel grid for the session the agent is actively working in -->
+                    <div v-if="loadingSessionId === item.id" class="working-indicator">
+                      <span class="mini-pixel" v-for="i in 9" :key="i" :style="{ animationDelay: `${(i - 1) * 0.08}s` }"></span>
+                    </div>
+                    <span class="item-time" :class="{'hidden': activeMenuId === item.id || loadingSessionId === item.id}">{{ formatRelativeTime(item.updatedAt) }}</span>
                     <div class="chat-menu">
                       <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
                         <MoreHorizontal :size="14" />
@@ -338,11 +346,12 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px 8px 26px; /* Reduced left indent slightly */
+  padding: 8px 10px 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin: 0; /* Removed horizontal margin to use full width */
+  margin: 0;
+  position: relative;
 }
 
 .project-item:hover {
@@ -352,6 +361,50 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 .project-item.active {
   background-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Active session indicator — floating pill */
+.active-bar {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #B197D9, #5EEAD4);
+}
+
+/* Working session indicator — mini 3x3 pixel grid */
+.working-indicator {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1px;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.mini-pixel {
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: #5EEAD4;
+  opacity: 0.15;
+  animation: mini-pixel-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mini-pixel-pulse {
+  0% { opacity: 0.15; }
+  40% { opacity: 1; background: #5EEAD4; }
+  60% { opacity: 1; background: #B197D9; }
+  100% { opacity: 0.15; }
+}
+
+/* Dim the title slightly when working to draw attention to the indicator */
+.item-title.is-working {
+  color: #E2E8F0;
 }
 
 .item-title {

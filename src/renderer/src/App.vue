@@ -98,9 +98,6 @@ onMounted(async () => {
 async function startEveServerIfReady(): Promise<void> {
   if (!isSetup.value || !workspaceStore.activeWorkspace) return
 
-  const status = await window.api.eve.getStatus()
-  if (status.running) return
-
   try {
     await window.api.eve.start({
       workspacePath: workspaceStore.activeWorkspace.path,

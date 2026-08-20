@@ -10,7 +10,7 @@ function getModel() {
   if (provider === 'ollama-cloud') {
     const apiKey = process.env.KRAKEN_API_KEY || process.env.OLLAMA_API_KEY
     const ollama = createOllama({
-      baseURL: 'https://ollama.com',
+      baseURL: 'https://api.ollama.com',
       headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined
     })
     return ollama(modelName)

@@ -89,10 +89,54 @@ const statusColor = computed(() => {
 // Truncate input for preview
 const inputPreview = computed(() => {
   if (!props.tool.input) return ''
+  // For run_command, show the command string directly
+  if (props.tool.toolName.includes('run_command') || props.tool.toolName.includes('bash')) {
+    try {
+      const parsed = typeof props.tool.input === 'string' ? JSON.parse(props.tool.input) : props.tool.input
+      if (parsed.command) {
+        const cmd = parsed.command as string
+        return cmd.length > 60 ? cmd.substring(0, 60) + '...' : cmd
+      }
+    } catch {
+      // fall through to default
+    }
+  }
   const str = typeof props.tool.input === 'string' ? props.tool.input : JSON.stringify(props.tool.input, null, 2)
   const firstLine = str.split('\n')[0]
   return firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine
 })
+
+// For run_command, parse the JSON input to extract the command string
+const parsedCommand = computed(() => {
+  if (!props.tool.toolName.includes('run_command') && !props.tool.toolName.includes('bash')) return null
+  if (!props.tool.input) return null
+  try {
+    const parsed = typeof props.tool.input === 'string' ? JSON.parse(props.tool.input) : props.tool.input
+    return parsed.command ?? null
+  } catch {
+    return null
+  }
+})
+
+// For run_command, parse the JSON output to extract stdout/stderr/exitCode
+const parsedOutput = computed(() => {
+  if (!props.tool.toolName.includes('run_command') && !props.tool.toolName.includes('bash')) return null
+  if (!props.tool.output) return null
+  try {
+    const parsed = typeof props.tool.output === 'string' ? JSON.parse(props.tool.output) : props.tool.output
+    return {
+      stdout: parsed.stdout ?? '',
+      stderr: parsed.stderr ?? '',
+      exitCode: parsed.exitCode ?? 1,
+      output: parsed.output ?? ''
+    }
+  } catch {
+    return null
+  }
+})
+
+// Whether this tool call is a terminal command
+const isTerminalCommand = computed(() => parsedCommand.value !== null)
 </script>
 
 <template>
@@ -124,20 +168,42 @@ const inputPreview = computed(() => {
 
     <Transition name="expand">
       <div v-if="isExpanded" class="tool-details">
-        <div v-if="tool.input" class="detail-section">
-          <div class="detail-label">Input</div>
-          <pre class="detail-content">{{ typeof tool.input === 'string' ? tool.input : JSON.stringify(tool.input, null, 2) }}</pre>
-        </div>
-        <div v-if="tool.output" class="detail-section">
-          <div class="detail-label">Output</div>
-          <pre class="detail-content">{{ typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2) }}</pre>
-        </div>
-        <div v-if="!tool.input && !tool.output && tool.status === 'running'" class="detail-empty">
-          Waiting for result...
-        </div>
-        <div v-if="!tool.input && !tool.output && tool.status !== 'running'" class="detail-empty">
-          No data captured for this tool call.
-        </div>
+        <!-- Terminal-style rendering for run_command -->
+        <template v-if="isTerminalCommand">
+          <div class="terminal-session">
+            <div class="terminal-line terminal-input-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-command">{{ parsedCommand }}</span>
+            </div>
+            <div v-if="tool.status === 'running'" class="terminal-running">
+              <span class="terminal-cursor">▊</span>
+            </div>
+            <template v-if="parsedOutput">
+              <pre v-if="parsedOutput.output" class="terminal-output">{{ parsedOutput.output }}</pre>
+              <div class="terminal-exit" :class="{ 'exit-error': parsedOutput.exitCode !== 0 }">
+                exit code: {{ parsedOutput.exitCode }}
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Default JSON rendering for other tools -->
+        <template v-else>
+          <div v-if="tool.input" class="detail-section">
+            <div class="detail-label">Input</div>
+            <pre class="detail-content">{{ typeof tool.input === 'string' ? tool.input : JSON.stringify(tool.input, null, 2) }}</pre>
+          </div>
+          <div v-if="tool.output" class="detail-section">
+            <div class="detail-label">Output</div>
+            <pre class="detail-content">{{ typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2) }}</pre>
+          </div>
+          <div v-if="!tool.input && !tool.output && tool.status === 'running'" class="detail-empty">
+            Waiting for result...
+          </div>
+          <div v-if="!tool.input && !tool.output && tool.status !== 'running'" class="detail-empty">
+            No data captured for this tool call.
+          </div>
+        </template>
       </div>
     </Transition>
   </div>
@@ -294,5 +360,71 @@ const inputPreview = computed(() => {
   font-size: 0.78rem;
   color: var(--text-muted-dark);
   padding: 4px 0;
+}
+
+/* Terminal session rendering for run_command */
+.terminal-session {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.terminal-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.terminal-prompt {
+  color: #FFB84D;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.terminal-command {
+  color: #E2E8F0;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.terminal-running {
+  padding: 2px 0;
+}
+
+.terminal-cursor {
+  color: #5EEAD4;
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.terminal-output {
+  margin: 0;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.terminal-exit {
+  font-size: 0.72rem;
+  color: var(--text-muted-dark);
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 2px;
+}
+
+.terminal-exit.exit-error {
+  color: #FF5F5F;
 }
 </style>

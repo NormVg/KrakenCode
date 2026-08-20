@@ -11,6 +11,8 @@ export const useSessionStore = defineStore('session', () => {
   const messages = ref<Message[]>([])
   const isSessionsLoaded = ref(false)
   const isMessagesLoaded = ref(false)
+  /** ID of the session currently being streamed to — null when idle */
+  const loadingSessionId = ref<string | null>(null)
 
   // ─── Computed ────────────────────────────────────────────────────────────────
 
@@ -177,6 +179,7 @@ export const useSessionStore = defineStore('session', () => {
     messages,
     isSessionsLoaded,
     isMessagesLoaded,
+    loadingSessionId,
     activeSession,
     sessionsByWorkspace,
     loadAllSessions,

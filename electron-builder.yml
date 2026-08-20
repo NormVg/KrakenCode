@@ -9,8 +9,26 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!agent/**'
+  - '!kraken-docs/**'
+  - '!grok-docs/**'
+  - '!project.md'
+  - '!AGENTS.md'
 asarUnpack:
   - resources/**
+extraResources:
+  - from: resources/agent
+    to: agent
+    filter:
+      - '**/*'
+  - from: resources/node_modules
+    to: node_modules
+    filter:
+      - '**/*'
+      - '!**/*.d.ts'
+      - '!**/*.map'
+      - '!**/docs/**'
+      - '!**/.DS_Store'
 win:
   executableName: Kraken
   icon: resources/apple-icon-squircle.png

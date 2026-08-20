@@ -63,14 +63,12 @@ watch(chatHistoryRef, (el) => {
  * the active workspace changes. This is a fallback for edge cases
  * (e.g. the server crashed or wasn't ready yet).
  */
-const ensureEveServer = async (): Promise<boolean> => {
+const ensureEveServer = async (): Promise<{ ok: boolean; error?: string }> => {
   const workspace = workspaceStore.activeWorkspace
-  if (!workspace) return false
+  if (!workspace) return { ok: false, error: 'No workspace is open.' }
 
-  const status = await window.api.eve.getStatus()
-  if (status.running) return true
-
-  // Server not running — try to start it
+  // Always call start — the main process will return the existing server
+  // if the workspace matches, or restart it if the workspace changed.
   const result = await window.api.eve.start({
     workspacePath: workspace.path,
     modelProvider: configStore.provider,
@@ -80,10 +78,10 @@ const ensureEveServer = async (): Promise<boolean> => {
 
   if (!result.success) {
     console.error('[agent] Failed to start eve server:', result.error)
-    return false
+    return { ok: false, error: result.error || 'Unknown server startup error.' }
   }
 
-  return true
+  return { ok: true }
 }
 
 onUnmounted(() => {
@@ -121,8 +119,10 @@ const executeMessage = async (text: string) => {
 
   // Ensure the eve server is running for this workspace
   const serverReady = await ensureEveServer()
-  if (!serverReady) {
-    console.error('[agent] Cannot send message — eve server is not running')
+  if (!serverReady.ok) {
+    // Show a user-visible error instead of silently dropping the message
+    await sessionStore.addMessage('user', text)
+    await sessionStore.addMessage('agent', `I couldn't start the agent server.\n\n**Reason:** ${serverReady.error}\n\nTry restarting the app, or check that Ollama is running.`)
     return
   }
 
@@ -134,6 +134,7 @@ const executeMessage = async (text: string) => {
   scrollToBottom()
 
   isLoading.value = true
+  sessionStore.loadingSessionId = sessionStore.activeSession?.id ?? null
   loadPhase.value = 'thinking'
   activeToolCount = 0
   const agentMsg = await sessionStore.addMessage('agent', '', true)
@@ -193,13 +194,27 @@ const executeMessage = async (text: string) => {
       sessionStore.finalizeMessage(agentMsg.id)
       applyArchitectureFromAgentReply()
       isLoading.value = false
+      sessionStore.loadingSessionId = null
       loadPhase.value = 'thinking'
       activeToolCount = 0
       processNextMessage()
     },
     onError: (err) => {
-      sessionStore.appendErrorToMessage(agentMsg.id, err)
+      // Format the error into a user-friendly message
+      let friendly = err
+      if (err.includes('lookup') && err.includes('no such host')) {
+        friendly = 'Cannot reach the model provider. If using Ollama Cloud, check your internet connection. If using Ollama Local, make sure it is running on port 11434.'
+      } else if (err.includes('ECONNREFUSED') || err.includes('connection refused')) {
+        friendly = 'Cannot connect to Ollama. Make sure it is running locally on port 11434, or check your cloud API key in Settings.'
+      } else if (err.includes('timed out') || err.includes('timeout')) {
+        friendly = 'The model took too long to respond. Try again, or use a smaller model.'
+      } else if (err.includes('not found') && err.includes('model')) {
+        friendly = `The model "${configStore.model}" was not found. Pull it first with \`ollama pull ${configStore.model}\`, or pick a different model in Settings.`
+      }
+
+      sessionStore.appendErrorToMessage(agentMsg.id, friendly)
       isLoading.value = false
+      sessionStore.loadingSessionId = null
       loadPhase.value = 'thinking'
       activeToolCount = 0
       // Mark any running tools as failed
@@ -235,6 +250,7 @@ const removeQueuedMessage = (index: number) => {
 const handleStop = async () => {
   await ChatService.cancelChat()
   isLoading.value = false
+  sessionStore.loadingSessionId = null
   loadPhase.value = 'thinking'
   activeToolCount = 0
   queuedMessages.value = []
@@ -271,7 +287,7 @@ const handleStop = async () => {
             :is-streaming="msg.isStreaming"
             :tool-calls="msg.role === 'agent' ? messageToolCalls[msg.id] : undefined"
           />
-          <div v-if="isLoading" class="message agent loading-indicator">
+          <div v-if="isLoading && sessionStore.loadingSessionId === sessionStore.activeSession?.id" class="message agent loading-indicator">
             <PixelLoader :variant="loadPhase" :size="5" />
             <span class="loading-label">{{ loadPhase === 'thinking' ? 'Thinking...' : loadPhase === 'streaming' ? 'Writing...' : 'Using tools...' }}</span>
           </div>
