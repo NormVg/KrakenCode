@@ -263,7 +263,7 @@ const removeQueuedMessage = (index: number) => {
   padding: 0 16px 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .welcome-screen {

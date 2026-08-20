@@ -70,7 +70,7 @@ const copyToClipboard = () => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -100,10 +100,10 @@ const copyToClipboard = () => {
   white-space: pre-wrap;
 }
 
-/* Copy Button — top-right overlay, visible on hover */
+/* Copy Button — bottom-right overlay, visible on hover */
 .copy-btn {
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
