@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Settings, FolderPlus, Folder, Plus, MessageSquare, MoreHorizontal, Edit2, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../stores/workspace.store'
@@ -26,19 +26,17 @@ onMounted(async () => {
   }
 })
 
-// When the active workspace changes, load messages for its active session
-watch(activeWorkspaceId, async (newId) => {
-  if (newId) {
-    const activeSession = workspaceStore.activeWorkspace?.activeSessionId
-    if (activeSession) {
-      await sessionStore.loadMessages(activeSession)
-    } else {
-      sessionStore.messages = []
-    }
+// Handle project folder click — switch workspace and load its active session
+const handleSelectProject = async (projectId: string) => {
+  if (activeWorkspaceId.value === projectId) return
+  await workspaceStore.selectWorkspace(projectId)
+  const activeSession = workspaceStore.activeWorkspace?.activeSessionId
+  if (activeSession) {
+    await sessionStore.loadMessages(activeSession)
   } else {
     sessionStore.messages = []
   }
-}, { immediate: true })
+}
 
 const handleAddChat = async (event: Event, projectId: string) => {
   event.stopPropagation()
@@ -103,7 +101,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
       <div class="projects-list">
         <div v-for="project in workspaces" :key="project.id" class="project-group">
           <!-- Project Folder -->
-          <div class="project-folder" :class="{ 'active-folder': activeWorkspaceId === project.id }" @click="workspaceStore.selectWorkspace(project.id)">
+          <div class="project-folder" :class="{ 'active-folder': activeWorkspaceId === project.id }" @click="handleSelectProject(project.id)">
             <div class="folder-title">
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
