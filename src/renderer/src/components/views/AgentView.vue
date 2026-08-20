@@ -45,8 +45,6 @@ watch(chatHistoryRef, (el) => {
     const innerContainer = el.querySelector('.chat-container')
     if (innerContainer) {
       resizeObserver = new ResizeObserver(() => {
-        // Only auto-scroll if we are currently streaming/loading
-        // This prevents fighting the user if they scroll up to read history
         if (isLoading.value) {
           scrollToBottom()
         }
@@ -255,6 +253,16 @@ const handleStop = async () => {
   activeToolCount = 0
   queuedMessages.value = []
 }
+
+// Watch for session changes to cancel any active chat and clear tool calls
+watch(() => workspaceStore.activeSessionId, async (newId, oldId) => {
+  if (oldId && newId !== oldId) {
+    if (isLoading.value) {
+      await handleStop()
+    }
+    messageToolCalls.value = {}
+  }
+})
 </script>
 
 <template>
