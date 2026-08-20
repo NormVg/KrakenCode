@@ -8,6 +8,7 @@ import { ChatService } from '../../services/chat.service'
 import ChatMessage from '../ChatMessage.vue'
 import ChatInput from '../ChatInput.vue'
 import QueuedMessages from '../QueuedMessages.vue'
+import PixelLoader from '../PixelLoader.vue'
 import {
   buildArchitectureSystemPrompt,
   extractArchitectureUpdate,
@@ -143,9 +144,7 @@ const removeQueuedMessage = (index: number) => {
             :is-streaming="msg.isStreaming"
           />
           <div v-if="isLoading" class="message agent loading-indicator">
-            <div class="typing-dots">
-              <span>.</span><span>.</span><span>.</span>
-            </div>
+            <PixelLoader variant="thinking" :size="4" />
           </div>
         </template>
       </div>
@@ -267,11 +266,8 @@ const removeQueuedMessage = (index: number) => {
 
 .loading-indicator {
   padding: 0 12px;
-}
-
-.typing-dots {
   display: flex;
-  gap: 4px;
-  color: var(--text-muted);
+  align-items: center;
+  min-height: 24px;
 }
 </style>
