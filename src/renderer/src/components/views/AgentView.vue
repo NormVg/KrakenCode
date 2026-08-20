@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from '../../stores/config.store'
 import { useWorkspaceStore } from '../../stores/workspace.store'
@@ -25,6 +25,7 @@ const isLoading = ref(false)
 const loadPhase = ref<'thinking' | 'streaming' | 'tooling'>('thinking')
 const queuedMessages = ref<string[]>([])
 const chatHistoryRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -32,6 +33,28 @@ const scrollToBottom = async () => {
     chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
   }
 }
+
+// Watch for DOM mount to attach the observer
+watch(chatHistoryRef, (el) => {
+  if (resizeObserver) resizeObserver.disconnect()
+  if (el) {
+    const innerContainer = el.querySelector('.chat-container')
+    if (innerContainer) {
+      resizeObserver = new ResizeObserver(() => {
+        // Only auto-scroll if we are currently streaming/loading
+        // This prevents fighting the user if they scroll up to read history
+        if (isLoading.value) {
+          scrollToBottom()
+        }
+      })
+      resizeObserver.observe(innerContainer)
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) resizeObserver.disconnect()
+})
 
 const processNextMessage = async () => {
   if (queuedMessages.value.length === 0 || isLoading.value || !isSetup.value) return
@@ -228,7 +251,6 @@ const removeQueuedMessage = (index: number) => {
 .chat-history {
   flex: 1;
   overflow-y: auto;
-  scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
   align-items: center;
