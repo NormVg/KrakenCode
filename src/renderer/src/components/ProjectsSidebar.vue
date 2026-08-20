@@ -124,8 +124,12 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               <!-- Active indicator bar -->
               <div class="active-bar" v-if="activeSessionId === item.id"></div>
 
-              <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex;">
-                <MessageSquare :size="14" />
+              <div class="item-icon" style="margin-right: 8px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px;">
+                <!-- Show indicator if working, else show standard chat icon -->
+                <div v-if="loadingSessionId === item.id" class="working-indicator">
+                  <span class="mini-pixel" v-for="i in 9" :key="i" :style="{ animationDelay: `${(i - 1) * 0.08}s` }"></span>
+                </div>
+                <MessageSquare v-else :size="14" />
               </div>
 
               <div class="item-content" style="flex: 1; display: flex; justify-content: space-between; align-items: center; min-width: 0;">
@@ -143,10 +147,6 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                 <template v-else>
                   <span class="item-title" :class="{ 'is-working': loadingSessionId === item.id }">{{ item.title || 'New Chat' }}</span>
                   <div class="item-meta">
-                    <!-- Working indicator: mini pixel grid for the session the agent is actively working in -->
-                    <div v-if="loadingSessionId === item.id" class="working-indicator">
-                      <span class="mini-pixel" v-for="i in 9" :key="i" :style="{ animationDelay: `${(i - 1) * 0.08}s` }"></span>
-                    </div>
                     <span class="item-time" :class="{'hidden': activeMenuId === item.id || loadingSessionId === item.id}">{{ formatRelativeTime(item.updatedAt) }}</span>
                     <div class="chat-menu">
                       <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
@@ -361,17 +361,17 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
 .project-item.active {
   background-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  border-radius: 0 6px 6px 0;
 }
 
-/* Active session indicator — flush left edge */
+/* Active session indicator — floating pill */
 .active-bar {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 3px;
-  border-radius: 0;
+  height: 14px;
+  border-radius: 3px;
   background: linear-gradient(180deg, #B197D9, #5EEAD4);
 }
 
