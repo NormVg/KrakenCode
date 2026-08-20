@@ -2,6 +2,7 @@ import { registerAgentIpc } from './agent.ipc'
 import { registerPtyIpc } from './pty.ipc'
 import { registerFsIpc } from './fs.ipc'
 import { registerDatabaseIpc } from './database.ipc'
+import { registerEveIpc } from './eve.ipc'
 
 /**
  * Register all IPC handlers.
@@ -12,5 +13,6 @@ export function registerAllIpc(): void {
   registerPtyIpc()
   registerFsIpc()
   registerDatabaseIpc()
+  registerEveIpc()
   console.log('[ipc] All handlers registered')
 }

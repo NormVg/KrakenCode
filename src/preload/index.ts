@@ -196,6 +196,23 @@ const api = {
     minimize: (): void => ipcRenderer.send(IPC.WINDOW_MINIMIZE),
     maximize: (): void => ipcRenderer.send(IPC.WINDOW_MAXIMIZE),
     close: (): void => ipcRenderer.send(IPC.WINDOW_CLOSE)
+  },
+
+  // ─── Eve Agent Server ───────────────────────────────────────────
+  eve: {
+    start: (opts: {
+      workspacePath: string
+      modelProvider: string
+      modelName: string
+      apiKey?: string
+    }): Promise<{ success: boolean; url?: string; port?: number; error?: string }> =>
+      ipcRenderer.invoke(IPC.EVE_START, opts),
+
+    stop: (): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.EVE_STOP),
+
+    getStatus: (): Promise<{ running: boolean; url: string | null; port: number | null }> =>
+      ipcRenderer.invoke(IPC.EVE_GET_STATUS)
   }
 }
 

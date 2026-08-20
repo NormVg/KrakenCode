@@ -5,6 +5,7 @@ import icon from '../../resources/apple-icon-squircle.png?asset'
 import { initDatabase, closeDatabase } from './database/connection'
 import { registerAllIpc } from './ipc'
 import { ptyService } from './services/pty.service'
+import { closeEveServer } from './eve/eve-server.service'
 import { IPC } from '../shared/constants/ipc-channels'
 
 function createWindow(): void {
@@ -90,6 +91,9 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // Kill all PTY sessions before quitting
   ptyService.killAll()
+
+  // Close eve dev server
+  closeEveServer()
 
   // Close database
   closeDatabase()

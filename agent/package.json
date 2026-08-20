@@ -1,0 +1,11 @@
+{
+  "name": "kraken-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "eve": "*",
+    "ai": "*",
+    "ai-sdk-ollama": "*"
+  }
+}

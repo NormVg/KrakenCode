@@ -73,6 +73,12 @@ export const IPC = {
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
 
   // Window
+  // Eve Agent Server
+  EVE_START: 'eve:start',
+  EVE_STOP: 'eve:stop',
+  EVE_GET_STATUS: 'eve:getStatus',
+
+  // Window
   WINDOW_MINIMIZE: 'window-minimize',
   WINDOW_MAXIMIZE: 'window-maximize',
   WINDOW_CLOSE: 'window-close'
