@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import MarkdownRender from 'markstream-vue'
-import { Copy } from 'lucide-vue-next'
+import { Copy, Check } from 'lucide-vue-next'
 import 'markstream-vue/index.css'
 
 const props = defineProps<{
@@ -9,8 +10,14 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
+const isCopied = ref(false)
+
 const copyToClipboard = () => {
   navigator.clipboard.writeText(props.content)
+  isCopied.value = true
+  setTimeout(() => {
+    isCopied.value = false
+  }, 2000)
 }
 </script>
 
@@ -22,8 +29,9 @@ const copyToClipboard = () => {
         {{ content }}
       </div>
       
-      <button class="copy-btn" title="Copy" @click="copyToClipboard">
-        <Copy :size="13" />
+      <button class="copy-btn" :title="isCopied ? 'Copied!' : 'Copy'" @click="copyToClipboard">
+        <Check v-if="isCopied" :size="13" class="icon-success" />
+        <Copy v-else :size="13" />
       </button>
     </div>
     
@@ -58,8 +66,9 @@ const copyToClipboard = () => {
         />
       </div>
       
-      <button class="copy-btn" title="Copy" @click="copyToClipboard">
-        <Copy :size="13" />
+      <button class="copy-btn" :title="isCopied ? 'Copied!' : 'Copy'" @click="copyToClipboard">
+        <Check v-if="isCopied" :size="13" class="icon-success" />
+        <Copy v-else :size="13" />
       </button>
     </div>
   </div>
@@ -118,6 +127,10 @@ const copyToClipboard = () => {
   justify-content: center;
   transition: opacity 0.15s ease, background-color 0.15s ease;
   z-index: 2;
+}
+
+.copy-btn .icon-success {
+  color: #10B981; /* teal/green */
 }
 
 .message:hover .copy-btn {
