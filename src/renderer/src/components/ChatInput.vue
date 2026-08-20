@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { SlashCommands } from './tiptap/SlashCommands'
 import { slashSuggestion } from './tiptap/suggestion'
 import { AtMention, atMentionSuggestion } from './tiptap/AtMention'
-import { Plus, Mic } from 'lucide-vue-next'
+import { Plus, Mic, Square } from 'lucide-vue-next'
 import ModelSelector from './ModelSelector.vue'
 import CommandList from './tiptap/CommandList.vue'
 
@@ -18,11 +18,13 @@ const props = defineProps<{
   modelValue: string
   placeholder?: string
   disabled?: boolean
+  isLoading?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'submit': []
+  'stop': []
 }>()
 
 const suggestionState = ref({
@@ -156,6 +158,9 @@ onBeforeUnmount(() => {
           <ModelSelector />
         </div>
         <div class="toolbar-right">
+          <button v-if="isLoading" class="stop-btn" title="Stop generating" @click="emit('stop')">
+            <Square :size="12" fill="currentColor" />
+          </button>
           <button class="mic-btn" title="Voice input">
             <Mic :size="14" />
           </button>
@@ -283,6 +288,36 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: transform 0.2s ease-out;
   flex-shrink: 0;
+}
+
+.stop-btn {
+  background: var(--accent, #aa205a);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease-out, background 0.2s ease;
+  flex-shrink: 0;
+  animation: stop-pulse 2s ease-in-out infinite;
+}
+
+.stop-btn:hover {
+  transform: scale(1.05);
+  background: #c4266e;
+}
+
+.stop-btn:active {
+  transform: scale(0.96);
+}
+
+@keyframes stop-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(170, 32, 90, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(170, 32, 90, 0); }
 }
 
 .mic-btn:hover {

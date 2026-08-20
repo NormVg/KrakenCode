@@ -194,6 +194,14 @@ const handleChat = async () => {
 const removeQueuedMessage = (index: number) => {
   queuedMessages.value.splice(index, 1)
 }
+
+const handleStop = async () => {
+  await ChatService.cancelChat()
+  isLoading.value = false
+  loadPhase.value = 'thinking'
+  activeToolCount = 0
+  queuedMessages.value = []
+}
 </script>
 
 <template>
@@ -205,7 +213,9 @@ const removeQueuedMessage = (index: number) => {
         <ChatInput 
           v-model="prompt"
           @submit="handleChat"
+          @stop="handleStop"
           :disabled="!isSetup || isLoading"
+          :is-loading="isLoading"
           placeholder="Plan, Build, / for skills, @ for context"
         />
       </div>
@@ -244,7 +254,9 @@ const removeQueuedMessage = (index: number) => {
         <ChatInput 
           v-model="prompt"
           @submit="handleChat"
+          @stop="handleStop"
           :disabled="!isSetup"
+          :is-loading="isLoading"
           :rows="1"
           placeholder="Ask a follow-up question..."
         />
