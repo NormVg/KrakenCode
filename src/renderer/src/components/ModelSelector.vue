@@ -1,21 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from '../stores/config.store'
 import { ChevronDown, Check } from 'lucide-vue-next'
 
 const configStore = useConfigStore()
-const { model } = storeToRefs(configStore)
+const { model, provider } = storeToRefs(configStore)
 
 const isOpen = ref(false)
 
-const availableModels = [
-  'gemma4:31b-cloud',
-  'llama3',
-  'mistral',
-  'phi3',
-  'gemma'
+const localModels = [
+  'qwen2.5-coder:32b',
+  'qwen2.5-coder:14b',
+  'qwen2.5-coder:7b',
+  'deepseek-coder-v2:16b',
+  'deepseek-coder-v2:6b',
+  'llama3.2:3b',
+  'phi3:14b',
+  'gemma2:9b',
+  'mistral:7b',
 ]
+
+const cloudModels = [
+  'qwen2.5-coder:32b',
+  'llama3.1:70b',
+  'deepseek-r1:32b',
+  'qwen2.5:32b',
+]
+
+const availableModels = computed(() =>
+  provider.value === 'ollama-cloud' ? cloudModels : localModels
+)
 
 const toggleDropdown = () => {
   isOpen.value = !isOpen.value
@@ -26,7 +41,6 @@ const selectModel = (m: string) => {
   isOpen.value = false
 }
 
-// Close when clicking outside
 const closeDropdown = (e: Event) => {
   if (!isOpen.value) return
   const target = e.target as HTMLElement
@@ -93,13 +107,13 @@ onUnmounted(() => {
 
 .model-dropdown {
   position: absolute;
-  bottom: calc(100% + 8px); /* Open upwards to prevent clipping */
+  bottom: calc(100% + 8px);
   left: 0;
   background-color: var(--bg-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 4px;
-  min-width: 180px;
+  min-width: 200px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 100;
   display: flex;
@@ -108,7 +122,7 @@ onUnmounted(() => {
 }
 
 @keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(4px); } /* Slide up slightly on appear */
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
