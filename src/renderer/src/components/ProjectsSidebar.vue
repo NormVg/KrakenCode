@@ -30,8 +30,13 @@ watch(activeWorkspaceId, async (newId) => {
   }
 }, { immediate: true })
 
-const handleAddChat = async (event: Event) => {
+const handleAddChat = async (event: Event, projectId: string) => {
   event.stopPropagation()
+  // Select the project first so the session is created in the right workspace
+  if (activeWorkspaceId.value !== projectId) {
+    await workspaceStore.selectWorkspace(projectId)
+    await sessionStore.loadSessions()
+  }
   await sessionStore.createSession()
   await workspaceStore.setActiveView('agent')
 }
@@ -94,13 +99,13 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
               <Folder :size="16" stroke-width="2" />
               <span class="folder-name">{{ project.name }}</span>
             </div>
-            <button class="icon-btn add-chat-btn" title="New Session" @click="handleAddChat($event)">
+            <button class="icon-btn add-chat-btn" title="New Session" @click="handleAddChat($event, project.id)">
               <Plus :size="14" stroke-width="2" />
             </button>
           </div>
 
-          <!-- Project Items (Chat Sessions) -->
-          <div class="project-items" v-if="sessions && sessions.length > 0">
+          <!-- Project Items (Chat Sessions) — only for the active workspace -->
+          <div class="project-items" v-if="activeWorkspaceId === project.id && sessions && sessions.length > 0">
             <div
               v-for="item in sessions"
               :key="item.id"

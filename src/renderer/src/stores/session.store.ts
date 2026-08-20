@@ -25,14 +25,18 @@ export const useSessionStore = defineStore('session', () => {
     const wsId = workspaceStore.activeWorkspaceId
     if (!wsId) {
       sessions.value = []
+      messages.value = []
       isSessionsLoaded.value = true
       return
     }
     try {
       sessions.value = await window.api.session.getByWorkspace(wsId)
+      // Clear messages — the caller will load the active session's messages
+      messages.value = []
     } catch (e) {
       console.error('[session] Failed to load sessions:', e)
       sessions.value = []
+      messages.value = []
     } finally {
       isSessionsLoaded.value = true
     }
