@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { Settings, FolderPlus, Folder, Plus, MessageSquare, MoreHorizontal, Edit2, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../stores/workspace.store'
 import { useSessionStore } from '../stores/session.store'
+import { formatRelativeTime } from '../utils/time'
 
 const emit = defineEmits(['open-settings'])
 
@@ -126,7 +127,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
                 <template v-else>
                   <span class="item-title">{{ item.title || 'New Chat' }}</span>
                   <div class="item-meta">
-                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ new Date(item.updatedAt).toLocaleDateString() }}</span>
+                    <span class="item-time" :class="{'hidden': activeMenuId === item.id}">{{ formatRelativeTime(item.updatedAt) }}</span>
                     <div class="chat-menu">
                       <button class="icon-btn menu-trigger" @click.stop="toggleMenu(item.id)">
                         <MoreHorizontal :size="14" />
