@@ -2,7 +2,7 @@ import { defineTool } from 'eve/tools'
 import { runWorkspaceCommand } from '../workspace.js'
 
 export default defineTool({
-  description: 'Run a shell command in the workspace directory. Returns stdout, stderr, and exit code. Output is truncated at 20000 characters (head + tail kept). Use this for builds, tests, linters, git, and other system commands. Do NOT use this for file operations — use read_file, write_file, edit_file, grep, or list_dir instead.',
+  description: 'Run a shell command in the workspace directory using a persistent shell session. State (cwd, env vars, aliases) persists between calls — so `cd` changes the directory for future commands. Returns stdout, stderr, and exit code. Output is truncated at 20000 characters (head + tail kept). Use this for builds, tests, linters, git, and other system commands. Do NOT use this for file operations — use read_file, write_file, edit_file, grep, or list_dir instead.',
   inputSchema: {
     type: 'object',
     properties: {

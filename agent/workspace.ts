@@ -132,36 +132,119 @@ export async function grepWorkspace(
 }
 
 /**
- * Run a shell command in the workspace directory.
+ * Persistent shell session for the workspace.
+ *
+ * Keeps a single shell process alive across multiple command executions
+ * so that state (cwd, env vars, aliases, functions) persists between
+ * tool calls. Uses a unique sentinel marker to detect command completion
+ * and capture the exit code.
+ */
+class PersistentShell {
+  private shell: ReturnType<typeof spawn> | null = null
+  private cwd: string
+
+  constructor(cwd: string) {
+    this.cwd = cwd
+  }
+
+  private ensureShell(): ReturnType<typeof spawn> {
+    if (this.shell && !this.shell.killed) return this.shell
+
+    this.shell = spawn('bash', ['--noprofile', '--norc'], {
+      cwd: this.cwd,
+      env: { ...process.env, TERM: 'dumb', PS1: '' },
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+
+    // Start in the workspace directory
+    this.shell.stdin?.write(`cd "${this.cwd}"\n`)
+
+    return this.shell
+  }
+
+  async run(command: string, timeoutMs = 30000): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    const shell = this.ensureShell()
+    const sentinel = `__KRAKEN_END_${Date.now()}_${Math.random().toString(36).slice(2)}__`
+
+    return new Promise((resolve) => {
+      let stdout = ''
+      let stderr = ''
+      let resolved = false
+
+      const cleanup = () => {
+        shell.stdout?.removeListener('data', onStdout)
+        shell.stderr?.removeListener('data', onStderr)
+        clearTimeout(timer)
+      }
+
+      const finish = (exitCode: number) => {
+        if (resolved) return
+        resolved = true
+        cleanup()
+
+        // Strip the sentinel line from stdout
+        const sentinelRegex = new RegExp(`${sentinel}:(\\d+)\\s*$`)
+        const match = stdout.match(sentinelRegex)
+        if (match) {
+          exitCode = parseInt(match[1], 10)
+          stdout = stdout.replace(sentinelRegex, '').trimEnd()
+        }
+
+        if (stdout.length > 20000) {
+          const head = stdout.slice(0, 10000)
+          const tail = stdout.slice(-10000)
+          stdout = head + '\n... [truncated] ...\n' + tail
+        }
+
+        resolve({ stdout, stderr, exitCode })
+      }
+
+      const onStdout = (data: Buffer) => { stdout += data.toString() }
+      const onStderr = (data: Buffer) => { stderr += data.toString() }
+
+      shell.stdout?.on('data', onStdout)
+      shell.stderr?.on('data', onStderr)
+
+      const timer = setTimeout(() => {
+        // On timeout, send Ctrl-C to interrupt the running command
+        shell.stdin?.write('\x03')
+        finish(124)
+      }, timeoutMs)
+
+      // Watch for the sentinel in stdout to detect completion
+      const sentinelWatcher = setInterval(() => {
+        if (stdout.includes(sentinel)) {
+          clearInterval(sentinelWatcher)
+          finish(0)
+        }
+      }, 10)
+
+      // Write the command followed by the sentinel
+      shell.stdin?.write(`${command}\n`)
+      shell.stdin?.write(`echo "${sentinel}:$?"\n`)
+    })
+  }
+
+  /** Kill the shell process. */
+  destroy(): void {
+    if (this.shell) {
+      this.shell.kill('SIGTERM')
+      this.shell = null
+    }
+  }
+}
+
+const persistentShell = new PersistentShell(WORKSPACE_PATH)
+
+/**
+ * Run a shell command in the workspace directory using a persistent
+ * shell session. State (cwd, env vars, aliases) persists between calls.
  */
 export function runWorkspaceCommand(
   command: string,
   timeoutMs = 30000
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve) => {
-    const child = spawn(command, {
-      shell: true,
-      cwd: WORKSPACE_PATH,
-      env: { ...process.env, TERM: 'xterm-256color' },
-      timeout: timeoutMs
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout?.on('data', (data) => { stdout += data.toString() })
-    child.stderr?.on('data', (data) => { stderr += data.toString() })
-    child.on('close', (exitCode) => {
-      // Truncate output
-      if (stdout.length > 20000) {
-        const head = stdout.slice(0, 10000)
-        const tail = stdout.slice(-10000)
-        stdout = head + '\n... [truncated] ...\n' + tail
-      }
-      resolve({ stdout, stderr, exitCode: exitCode ?? 1 })
-    })
-    child.on('error', (err) => {
-      resolve({ stdout: '', stderr: err.message, exitCode: 1 })
-    })
-  })
+  return persistentShell.run(command, timeoutMs)
 }
 
 export { WORKSPACE_PATH, resolveWorkspacePath }
