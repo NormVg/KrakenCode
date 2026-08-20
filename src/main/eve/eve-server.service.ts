@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { app } from 'electron'
 import { existsSync } from 'node:fs'
+import { is } from '@electron-toolkit/utils'
 
 export interface EveServerHandle {
   url: string
@@ -13,31 +14,43 @@ export interface EveServerHandle {
 let activeServer: EveServerHandle | null = null
 
 /**
+ * Resolve the project root directory.
+ *
+ * In dev, electron-vite builds the main process to out/main/, so
+ * app.getAppPath() returns <root>/out/main. The project root is two
+ * levels up. In production, resources live under process.resourcesPath.
+ */
+function getProjectRoot(): string {
+  if (is.dev) {
+    return resolve(app.getAppPath(), '..', '..')
+  }
+  return process.resourcesPath
+}
+
+/**
  * Resolve the path to the eve CLI binary inside node_modules.
  */
 function getEveBinary(): string {
-  const krakenRoot = resolve(app.getAppPath(), '..')
-  // In dev, the app path is the electron-vite output dir.
-  // In production, it's inside the .app bundle.
-  const devPath = join(krakenRoot, 'node_modules', 'eve', 'bin', 'eve.js')
+  const root = getProjectRoot()
+  const devPath = join(root, 'node_modules', 'eve', 'bin', 'eve.js')
   const prodPath = join(process.resourcesPath, 'node_modules', 'eve', 'bin', 'eve.js')
 
   if (existsSync(devPath)) return devPath
   if (existsSync(prodPath)) return prodPath
-  throw new Error('eve binary not found. Expected at node_modules/eve/bin/eve.js')
+  throw new Error(`eve binary not found. Tried:\n  ${devPath}\n  ${prodPath}`)
 }
 
 /**
  * Resolve the path to the agent directory.
  */
 function getAgentDir(): string {
-  const krakenRoot = resolve(app.getAppPath(), '..')
-  const devPath = join(krakenRoot, 'agent')
+  const root = getProjectRoot()
+  const devPath = join(root, 'agent')
   const prodPath = join(process.resourcesPath, 'agent')
 
   if (existsSync(devPath)) return devPath
   if (existsSync(prodPath)) return prodPath
-  throw new Error('agent directory not found')
+  throw new Error(`agent directory not found. Tried:\n  ${devPath}\n  ${prodPath}`)
 }
 
 /**
