@@ -140,7 +140,7 @@ export async function startEveServer(opts: {
                 r()
               })
             })
-            if (activeServer === activeServer) activeServer = null
+            activeServer = null
           }
         }
         resolve(activeServer)

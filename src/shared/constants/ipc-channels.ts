@@ -9,7 +9,9 @@ export const IPC = {
   // Agent / Chat
   AGENT_SET_MODEL: 'agent:setModel',
   AGENT_STREAM_CHAT: 'agent:stream-chat',
+  AGENT_CANCEL_CHAT: 'agent:cancel-chat',
   AGENT_CHAT_CHUNK: (id: string) => `agent:chat:chunk:${id}`,
+  AGENT_CHAT_TOOL: (id: string) => `agent:chat:tool:${id}`,
   AGENT_CHAT_END: (id: string) => `agent:chat:end:${id}`,
   AGENT_CHAT_ERROR: (id: string) => `agent:chat:error:${id}`,
 

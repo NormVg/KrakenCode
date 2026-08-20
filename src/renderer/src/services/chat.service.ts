@@ -1,10 +1,18 @@
 import type { ModelConfig, ModelConfigResult } from '../../../shared/types'
 
+export interface ToolEvent {
+  phase: 'start' | 'end'
+  toolName: string
+  toolCallId: string
+  status?: 'completed' | 'failed' | 'rejected'
+}
+
 export interface StreamChatOptions {
   id: string
   message: string
   system?: string
   onChunk: (chunk: string) => void
+  onTool?: (event: ToolEvent) => void
   onEnd: () => void
   onError: (err: string) => void
   timeoutMs?: number
@@ -12,7 +20,7 @@ export interface StreamChatOptions {
 
 export const ChatService = {
   streamMessage(opts: StreamChatOptions) {
-    const { id, message, system, onChunk, onEnd, onError, timeoutMs = 120_000 } = opts
+    const { id, message, system, onChunk, onTool, onEnd, onError, timeoutMs = 120_000 } = opts
 
     let isFinished = false
 
@@ -29,6 +37,13 @@ export const ChatService = {
       if (isFinished) return
       onChunk(chunk)
     })
+
+    if (onTool) {
+      window.api.agent.onChatTool(id, (event) => {
+        if (isFinished) return
+        onTool(event)
+      })
+    }
 
     window.api.agent.onChatEnd(id, () => {
       if (isFinished) return
@@ -59,5 +74,9 @@ export const ChatService = {
 
   async setModel(config: ModelConfig): Promise<ModelConfigResult> {
     return await window.api.agent.setModel(config)
+  },
+
+  async cancelChat(): Promise<void> {
+    await window.api.agent.cancelChat()
   }
 }

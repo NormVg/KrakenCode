@@ -30,8 +30,23 @@ const api = {
       ipcRenderer.send(IPC.AGENT_STREAM_CHAT, { id, message, system: options?.system })
     },
 
+    cancelChat: (): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke(IPC.AGENT_CANCEL_CHAT),
+
     onChatChunk: (id: string, callback: (chunk: string) => void): void => {
       ipcRenderer.on(IPC.AGENT_CHAT_CHUNK(id), (_, chunk) => callback(chunk))
+    },
+
+    onChatTool: (
+      id: string,
+      callback: (event: {
+        phase: 'start' | 'end'
+        toolName: string
+        toolCallId: string
+        status?: 'completed' | 'failed' | 'rejected'
+      }) => void
+    ): void => {
+      ipcRenderer.on(IPC.AGENT_CHAT_TOOL(id), (_, event) => callback(event))
     },
 
     onChatEnd: (id: string, callback: () => void): void => {
@@ -44,6 +59,7 @@ const api = {
 
     removeChatListeners: (id: string): void => {
       ipcRenderer.removeAllListeners(IPC.AGENT_CHAT_CHUNK(id))
+      ipcRenderer.removeAllListeners(IPC.AGENT_CHAT_TOOL(id))
       ipcRenderer.removeAllListeners(IPC.AGENT_CHAT_END(id))
       ipcRenderer.removeAllListeners(IPC.AGENT_CHAT_ERROR(id))
     }

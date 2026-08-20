@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '../../shared/constants/ipc-channels'
 import { startEveServer, closeEveServer, getActiveEveServer } from '../eve/eve-server.service'
+import { connectEveAgent, disconnectEveAgent } from './agent.ipc'
 
 export interface EveStartOptions {
   workspacePath: string
@@ -19,6 +20,8 @@ export function registerEveIpc(): void {
   ipcMain.handle(IPC.EVE_START, async (_, opts: EveStartOptions) => {
     try {
       const handle = await startEveServer(opts)
+      // Connect the agent client to the freshly started server
+      connectEveAgent(handle.url)
       return {
         success: true,
         url: handle.url,
@@ -32,6 +35,7 @@ export function registerEveIpc(): void {
 
   ipcMain.handle(IPC.EVE_STOP, async () => {
     try {
+      disconnectEveAgent()
       await closeEveServer()
       return { success: true }
     } catch (err: any) {

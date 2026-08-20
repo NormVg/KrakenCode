@@ -10,7 +10,6 @@ import ChatInput from '../ChatInput.vue'
 import QueuedMessages from '../QueuedMessages.vue'
 import PixelLoader from '../PixelLoader.vue'
 import {
-  buildArchitectureSystemPrompt,
   extractArchitectureUpdate,
 } from '../../utils/architectureAgent'
 
@@ -26,6 +25,8 @@ const loadPhase = ref<'thinking' | 'streaming' | 'tooling'>('thinking')
 const queuedMessages = ref<string[]>([])
 const chatHistoryRef = ref<HTMLElement | null>(null)
 let resizeObserver: ResizeObserver | null = null
+/** Tracks the number of in-flight tool calls to toggle the tooling phase */
+let activeToolCount = 0
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -51,6 +52,36 @@ watch(chatHistoryRef, (el) => {
     }
   }
 })
+
+/**
+ * Start the eve dev server for the active workspace.
+ *
+ * The server runs the agent with workspace-confined tools. It is
+ * started once per workspace and reused for all chat messages in
+ * that workspace.
+ */
+const ensureEveServer = async (): Promise<boolean> => {
+  const workspace = workspaceStore.activeWorkspace
+  if (!workspace) return false
+
+  // Check if a server is already running
+  const status = await window.api.eve.getStatus()
+  if (status.running) return true
+
+  const result = await window.api.eve.start({
+    workspacePath: workspace.path,
+    modelProvider: configStore.provider,
+    modelName: configStore.model,
+    apiKey: configStore.apiKey || undefined
+  })
+
+  if (!result.success) {
+    console.error('[agent] Failed to start eve server:', result.error)
+    return false
+  }
+
+  return true
+}
 
 onUnmounted(() => {
   if (resizeObserver) resizeObserver.disconnect()
@@ -85,6 +116,13 @@ const executeMessage = async (text: string) => {
     if (!proj) return // User cancelled directory selection
   }
 
+  // Ensure the eve server is running for this workspace
+  const serverReady = await ensureEveServer()
+  if (!serverReady) {
+    console.error('[agent] Cannot send message — eve server is not running')
+    return
+  }
+
   if (!sessionStore.activeSession) {
     await sessionStore.createSession()
   }
@@ -94,20 +132,13 @@ const executeMessage = async (text: string) => {
 
   isLoading.value = true
   loadPhase.value = 'thinking'
+  activeToolCount = 0
   const agentMsg = await sessionStore.addMessage('agent', '', true)
   if (!agentMsg) return
-
-  const project = workspaceStore.activeWorkspace
-  const system = buildArchitectureSystemPrompt({
-    projectName: project?.name,
-    projectPath: project?.path,
-    architecture: project?.architecture ?? undefined,
-  })
 
   ChatService.streamMessage({
     id: agentMsg.id,
     message: text,
-    system,
     onChunk: (chunk) => {
       // First chunk transitions from "thinking" to "streaming"
       if (loadPhase.value === 'thinking') {
@@ -116,17 +147,31 @@ const executeMessage = async (text: string) => {
       sessionStore.appendToMessage(agentMsg.id, chunk)
       scrollToBottom()
     },
+    onTool: (event) => {
+      if (event.phase === 'start') {
+        activeToolCount++
+        loadPhase.value = 'tooling'
+      } else {
+        activeToolCount = Math.max(0, activeToolCount - 1)
+        // Return to streaming if text was already flowing and no tools remain
+        if (activeToolCount === 0 && loadPhase.value === 'tooling') {
+          loadPhase.value = 'streaming'
+        }
+      }
+    },
     onEnd: () => {
       sessionStore.finalizeMessage(agentMsg.id)
       applyArchitectureFromAgentReply()
       isLoading.value = false
       loadPhase.value = 'thinking'
+      activeToolCount = 0
       processNextMessage()
     },
     onError: (err) => {
       sessionStore.appendErrorToMessage(agentMsg.id, err)
       isLoading.value = false
       loadPhase.value = 'thinking'
+      activeToolCount = 0
       processNextMessage()
     }
   })
