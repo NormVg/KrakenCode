@@ -181,7 +181,7 @@ const capabilityDots = (score: number): boolean[] => {
               @mouseenter="hoveredModelId = m.id"
               @mouseleave="hoveredModelId = null"
             >
-              <!-- Selected indicator -->
+              <!-- Selected indicator (left accent bar) -->
               <div class="card-accent" />
 
               <div class="card-top">
@@ -384,7 +384,6 @@ const capabilityDots = (score: number): boolean[] => {
   flex: 1;
   overflow-y: auto;
   padding: 48px 48px 24px;
-  max-width: 680px;
   width: 100%;
 }
 
@@ -570,14 +569,15 @@ const capabilityDots = (score: number): boolean[] => {
   border-color: rgba(8, 195, 113, 0.15);
 }
 
-/* Accent line at top of selected card */
+/* Accent bar on left side of selected card */
 .card-accent {
   position: absolute;
-  top: 0;
+  top: 16px;
+  bottom: 16px;
   left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent-purple), transparent);
+  width: 2px;
+  background: var(--accent-purple);
+  border-radius: 0 2px 2px 0;
   opacity: 0;
   transition: opacity 0.2s;
 }
