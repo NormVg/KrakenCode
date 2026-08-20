@@ -84,7 +84,43 @@ onMounted(async () => {
       isSettingsOpen.value = true
     }
   }
+
+  // Start the eve agent server as soon as the agent is configured and
+  // a workspace exists, so the first message is instant.
+  await startEveServerIfReady()
 })
+
+/**
+ * Start the eve agent server if the agent is configured and a workspace
+ * is active. Safe to call repeatedly — checks if a server is already
+ * running before starting a new one.
+ */
+async function startEveServerIfReady(): Promise<void> {
+  if (!isSetup.value || !workspaceStore.activeWorkspace) return
+
+  const status = await window.api.eve.getStatus()
+  if (status.running) return
+
+  try {
+    await window.api.eve.start({
+      workspacePath: workspaceStore.activeWorkspace.path,
+      modelProvider: configStore.provider,
+      modelName: configStore.model,
+      apiKey: configStore.apiKey || undefined
+    })
+  } catch (e) {
+    console.error('[app] Failed to start eve server:', e)
+  }
+}
+
+// Start the eve server when the active workspace changes (e.g. user
+// opens a new project) or when setup completes after config.
+watch(
+  () => [isSetup.value, workspaceStore.activeWorkspaceId],
+  () => {
+    startEveServerIfReady()
+  }
+)
 
 </script>
 

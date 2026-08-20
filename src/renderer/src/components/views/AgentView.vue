@@ -54,20 +54,20 @@ watch(chatHistoryRef, (el) => {
 })
 
 /**
- * Start the eve dev server for the active workspace.
+ * Ensure the eve dev server is running for the active workspace.
  *
- * The server runs the agent with workspace-confined tools. It is
- * started once per workspace and reused for all chat messages in
- * that workspace.
+ * The server is normally started by App.vue on app launch and when
+ * the active workspace changes. This is a fallback for edge cases
+ * (e.g. the server crashed or wasn't ready yet).
  */
 const ensureEveServer = async (): Promise<boolean> => {
   const workspace = workspaceStore.activeWorkspace
   if (!workspace) return false
 
-  // Check if a server is already running
   const status = await window.api.eve.getStatus()
   if (status.running) return true
 
+  // Server not running — try to start it
   const result = await window.api.eve.start({
     workspacePath: workspace.path,
     modelProvider: configStore.provider,
