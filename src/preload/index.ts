@@ -90,6 +90,9 @@ const api = {
 
   // ─── Session ─────────────────────────────────────────────────────────────────
   session: {
+    getAll: (): Promise<Session[]> =>
+      ipcRenderer.invoke(IPC.SESSION_GET_ALL),
+
     getByWorkspace: (workspaceId: string): Promise<Session[]> =>
       ipcRenderer.invoke(IPC.SESSION_GET_BY_WORKSPACE, workspaceId),
 

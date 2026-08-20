@@ -6,6 +6,7 @@ import type { Session, Message, MessageRole } from '../../../shared/types'
 export const useSessionStore = defineStore('session', () => {
   const workspaceStore = useWorkspaceStore()
 
+  /** All sessions across all workspaces, sorted by updatedAt desc. */
   const sessions = ref<Session[]>([])
   const messages = ref<Message[]>([])
   const isSessionsLoaded = ref(false)
@@ -19,18 +20,30 @@ export const useSessionStore = defineStore('session', () => {
     return sessions.value.find((s) => s.id === sessionId) ?? null
   })
 
+  /** Sessions for a specific workspace, sorted by updatedAt desc. */
+  function sessionsByWorkspace(workspaceId: string): Session[] {
+    return sessions.value.filter((s) => s.workspaceId === workspaceId)
+  }
+
   // ─── Sessions ──────────────────────────────────────────────────────────────────
 
-  async function loadSessions(): Promise<void> {
-    const wsId = workspaceStore.activeWorkspaceId
-    if (!wsId) {
-      sessions.value = []
-      messages.value = []
-      isSessionsLoaded.value = true
-      return
-    }
+  /** Load all sessions across all workspaces. Call once on app init. */
+  async function loadAllSessions(): Promise<void> {
     try {
-      sessions.value = await window.api.session.getByWorkspace(wsId)
+      sessions.value = await window.api.session.getAll()
+    } catch (e) {
+      console.error('[session] Failed to load all sessions:', e)
+      sessions.value = []
+    } finally {
+      isSessionsLoaded.value = true
+    }
+  }
+
+  /** Reload sessions for the active workspace (keeps other workspaces' sessions). */
+  async function loadSessions(): Promise<void> {
+    try {
+      const all = await window.api.session.getAll()
+      sessions.value = all
       // Clear messages — the caller will load the active session's messages
       messages.value = []
     } catch (e) {
@@ -59,6 +72,11 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   async function selectSession(sessionId: string): Promise<void> {
+    // Find the session to get its workspaceId
+    const session = sessions.value.find((s) => s.id === sessionId)
+    if (session && workspaceStore.activeWorkspaceId !== session.workspaceId) {
+      await workspaceStore.selectWorkspace(session.workspaceId)
+    }
     await workspaceStore.setActiveSession(sessionId)
     await loadMessages(sessionId)
   }
@@ -73,9 +91,11 @@ export const useSessionStore = defineStore('session', () => {
     await window.api.session.delete(sessionId)
     sessions.value = sessions.value.filter((s) => s.id !== sessionId)
 
-    // Select next session if active was deleted
+    // Select next session for the same workspace if active was deleted
     if (workspaceStore.activeSessionId === sessionId) {
-      const next = sessions.value.length > 0 ? sessions.value[0].id : null
+      const wsId = workspaceStore.activeWorkspaceId
+      const wsSessions = wsId ? sessionsByWorkspace(wsId) : []
+      const next = wsSessions.length > 0 ? wsSessions[0].id : null
       await workspaceStore.setActiveSession(next)
       if (next) {
         await loadMessages(next)
@@ -158,6 +178,8 @@ export const useSessionStore = defineStore('session', () => {
     isSessionsLoaded,
     isMessagesLoaded,
     activeSession,
+    sessionsByWorkspace,
+    loadAllSessions,
     loadSessions,
     createSession,
     selectSession,

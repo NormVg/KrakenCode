@@ -74,6 +74,15 @@ export const workspaceRepo = {
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export const sessionRepo = {
+  getAll(): Session[] {
+    const db = getDb()
+    return db
+      .select()
+      .from(sessions)
+      .orderBy(desc(sessions.updatedAt))
+      .all()
+  },
+
   getByWorkspace(workspaceId: string): Session[] {
     const db = getDb()
     return db

@@ -24,6 +24,7 @@ export const IPC = {
   WORKSPACE_TOUCH: 'workspace:touch',
 
   // Session
+  SESSION_GET_ALL: 'session:getAll',
   SESSION_GET_BY_WORKSPACE: 'session:getByWorkspace',
   SESSION_CREATE: 'session:create',
   SESSION_UPDATE: 'session:update',

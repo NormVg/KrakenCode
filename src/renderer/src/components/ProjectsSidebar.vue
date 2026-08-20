@@ -11,22 +11,32 @@ const emit = defineEmits(['open-settings'])
 const workspaceStore = useWorkspaceStore()
 const sessionStore = useSessionStore()
 const { workspaces, activeWorkspaceId, activeSessionId } = storeToRefs(workspaceStore)
-const { sessions } = storeToRefs(sessionStore)
 
 const activeMenuId = ref<string | null>(null)
 const editingChatId = ref<string | null>(null)
 const editTitle = ref('')
 
-// Load sessions when active workspace changes
+// Load all sessions on mount
+onMounted(async () => {
+  await sessionStore.loadAllSessions()
+  // Load messages for the active session if any
+  const activeSession = workspaceStore.activeWorkspace?.activeSessionId
+  if (activeSession) {
+    await sessionStore.loadMessages(activeSession)
+  }
+})
+
+// When the active workspace changes, load messages for its active session
 watch(activeWorkspaceId, async (newId) => {
   if (newId) {
-    await sessionStore.loadSessions()
     const activeSession = workspaceStore.activeWorkspace?.activeSessionId
     if (activeSession) {
       await sessionStore.loadMessages(activeSession)
+    } else {
+      sessionStore.messages = []
     }
   } else {
-    sessionStore.sessions = []
+    sessionStore.messages = []
   }
 }, { immediate: true })
 
@@ -35,7 +45,6 @@ const handleAddChat = async (event: Event, projectId: string) => {
   // Select the project first so the session is created in the right workspace
   if (activeWorkspaceId.value !== projectId) {
     await workspaceStore.selectWorkspace(projectId)
-    await sessionStore.loadSessions()
   }
   await sessionStore.createSession()
   await workspaceStore.setActiveView('agent')
@@ -104,10 +113,10 @@ onUnmounted(() => document.removeEventListener('click', closeMenu))
             </button>
           </div>
 
-          <!-- Project Items (Chat Sessions) — only for the active workspace -->
-          <div class="project-items" v-if="activeWorkspaceId === project.id && sessions && sessions.length > 0">
+          <!-- Project Items (Chat Sessions) -->
+          <div class="project-items" v-if="sessionStore.sessionsByWorkspace(project.id).length > 0">
             <div
-              v-for="item in sessions"
+              v-for="item in sessionStore.sessionsByWorkspace(project.id)"
               :key="item.id"
               class="project-item"
               :class="{ 'active': activeSessionId === item.id }"

@@ -69,6 +69,10 @@ export function registerDatabaseIpc(): void {
 
   // ─── Sessions ──────────────────────────────────────────────────────────────
 
+  ipcMain.handle(IPC.SESSION_GET_ALL, () => {
+    return sessionRepo.getAll()
+  })
+
   ipcMain.handle(IPC.SESSION_GET_BY_WORKSPACE, (_, workspaceId: string) => {
     return sessionRepo.getByWorkspace(workspaceId)
   })
