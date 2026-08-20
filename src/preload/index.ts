@@ -161,6 +161,21 @@ const api = {
       ipcRenderer.invoke(IPC.CONFIG_GET_ALL)
   },
 
+  // ─── Ollama ──────────────────────────────────────────────────────────────────
+  ollama: {
+    listModels: (): Promise<{
+      success: boolean
+      models?: Array<{
+        name: string
+        size: number
+        parameterSize: string
+        quantization: string
+        family: string
+      }>
+      error?: string
+    }> => ipcRenderer.invoke(IPC.OLLAMA_LIST_MODELS)
+  },
+
   // ─── Filesystem ──────────────────────────────────────────────────────────────
   fs: {
     readDirectory: (dirPath: string) =>

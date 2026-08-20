@@ -53,6 +53,9 @@ export const IPC = {
   CONFIG_SET: 'config:set',
   CONFIG_GET_ALL: 'config:getAll',
 
+  // Ollama
+  OLLAMA_LIST_MODELS: 'ollama:listModels',
+
   // Filesystem
   FS_READ_DIRECTORY: 'fs:readDirectory',
   FS_READ_FILE: 'fs:readFile',

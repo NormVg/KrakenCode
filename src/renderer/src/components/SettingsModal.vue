@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore } from '../stores/config.store'
-import { ArrowLeft, Check, Search, Cpu, Cloud, HardDrive, Settings, Palette, Zap, Brain, Code } from 'lucide-vue-next'
+import {
+  ArrowLeft, Check, Search, Cpu, Cloud, HardDrive, Settings, Palette,
+  Zap, Brain, Code, Loader2, AlertCircle, RefreshCw, ServerCrash
+} from 'lucide-vue-next'
 
 const emit = defineEmits(['close'])
 
@@ -20,39 +23,178 @@ const tabs = [
   { id: 'customizations', label: 'Customizations', icon: Palette },
 ]
 
-interface ModelOption {
+// ─── Model fetching ──────────────────────────────────────────────────────────
+
+interface FetchedModel {
+  name: string
+  size: number
+  parameterSize: string
+  quantization: string
+  family: string
+}
+
+type FetchState = 'idle' | 'loading' | 'success' | 'error'
+
+const localFetchState = ref<FetchState>('idle')
+const localModels = ref<FetchedModel[]>([])
+const localError = ref('')
+
+const cloudFetchState = ref<FetchState>('idle')
+const cloudModels = ref<FetchedModel[]>([])
+const cloudError = ref('')
+
+/** Format bytes into a human-readable string */
+function formatSize(bytes: number): string {
+  if (bytes === 0) return 'Cloud'
+  if (bytes < 1e9) return `${(bytes / 1e6).toFixed(0)} MB`
+  return `${(bytes / 1e9).toFixed(1)} GB`
+}
+
+/** Guess capability scores from model metadata */
+function guessCapabilities(m: FetchedModel): { coding: number; speed: number; reasoning: number } {
+  const name = m.name.toLowerCase()
+  const params = m.parameterSize.toLowerCase()
+
+  // Coding models
+  if (name.includes('coder') || name.includes('code')) {
+    return { coding: 5, speed: params.includes('7b') ? 5 : params.includes('14b') ? 3 : 2, reasoning: 3 }
+  }
+
+  // Reasoning models
+  if (name.includes('r1') || name.includes('reason') || name.includes('deepseek')) {
+    return { coding: 3, speed: 2, reasoning: 5 }
+  }
+
+  // Fast small models
+  if (params.includes('3b') || params.includes('7b') || params.includes('8b')) {
+    return { coding: 2, speed: 5, reasoning: 2 }
+  }
+
+  // Large general models
+  if (params.includes('70b') || params.includes('120b') || params.includes('235b')) {
+    return { coding: 3, speed: 1, reasoning: 5 }
+  }
+
+  // Medium general models
+  if (params.includes('14b') || params.includes('9b') || params.includes('27b') || params.includes('32b')) {
+    return { coding: 3, speed: 3, reasoning: 4 }
+  }
+
+  // Default
+  return { coding: 2, speed: 3, reasoning: 3 }
+}
+
+/** Guess tags from model metadata */
+function guessTags(m: FetchedModel): string[] {
+  const name = m.name.toLowerCase()
+  const tags: string[] = []
+  if (name.includes('coder') || name.includes('code')) tags.push('coding')
+  if (name.includes('r1') || name.includes('reason') || name.includes('deepseek')) tags.push('reasoning')
+  const params = m.parameterSize.toLowerCase()
+  if (params.includes('3b') || params.includes('7b') || params.includes('8b')) tags.push('fast')
+  if (tags.length === 0) tags.push('general')
+  return tags
+}
+
+/** Guess description from model metadata */
+function guessDescription(m: FetchedModel): string {
+  const name = m.name.toLowerCase()
+  const family = m.family
+  const params = m.parameterSize || 'unknown'
+
+  if (name.includes('coder') || name.includes('code')) {
+    return `Coding model (${family}, ${params}). Strong at code generation and debugging.`
+  }
+  if (name.includes('r1') || name.includes('reason')) {
+    return `Reasoning model (${family}, ${params}). Chain-of-thought for complex problems.`
+  }
+  if (name.includes('deepseek')) {
+    return `DeepSeek model (${family}, ${params}). Multi-language coding with strong reasoning.`
+  }
+  if (name.includes('llama')) {
+    return `Meta Llama model (${family}, ${params}). General-purpose with good instruction following.`
+  }
+  if (name.includes('gemma')) {
+    return `Google Gemma model (${family}, ${params}). Efficient general-purpose model.`
+  }
+  if (name.includes('mistral') || name.includes('ministral')) {
+    return `Mistral model (${family}, ${params}). Fast and efficient.`
+  }
+  if (name.includes('qwen')) {
+    return `Qwen model (${family}, ${params}). Strong multilingual support.`
+  }
+  if (name.includes('gpt-oss')) {
+    return `Open GPT model (${family}, ${params}). Open-source large model.`
+  }
+  return `${family} model, ${params}.`
+}
+
+async function fetchLocalModels() {
+  localFetchState.value = 'loading'
+  localError.value = ''
+  const result = await window.api.ollama.listModels()
+  if (result.success && result.models) {
+    localModels.value = result.models
+    localFetchState.value = 'success'
+  } else {
+    localError.value = result.error || 'Failed to fetch models'
+    localFetchState.value = 'error'
+  }
+}
+
+async function fetchCloudModels() {
+  cloudFetchState.value = 'loading'
+  cloudError.value = ''
+  // Cloud models are fetched from the same Ollama API — they show up
+  // as models with size 0 (hosted, not local). We filter them out.
+  const result = await window.api.ollama.listModels()
+  if (result.success && result.models) {
+    // Cloud models are those with 0 size (hosted)
+    cloudModels.value = result.models.filter((m) => m.size === 0)
+    cloudFetchState.value = 'success'
+  } else {
+    cloudError.value = result.error || 'Failed to fetch models'
+    cloudFetchState.value = 'error'
+  }
+}
+
+const currentFetchState = computed(() =>
+  provider.value === 'ollama-cloud' ? cloudFetchState.value : localFetchState.value
+)
+
+const currentError = computed(() =>
+  provider.value === 'ollama-cloud' ? cloudError.value : localError.value
+)
+
+const currentModels = computed(() =>
+  provider.value === 'ollama-cloud' ? cloudModels.value : localModels.value
+)
+
+interface DisplayModel {
   id: string
   name: string
   size: string
   description: string
   tags: string[]
-  /** 0-5 capability scores */
   coding: number
   speed: number
   reasoning: number
 }
 
-const localModels: ModelOption[] = [
-  { id: 'qwen2.5-coder:32b', name: 'Qwen 2.5 Coder 32B', size: '19.8 GB', description: 'Best coding model. Strong at code generation, refactoring, and debugging.', tags: ['coding', 'recommended'], coding: 5, speed: 2, reasoning: 4 },
-  { id: 'qwen2.5-coder:14b', name: 'Qwen 2.5 Coder 14B', size: '8.9 GB', description: 'Lighter coding model. Good balance of speed and capability.', tags: ['coding', 'fast'], coding: 4, speed: 3, reasoning: 3 },
-  { id: 'qwen2.5-coder:7b', name: 'Qwen 2.5 Coder 7B', size: '4.4 GB', description: 'Fast coding model for quick edits and simple tasks.', tags: ['coding', 'fast'], coding: 3, speed: 5, reasoning: 2 },
-  { id: 'deepseek-coder-v2:16b', name: 'DeepSeek Coder V2 16B', size: '8.9 GB', description: 'Strong multi-language coding model with good reasoning.', tags: ['coding', 'reasoning'], coding: 4, speed: 3, reasoning: 4 },
-  { id: 'deepseek-coder-v2:6b', name: 'DeepSeek Coder V2 6B', size: '3.6 GB', description: 'Compact coding model for rapid iteration.', tags: ['coding', 'fast'], coding: 3, speed: 4, reasoning: 3 },
-  { id: 'llama3.2:3b', name: 'Llama 3.2 3B', size: '1.9 GB', description: 'General-purpose model. Good for chat and simple tasks.', tags: ['general', 'fast'], coding: 2, speed: 5, reasoning: 2 },
-  { id: 'phi3:14b', name: 'Phi 3 14B', size: '7.9 GB', description: 'Microsoft small language model with strong reasoning.', tags: ['reasoning'], coding: 2, speed: 3, reasoning: 4 },
-  { id: 'gemma2:9b', name: 'Gemma 2 9B', size: '5.4 GB', description: 'Google general-purpose model with good instruction following.', tags: ['general'], coding: 2, speed: 4, reasoning: 3 },
-  { id: 'mistral:7b', name: 'Mistral 7B', size: '4.1 GB', description: 'Fast general-purpose model. Good for quick answers.', tags: ['general', 'fast'], coding: 2, speed: 5, reasoning: 2 },
-]
-
-const cloudModels: ModelOption[] = [
-  { id: 'qwen2.5-coder:32b', name: 'Qwen 2.5 Coder 32B', size: 'Cloud', description: 'Best coding model via Ollama Cloud. No local GPU needed.', tags: ['coding', 'recommended'], coding: 5, speed: 4, reasoning: 4 },
-  { id: 'llama3.1:70b', name: 'Llama 3.1 70B', size: 'Cloud', description: 'Large general-purpose model with strong reasoning.', tags: ['general', 'reasoning'], coding: 3, speed: 3, reasoning: 5 },
-  { id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B', size: 'Cloud', description: 'Reasoning-focused model with chain-of-thought.', tags: ['reasoning', 'coding'], coding: 4, speed: 3, reasoning: 5 },
-  { id: 'qwen2.5:32b', name: 'Qwen 2.5 32B', size: 'Cloud', description: 'Large general-purpose model with strong multilingual support.', tags: ['general'], coding: 3, speed: 4, reasoning: 4 },
-]
-
-const availableModels = computed(() => {
-  const list = provider.value === 'ollama-cloud' ? cloudModels : localModels
+const availableModels = computed<DisplayModel[]>(() => {
+  const list = currentModels.value.map((m) => {
+    const caps = guessCapabilities(m)
+    return {
+      id: m.name,
+      name: m.name,
+      size: formatSize(m.size),
+      description: guessDescription(m),
+      tags: guessTags(m),
+      coding: caps.coding,
+      speed: caps.speed,
+      reasoning: caps.reasoning
+    }
+  })
   if (!searchQuery.value.trim()) return list
   const q = searchQuery.value.toLowerCase()
   return list.filter(
@@ -79,10 +221,19 @@ const handleSave = async () => {
 
 const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
   provider.value = p
-  const first = (p === 'ollama-cloud' ? cloudModels : localModels)[0]
-  if (first) {
-    selectedModelId.value = first.id
-    model.value = first.id
+  // Pick first model from the new provider's list
+  const list = p === 'ollama-cloud' ? cloudModels.value : localModels.value
+  if (list.length > 0) {
+    selectedModelId.value = list[0].name
+    model.value = list[0].name
+  }
+}
+
+const refreshModels = () => {
+  if (provider.value === 'ollama-cloud') {
+    fetchCloudModels()
+  } else {
+    fetchLocalModels()
   }
 }
 
@@ -90,6 +241,18 @@ const setProvider = (p: 'ollama-local' | 'ollama-cloud') => {
 const capabilityDots = (score: number): boolean[] => {
   return Array.from({ length: 5 }, (_, i) => i < score)
 }
+
+// Fetch models on mount
+onMounted(() => {
+  fetchLocalModels()
+  fetchCloudModels()
+})
+
+// Re-fetch when switching to a provider that hasn't loaded yet
+watch(provider, (p) => {
+  if (p === 'ollama-local' && localFetchState.value === 'idle') fetchLocalModels()
+  if (p === 'ollama-cloud' && cloudFetchState.value === 'idle') fetchCloudModels()
+})
 </script>
 
 <template>
@@ -136,14 +299,14 @@ const capabilityDots = (score: number): boolean[] => {
                 @click="setProvider('ollama-local')"
               >
                 <HardDrive :size="14" stroke-width="2" />
-                <span>Local</span>
+                <span>Ollama Local</span>
               </button>
               <button
                 :class="['segment-btn', { active: provider === 'ollama-cloud' }]"
                 @click="setProvider('ollama-cloud')"
               >
                 <Cloud :size="14" stroke-width="2" />
-                <span>Cloud</span>
+                <span>Ollama Cloud</span>
               </button>
             </div>
             <p class="provider-hint">
@@ -157,19 +320,41 @@ const capabilityDots = (score: number): boolean[] => {
             <input v-model="apiKey" type="password" placeholder="Enter your Ollama Cloud API key" class="text-input" />
           </div>
 
-          <!-- Search -->
-          <div class="search-box">
-            <Search :size="14" stroke-width="2" class="search-icon" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search models..."
-              class="search-input"
-            />
+          <!-- Search + Refresh -->
+          <div class="search-row">
+            <div class="search-box">
+              <Search :size="14" stroke-width="2" class="search-icon" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search models..."
+                class="search-input"
+              />
+            </div>
+            <button class="refresh-btn" title="Refresh models" @click="refreshModels">
+              <RefreshCw :size="14" stroke-width="2" :class="{ 'spin': currentFetchState === 'loading' }" />
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="currentFetchState === 'loading'" class="state-container">
+            <Loader2 :size="20" stroke-width="2" class="state-icon spin" />
+            <p class="state-text">Fetching models from Ollama...</p>
+          </div>
+
+          <!-- Error State -->
+          <div v-else-if="currentFetchState === 'error'" class="state-container error">
+            <ServerCrash :size="20" stroke-width="2" class="state-icon error" />
+            <p class="state-title">Cannot connect to Ollama</p>
+            <p class="state-text">{{ currentError }}</p>
+            <button class="retry-btn" @click="refreshModels">
+              <RefreshCw :size="13" stroke-width="2" />
+              <span>Retry</span>
+            </button>
           </div>
 
           <!-- Model Grid -->
-          <div class="model-grid">
+          <div v-else-if="currentFetchState === 'success'" class="model-grid">
             <button
               v-for="m in availableModels"
               :key="m.id"
@@ -240,8 +425,10 @@ const capabilityDots = (score: number): boolean[] => {
             </button>
           </div>
 
-          <div v-if="availableModels.length === 0" class="empty-models">
-            No models found matching "{{ searchQuery }}"
+          <!-- Empty search results -->
+          <div v-if="currentFetchState === 'success' && availableModels.length === 0" class="empty-models">
+            <p v-if="searchQuery.trim()">No models found matching "{{ searchQuery }}"</p>
+            <p v-else>No models available. Run <code>ollama pull <model></code> to add one.</p>
           </div>
         </template>
 
@@ -266,7 +453,10 @@ const capabilityDots = (score: number): boolean[] => {
 
       <!-- Footer -->
       <div class="settings-footer">
-        <div v-if="setupError" class="error-msg">{{ setupError }}</div>
+        <div v-if="setupError" class="error-msg">
+          <AlertCircle :size="13" stroke-width="2" />
+          <span>{{ setupError }}</span>
+        </div>
         <button class="save-btn" @click="handleSave">
           {{ isSetup ? 'Save Configuration' : 'Initialize Agent' }}
         </button>
@@ -448,7 +638,7 @@ const capabilityDots = (score: number): boolean[] => {
   font-size: 0.85rem;
   cursor: pointer;
   transition: color 0.2s;
-  min-width: 100px;
+  min-width: 120px;
   justify-content: center;
 }
 
@@ -497,16 +687,22 @@ const capabilityDots = (score: number): boolean[] => {
   color: var(--text-muted-dark);
 }
 
-/* Search */
+/* Search + Refresh */
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
 .search-box {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 0 12px;
-  margin-bottom: 20px;
   transition: all 0.2s;
 }
 
@@ -531,6 +727,94 @@ const capabilityDots = (score: number): boolean[] => {
 
 .search-input::placeholder {
   color: var(--text-muted-dark);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 0 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+/* Loading/Error States */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.state-container.error {
+  gap: 6px;
+}
+
+.state-icon {
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.state-icon.spin {
+  animation: spin 1.2s linear infinite;
+}
+
+.state-icon.error {
+  color: var(--accent);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.state-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.state-text {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.retry-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Model Grid */
@@ -723,6 +1007,14 @@ const capabilityDots = (score: number): boolean[] => {
   padding: 32px 0;
 }
 
+.empty-models code {
+  font-family: var(--font-code);
+  background-color: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
 .empty-tab {
   color: var(--text-muted);
   font-size: 0.9rem;
@@ -741,8 +1033,11 @@ const capabilityDots = (score: number): boolean[] => {
 }
 
 .error-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .save-btn {
