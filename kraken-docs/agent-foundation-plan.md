@@ -1,273 +1,274 @@
-# Kraken Agent Foundation Plan
+# Kraken Agent Foundation Plan (Revised — eve-based)
 
-> Build a real coding agent — not a chat wrapper. The agent gets project-scoped tools, an agentic loop, conversation history, and a proper system prompt. Inspired by grok-build's architecture, adapted for Electron + Vue + AI SDK v7.
+> Build the coding agent using `eve` as the foundation. Eve provides the agentic loop, tools, sandbox, streaming protocol, session management, and Vue integration. We author an agent directory on disk, boot eve's dev server in-process inside Electron, and connect the renderer via `useEveAgent`.
 
-## Current State (What Exists)
+## Why eve instead of raw AI SDK
 
-| Component | Status | Problem |
-|:----------|:-------|:--------|
-| `agent.service.ts` | Single-shot `streamText` | No tools, no loop, no conversation history, sends only latest message |
-| `agent.ipc.ts` | Streams text chunks | No tool-call events, no multi-step support |
-| `filesystem.service.ts` | Basic FS ops | No workspace confinement, no `.gitignore`, no line numbers, no structured output |
-| `pty.service.ts` | node-pty terminal | Works but had `posix_spawnp` errors (shell env resolution) |
-| Database | Drizzle + SQLite | Stores messages but agent doesn't use history |
-| AI SDK v7 | `ai@7.0.37` + `ai-sdk-ollama@4.1.0` | Supports `tools`, `stopWhen`, `onStepEnd` — none of which are used |
-
-## What We're Building
-
-A foundation coding agent that can:
-1. Read files in the workspace (with line numbers)
-2. Search files with regex (grep)
-3. List directories
-4. Edit files (exact string replacement)
-5. Create new files
-6. Run shell commands (builds, tests, linters)
-7. Loop: call tools, see results, call more tools, until done
-8. Maintain conversation context across turns
-9. Stay confined to the workspace project folder
+| Concern | Raw AI SDK (old plan) | eve |
+|:--------|:----------------------|:----|
+| Agentic loop | Hand-build with `streamText` + `stopWhen` | Built-in harness with `StepStarted`, `StepCompleted`, `TurnCompleted` events |
+| Tools | Hand-build 6 tools from scratch | `defineReadFileTool`, `defineWriteFileTool`, `defineGrepTool`, `defineGlobTool`, `defineBashTool` — all framework-provided |
+| Sandbox / path confinement | Hand-build workspace guard | `defineSandbox` with `just-bash` backend (virtual FS, no Docker needed) |
+| System prompt | Hand-build template | `defineInstructions` — markdown-first authoring |
+| Streaming to renderer | Hand-build IPC channels | `useEveAgent` Vue composable with typed stream events |
+| Session persistence | Hand-build from DB messages | `ClientSession` with `continuationToken` + `sessionId` |
+| Subagents | Not planned | `subagents/` directory with `defineAgent` |
+| Tool call UI | Not planned | `defaultMessageReducer` projects tool calls into `EveMessagePart` |
+| Cancellation | Hand-build with AbortSignal | `session.cancel()` + `useEveAgent().stop()` |
 
 ## Architecture
 
 ```
-┌─ Renderer (Vue) ──────────────────────────────────────────┐
-│  AgentView.vue                                             │
-│    ├─ ChatMessage.vue (renders text + tool calls)          │
-│    └─ ChatInput.vue                                        │
-│                                                             │
-│  chat.service.ts                                           │
-│    └─ streamMessage() → IPC → main process                │
-│                                                             │
-│  session.store.ts                                          │
-│    └─ messages[] (persisted to SQLite)                    │
-└─────────────────────────────────────────────────────────────┘
-                          ↕ IPC
-┌─ Main Process (Electron) ─────────────────────────────────┐
-│  agent.service.ts                                          │
-│    ├─ buildSystemPrompt(workspace)                         │
-│    ├─ buildMessages(history) → AI SDK format               │
-│    ├─ tools: { read_file, list_dir, grep,                  │
-│    │         write_file, edit_file, run_command }           │
-│    ├─ streamText({ model, messages, tools, stopWhen })     │
-│    └─ stream: text chunks + tool-call events → IPC         │
-│                                                             │
-│  agent-tools/                                              │
-│    ├─ types.ts          (ToolDefinition, ToolResult)       │
-│    ├─ read-file.tool.ts                                    │
-│    ├─ list-dir.tool.ts                                     │
-│    ├─ grep.tool.ts                                         │
-│    ├─ write-file.tool.ts                                   │
-│    ├─ edit-file.tool.ts                                    │
-│    ├─ run-command.tool.ts                                  │
-│    └─ index.ts          (registry)                          │
-│                                                             │
-│  workspace-guard.ts                                        │
-│    └─ confinePath(workspacePath, requestedPath) → safe|deny│
-└─────────────────────────────────────────────────────────────┘
+┌─ Renderer (Vue) ──────────────────────────────────────────────┐
+│  AgentView.vue                                                 │
+│    └─ useEveAgent({ host: 'http://localhost:PORT' })          │
+│       ├─ data: EveMessageData (messages with parts)            │
+│       ├─ status: 'ready' | 'submitted' | 'streaming' | 'error' │
+│       ├─ send({ message })                                     │
+│       └─ stop()                                                │
+└────────────────────────────────────────────────────────────────┘
+                          ↕ HTTP (localhost)
+┌─ Main Process (Electron) ─────────────────────────────────────┐
+│  eve-dev-server.ts                                              │
+│    └─ createNodeDevelopmentRunner() → HTTP server on random port │
+│                                                                 │
+│  agent/ (authored on disk, compiled by eve)                    │
+│    ├─ agent.ts          → defineAgent({ model, tools })        │
+│    ├─ instructions.md   → system prompt                        │
+│    ├─ tools/            → custom tools (if needed)             │
+│    └─ sandbox.ts        → defineSandbox({ just-bash })        │
+└────────────────────────────────────────────────────────────────┘
 ```
+
+## How eve works
+
+1. **Author an agent as a directory** — markdown for instructions, TypeScript for tools/config
+2. **eve compiles it** to `.eve/` artifacts at dev time
+3. **eve dev server** runs a Nitro HTTP server that handles agent turns
+4. **Client** (renderer) connects via HTTP, sends messages, receives NDJSON stream events
+5. **Stream events** are typed: `SessionStarted`, `TurnStarted`, `StepStarted`, `MessageReceived`, `MessageAppended`, `StepCompleted`, `TurnCompleted`, `ResultCompleted`, etc.
+6. **`defaultMessageReducer`** folds stream events into `EveMessageData` with `messages[].parts[]` (text, reasoning, tool calls, tool results, step-start markers)
+7. **`useEveAgent`** Vue composable wraps this in reactive refs
 
 ## Implementation Phases
 
-### Phase 1: Workspace Guard + Tool Types
+### Phase 1: Author the Agent Directory
+
+Create the agent definition on disk. Eve expects a specific directory structure.
 
 **Files to create:**
-- `src/main/agent/workspace-guard.ts` — Path confinement utility
-- `src/main/agent/types.ts` — Shared tool types
+- `agent/agent.ts` — `defineAgent({ model, tools, sandbox })`
+- `agent/instructions.md` — system prompt (markdown-first)
+- `agent/sandbox.ts` — `defineSandbox({ backend: justBash() })`
+- `agent/package.json` — minimal package for eve to recognize the agent
+- `agent/tsconfig.json` — TypeScript config for the agent
 
-**workspace-guard.ts:**
-- `confinePath(workspacePath, requestedPath)` — resolves requested path relative to workspace, rejects paths that escape the workspace root
-- `isPathSafe(workspacePath, requestedPath)` — boolean check
-- Handles both relative and absolute paths
-- Symlink resolution (reject symlinks pointing outside workspace)
-- Normalizes path separators
+**agent.ts:**
+```typescript
+import { defineAgent } from 'eve'
+import { defineSandbox } from 'eve/sandbox'
+import { justBash } from 'eve/sandbox/just-bash'
+import { readFile, writeFile, grep, glob, bash } from 'eve/tools/defaults'
 
-**types.ts:**
-- `ToolExecutionContext` — workspace path, session ID, message ID
-- `ToolResult` — success/error, content, metadata
-- `ToolEvent` — for streaming tool call lifecycle to renderer
+export default defineAgent({
+  model: 'ollama/gemma4:31b-cloud',  // or whatever model
+  sandbox: defineSandbox({
+    backend: justBash({ autoInstall: true })
+  }),
+  // Framework tools are included by default; we can customize here
+})
+```
 
-### Phase 2: Agent Tools (6 Tools)
+**instructions.md:**
+The system prompt as markdown — identity, workspace context, tool rules, work policy, communication guidelines. Inspired by grok-build's prompt but adapted for Kraken.
 
-Each tool is a function that takes typed args + execution context, returns a `ToolResult`. Wrapped in AI SDK `tool()` definitions for the model.
+### Phase 2: Boot eve Dev Server in Electron
 
-**read-file.tool.ts:**
-- Args: `path` (relative to workspace), `offset?` (line number), `limit?` (line count)
-- Returns: file content with `LINE_NUMBER→CONTENT` anchor format (every 10th line)
-- Respects `.gitignore` (refuses to read ignored files)
-- Rejects binary files (detect via null bytes)
-- Max lines default: 2000
+**File:** `src/main/eve/eve-dev-server.ts`
 
-**list-dir.tool.ts:**
-- Args: `path` (relative to workspace, defaults to root)
-- Returns: files and folders, sorted (folders first, then alphabetical)
-- Respects `.gitignore`
-- Hides dot-files by default
-
-**grep.tool.ts:**
-- Args: `pattern` (regex), `path?` (search root, defaults to workspace), `glob?` (file filter), `contextLines?` (0-5)
-- Uses `child_process.execFile('rg', ...)` — ripgrep, not shell grep
-- Returns: ripgrep-style output (file:line:match)
-- Respects `.gitignore` (ripgrep does this natively)
-- Max results cap (100 matches)
-
-**write-file.tool.ts:**
-- Args: `path` (relative to workspace), `content` (full file content)
-- Creates new file or overwrites existing
-- Respects `.gitignore` (refuses to write ignored files)
-- Creates parent directories if needed
-
-**edit-file.tool.ts:**
-- Args: `path`, `oldString`, `newString`, `replaceAll?` (default false)
-- Exact string replacement (like grok-build's `search_replace`)
-- `oldString` must match exactly once (unless `replaceAll`)
-- Empty `oldString` = create new file (delegates to write-file logic)
-- Rejects if `oldString == newString`
-- Returns line diff (added/removed counts)
-
-**run-command.tool.ts:**
-- Args: `command` (string), `timeout?` (ms, default 30000, max 120000), `cwd?` (defaults to workspace)
-- Runs via `child_process.exec` with shell
-- Returns: stdout + stderr, exit code, truncated at 20000 chars
-- Timeout: kills process, returns partial output
-- Does NOT support background mode (keep it simple for foundation)
-
-### Phase 3: System Prompt
-
-**File:** `src/main/agent/system-prompt.ts`
-
-A proper coding agent system prompt, inspired by grok-build but adapted for Kraken:
-
-- Identity: "You are Kraken, a local-first AI coding agent inside a desktop IDE."
-- Workspace context: project name, path, current date
-- Tool usage rules: prefer dedicated tools over bash, never use echo to communicate
-- Work policy: keep requirements in view, do reversible work immediately, only claim done when verified
-- Communication: direct, concise, lead with the answer
-- Formatting: GitHub-flavored markdown
-- Architecture mermaid support (preserve existing behavior)
-- AGENTS.md support (read project instruction files)
-
-### Phase 4: Agentic Loop (agent.service.ts rewrite)
-
-**File:** `src/main/services/agent.service.ts` (rewrite)
-
-Replace single-shot `streamText` with multi-step:
+The eve dev server runs as a Nitro HTTP server. We boot it in the main process on a random port and pass the port to the renderer.
 
 ```typescript
-const result = streamText({
-  model: aiModel,
-  system: buildSystemPrompt(workspace),
-  messages: buildMessages(history),  // full conversation history
-  tools: {
-    read_file: tool({ description, parameters: schema, execute: ... }),
-    list_dir: tool({ ... }),
-    grep: tool({ ... }),
-    write_file: tool({ ... }),
-    edit_file: tool({ ... }),
-    run_command: tool({ ... }),
-  },
-  stopWhen: stepCountIs(50),  // max 50 steps per turn
-  maxRetries: 2,
-  onStepEnd: ({ stepCount, toolCalls, toolResults }) => {
-    // Emit tool call events to renderer
-    for (const tc of toolCalls) {
-      event.sender.send(IPC.AGENT_TOOL_CALL(id), { tool: tc.toolName, args: tc.args })
-    }
-    for (const tr of toolResults) {
-      event.sender.send(IPC.AGENT_TOOL_RESULT(id), { tool: tr.toolName, result: tr.result })
-    }
-  }
-})
+import { createNodeDevelopmentRunner } from 'eve/dist/src/internal/nitro/host/dev-runner.js'
 
-// Stream text chunks
-for await (const chunk of result.textStream) {
-  event.sender.send(IPC.AGENT_CHAT_CHUNK(id), chunk)
+export async function startEveServer(agentDir: string): Promise<{ port: number; close: () => Promise<void> }> {
+  const runner = createNodeDevelopmentRunner({
+    entry: agentDir,
+    name: 'kraken-agent',
+    workerData: {}
+  })
+  await runner.waitForReady(30000)
+  // The runner exposes a fetch() — we wrap it in a Node HTTP server
+  // ...
 }
 ```
 
-**Key changes:**
-- Pass full message history (not just latest message) — convert DB messages to AI SDK format
-- Define tools with `tool()` from AI SDK
-- `stopWhen: stepCountIs(50)` — max 50 tool-call steps per turn
-- `onStepEnd` callback emits tool call/result events to renderer
-- `abortSignal` support for cancellation
-- Stationarity detection: track consecutive identical tool calls, break after 8
+**Key considerations:**
+- The dev server runs in a worker thread — it won't block the main process
+- We need to find the port it listens on (or assign one)
+- The server handles `/eve/v1/...` routes for message/stream/cancel
+- On app quit, we call `runner.close()`
 
-**Conversation history conversion:**
-- User messages → `{ role: 'user', content: text }`
-- Agent messages → `{ role: 'assistant', content: text }`
-- Tool calls/results need to be preserved in history for multi-turn context
-
-### Phase 5: IPC Updates
+### Phase 3: IPC for eve Server Lifecycle
 
 **Files to modify:**
-- `src/shared/constants/ipc-channels.ts` — Add new channels
-- `src/main/ipc/agent.ipc.ts` — Pass workspace + history, emit tool events
-- `src/preload/index.ts` — Expose new tool event listeners
-- `src/renderer/src/services/chat.service.ts` — Handle tool events
+- `src/shared/constants/ipc-channels.ts` — Add `EVE_START`, `EVE_GET_PORT`, `EVE_STOP`
+- `src/main/ipc/eve.ipc.ts` — Start/stop eve server, return port
+- `src/preload/index.ts` — Expose eve IPC methods
+- `src/main/ipc/index.ts` — Register eve IPC
 
-**New IPC channels:**
-```typescript
-AGENT_TOOL_CALL: (id: string) => `agent:tool:call:${id}`,
-AGENT_TOOL_RESULT: (id: string) => `agent:tool:result:${id}`,
-AGENT_CANCEL: 'agent:cancel',
-```
+**Flow:**
+1. App starts → `initDatabase()` → `registerAllIpc()` → `createWindow()`
+2. When user opens a workspace → start eve server with that workspace as the agent dir
+3. Renderer gets the port → connects via `useEveAgent({ host: 'http://localhost:PORT' })`
+4. On workspace switch → stop old server, start new one (or reuse if same agent config)
+5. On app quit → `runner.close()` + `closeDatabase()`
 
-**agent.ipc.ts changes:**
-- `AGENT_STREAM_CHAT` handler now receives `{ id, message, system, workspacePath, history }`
-- Emits `AGENT_TOOL_CALL` and `AGENT_TOOL_RESULT` events during execution
-- Handles `AGENT_CANCEL` to abort the stream
-
-### Phase 6: Renderer Updates (Minimal)
+### Phase 4: Renderer Integration with useEveAgent
 
 **Files to modify:**
-- `src/renderer/src/components/views/AgentView.vue` — Pass workspace + history to stream
-- `src/renderer/src/services/chat.service.ts` — New `onToolCall`/`onToolResult` callbacks
-- `src/renderer/src/stores/session.store.ts` — Build history array for the agent
+- `src/renderer/src/components/views/AgentView.vue` — Replace `ChatService.streamMessage` with `useEveAgent`
+- `src/renderer/src/services/chat.service.ts` — Remove or repurpose (eve handles streaming)
+- `src/renderer/src/stores/session.store.ts` — Sync with eve session state
 
 **AgentView.vue changes:**
-- Pass `workspaceStore.activeWorkspace?.path` to `streamMessage`
-- Pass `sessionStore.messages` (converted to history format) to `streamMessage`
-- Handle tool call events (for now, just log them — UI rendering comes later)
+```typescript
+import { useEveAgent } from 'eve/vue'
 
-**chat.service.ts changes:**
-- `StreamChatOptions` gains `workspacePath`, `history`, `onToolCall`, `onToolResult`
-- Registers tool event listeners alongside text chunk listeners
+const evePort = ref<number | null>(null)
+
+const { data, status, send, stop, error } = useEveAgent({
+  host: `http://localhost:${evePort.value}`,
+  onError: (err) => console.error('eve error:', err),
+  onFinish: (snapshot) => {
+    // Persist messages to SQLite
+  }
+})
+
+const handleChat = async () => {
+  if (!prompt.value.trim()) return
+  await send({ message: prompt.value })
+  prompt.value = ''
+}
+```
+
+**Message rendering:**
+The `data.messages` array contains `EveMessage` objects with `parts[]`. Each part is typed:
+- `type: 'text'` — streamed text content
+- `type: 'reasoning'` — model reasoning
+- `type: 'dynamic-tool'` — tool call with lifecycle state
+- `type: 'step-start'` — marks a new agent step
+- `type: 'file'` — file attachments
+
+We render these parts in `ChatMessage.vue`.
+
+### Phase 5: Model Configuration
+
+**File:** `agent/agent.ts`
+
+Eve needs a model. We support Ollama (local + cloud) using the AI SDK's Ollama provider that's already in the project.
+
+```typescript
+import { defineAgent } from 'eve'
+import { createOllama } from 'ai-sdk-ollama'
+
+const ollama = createOllama({ baseURL: 'http://127.0.0.1:11434' })
+
+export default defineAgent({
+  model: ollama('gemma4:31b-cloud'),
+  // ...
+})
+```
+
+For cloud Ollama:
+```typescript
+const ollama = createOllama({
+  baseURL: 'https://ollama.com',
+  headers: { Authorization: `Bearer ${apiKey}` }
+})
+```
+
+The model config is read from the app's SQLite config store and injected when the eve server boots.
+
+### Phase 6: Workspace as Agent Directory
+
+Each workspace IS an agent directory. When the user opens a project folder:
+1. Create `agent/` subdirectory inside the workspace (or in app data)
+2. Write `agent.ts`, `instructions.md`, `sandbox.ts` with workspace-specific config
+3. Boot eve dev server pointing at that directory
+4. The sandbox's `/workspace` maps to the project folder
+
+**Sandbox configuration:**
+```typescript
+import { defineSandbox } from 'eve/sandbox'
+import { justBash } from 'eve/sandbox/just-bash'
+
+export default defineSandbox({
+  backend: justBash({ autoInstall: true }),
+  // workspace/ folder is seeded into the sandbox
+})
+```
+
+The `workspace/` directory inside the agent dir contains the project files (or symlinks to them).
+
+### Phase 7: Message Persistence
+
+eve manages session state via `continuationToken` and `sessionId`. We persist this to SQLite so sessions can be resumed.
+
+**Database changes:**
+- `sessions` table: add `eveSessionId` and `eveContinuationToken` columns
+- On `send()`: store the continuation token from the response
+- On resume: pass `initialSession` to `useEveAgent` with the stored token
+- Message content is still stored in the `messages` table for offline access
+
+### Phase 8: Tool Call UI
+
+The `defaultMessageReducer` projects tool calls as `EveMessagePart` with `type: 'dynamic-tool'`. We render these as collapsible blocks in `ChatMessage.vue`:
+
+- Tool name + args (collapsed by default)
+- Tool result (expandable)
+- Status indicator (running / completed / failed)
+- PixelLoader variant changes based on active tool (reading → blue, writing → green, executing → amber)
 
 ## What We're NOT Building (Yet)
 
-These are for later phases:
-- Tool call UI rendering (collapsible tool call blocks in chat)
-- Background task support (long-running commands)
-- Subagent spawning / delegation
-- Plan mode / goal system
+- Subagents (eve supports this via `subagents/` directory)
+- Skills (eve supports this via `defineSkill`)
+- Permission gating / approval (eve supports this via `Approval` on tools)
+- Custom tools beyond framework defaults
+- Web search / web fetch
 - Memory system
-- Permission gating (auto-approve all tools for now)
+- Plan mode / goal system
 - LSP integration
-- Web search
 - Mermaid crash isolation
 
 ## Build Order
 
-1. `workspace-guard.ts` + `types.ts` (foundation)
-2. `read-file.tool.ts` + `list-dir.tool.ts` (simplest tools)
-3. `grep.tool.ts` (needs ripgrep check)
-4. `write-file.tool.ts` + `edit-file.tool.ts`
-5. `run-command.tool.ts`
-6. `system-prompt.ts`
-7. `agent.service.ts` rewrite (the loop)
-8. `agent.ipc.ts` + IPC channels + preload
-9. `chat.service.ts` + `AgentView.vue` + `session.store.ts`
-10. Test end-to-end: open workspace, ask agent to read a file and explain it
+1. Create `agent/` directory with `agent.ts`, `instructions.md`, `sandbox.ts`
+2. Build `eve-dev-server.ts` — boot eve in-process
+3. Add IPC for eve server lifecycle
+4. Wire up `useEveAgent` in AgentView
+5. Update ChatMessage to render eve message parts
+6. Configure model from app settings
+7. Test end-to-end: open workspace, chat with agent, agent reads files
+8. Add message persistence (continuation tokens in DB)
+9. Add tool call UI rendering
+10. Add PixelLoader variant switching based on active tool
 
 ## Verification
 
 After implementation, these must work:
-1. Agent can read a file in the workspace and explain its contents
-2. Agent can list the workspace directory structure
-3. Agent can grep for a pattern across the workspace
-4. Agent can create a new file in the workspace
-5. Agent can edit an existing file (exact string replacement)
-6. Agent can run a shell command (e.g., `ls`, `git status`)
-7. Agent loops: reads a file, then edits it, then verifies the edit
-8. Agent cannot access files outside the workspace
-9. Conversation history is maintained across turns
-10. Cancellation works (user can stop a running agent)
+1. eve dev server boots when a workspace is opened
+2. Renderer connects via `useEveAgent`
+3. User sends a message → agent responds with streaming text
+4. Agent can call `read_file` to read a file in the workspace
+5. Agent can call `list_dir` / `glob` to explore the workspace
+6. Agent can call `grep` to search file contents
+7. Agent can call `write_file` to create a new file
+8. Agent can call `bash` to run a shell command
+9. Agent loops: reads a file, then edits it, then verifies
+10. Tool calls render as collapsible blocks in the chat
+11. PixelLoader switches variant based on active tool
+12. Sessions persist across app restarts (continuation token)
+13. Cancellation works (user clicks stop)
+14. Agent stays confined to the workspace sandbox
