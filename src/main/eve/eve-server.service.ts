@@ -1,8 +1,7 @@
 import { spawn } from 'node:child_process'
-import { join, resolve } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
 import { app } from 'electron'
 import { existsSync } from 'node:fs'
-import { is } from '@electron-toolkit/utils'
 
 export interface EveServerHandle {
   url: string
@@ -14,43 +13,52 @@ export interface EveServerHandle {
 let activeServer: EveServerHandle | null = null
 
 /**
- * Resolve the project root directory.
- *
- * In dev, electron-vite builds the main process to out/main/, so
- * app.getAppPath() returns <root>/out/main. The project root is two
- * levels up. In production, resources live under process.resourcesPath.
- */
-function getProjectRoot(): string {
-  if (is.dev) {
-    return resolve(app.getAppPath(), '..', '..')
-  }
-  return process.resourcesPath
-}
-
-/**
  * Resolve the path to the eve CLI binary inside node_modules.
+ *
+ * In dev, app.getAppPath() may return the project root, out/main, or
+ * the main entry file depending on the electron-vite version. We try
+ * several candidates. In production, resources live under
+ * process.resourcesPath.
  */
 function getEveBinary(): string {
-  const root = getProjectRoot()
-  const devPath = join(root, 'node_modules', 'eve', 'bin', 'eve.js')
-  const prodPath = join(process.resourcesPath, 'node_modules', 'eve', 'bin', 'eve.js')
+  const appPath = app.getAppPath()
+  const candidates = [
+    // Dev: appPath is the project root
+    join(appPath, 'node_modules', 'eve', 'bin', 'eve.js'),
+    // Dev: appPath is out/main (one level up to project root)
+    join(resolve(appPath, '..'), 'node_modules', 'eve', 'bin', 'eve.js'),
+    // Dev: appPath is out/main/index.js (dirname twice to project root)
+    join(resolve(dirname(appPath), '..'), 'node_modules', 'eve', 'bin', 'eve.js'),
+    // Production: resources directory
+    join(process.resourcesPath, 'node_modules', 'eve', 'bin', 'eve.js')
+  ]
 
-  if (existsSync(devPath)) return devPath
-  if (existsSync(prodPath)) return prodPath
-  throw new Error(`eve binary not found. Tried:\n  ${devPath}\n  ${prodPath}`)
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+
+  throw new Error(`eve binary not found. Tried:\n${candidates.map((c) => `  ${c}`).join('\n')}`)
 }
 
 /**
  * Resolve the path to the agent directory.
+ *
+ * Uses the same candidate strategy as getEveBinary.
  */
 function getAgentDir(): string {
-  const root = getProjectRoot()
-  const devPath = join(root, 'agent')
-  const prodPath = join(process.resourcesPath, 'agent')
+  const appPath = app.getAppPath()
+  const candidates = [
+    join(appPath, 'agent'),
+    join(resolve(appPath, '..'), 'agent'),
+    join(resolve(dirname(appPath), '..'), 'agent'),
+    join(process.resourcesPath, 'agent')
+  ]
 
-  if (existsSync(devPath)) return devPath
-  if (existsSync(prodPath)) return prodPath
-  throw new Error(`agent directory not found. Tried:\n  ${devPath}\n  ${prodPath}`)
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+
+  throw new Error(`agent directory not found. Tried:\n${candidates.map((c) => `  ${c}`).join('\n')}`)
 }
 
 /**
