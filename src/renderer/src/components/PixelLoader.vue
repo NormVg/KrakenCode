@@ -39,25 +39,25 @@ const props = withDefaults(defineProps<{
 
 /**
  * Per-square animation delay (ms) for each variant.
- * Index 0-7 maps to grid positions (center index 4 is omitted):
+ * Index 0-7 maps to grid positions (center index 4):
  *
  *   0 1 2
- *   3   5
+ *   3 4 5
  *   6 7 8
  */
 const DELAYS: Record<LoaderVariant, number[]> = {
-  // Diamond edges first, then corners — radiates from the empty center
-  thinking:  [300, 150, 300, 150, 0,   150, 300, 150, 300],
-  // Row-by-row, left to right — like scanning text
-  reading:   [0,   100, 200, 300, 400, 500, 600, 700, 800],
-  // Bottom-up, left to right — like filling a container
-  writing:   [600, 700, 800, 300, 400, 500, 0,   100, 200],
-  // Top-down, all columns at once — like a waterfall
-  executing: [0,   0,   0,   150, 150, 150, 300, 300, 300],
+  // Center first, then corners — radiates from the center
+  thinking:  [200, 0, 200, 0, 0,   0, 200, 0, 200],
+  // Left column, then center, then right column
+  reading:   [0,   0, 400, 0, 200, 0, 0,   0, 400],
+  // Bottom row, then center, then top row
+  writing:   [400, 0, 400, 0, 200, 0, 0,   0, 0],
+  // Top row, then center, then bottom row
+  executing: [0,   0, 0,   0, 150, 0, 300, 0, 300],
   // Center out in expanding rings — like sonar
-  searching: [400, 200, 400, 200, 0,   200, 400, 200, 400],
+  searching: [300, 0, 300, 0, 0,   0, 300, 0, 300],
   // All together — slow breathing
-  idle:      [0,   0,   0,   0,   0,   0,   0,   0,   0]
+  idle:      [0,   0, 0,   0, 0,   0, 0,   0, 0]
 }
 
 /** Total animation duration per variant (ms) */
@@ -70,8 +70,8 @@ const DURATION: Record<LoaderVariant, number> = {
   idle:      2500
 }
 
-// 8 squares — center (index 4) is omitted for negative space
-const squares = [0, 1, 2, 3, 5, 6, 7, 8]
+// 5 squares — X pattern (corners + center)
+const squares = [0, 2, 4, 6, 8]
 
 function delayFor(index: number): string {
   return `${DELAYS[props.variant][index]}ms`
@@ -149,7 +149,7 @@ function durationFor(): string {
 .pixel-loader__square {
   width: var(--sq-size);
   height: var(--sq-size);
-  border-radius: 1px;
+  border-radius: 2px;
   opacity: 0.1;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
