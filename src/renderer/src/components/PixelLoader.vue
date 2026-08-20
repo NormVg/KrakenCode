@@ -159,7 +159,7 @@ function durationFor(): string {
 .pixel-loader__square {
   width: var(--sq-size);
   height: var(--sq-size);
-  border-radius: 0;
+  border-radius: 1.5px;
   opacity: 0.1;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
@@ -168,9 +168,9 @@ function durationFor(): string {
   will-change: opacity, transform;
 }
 
-/* Hide non-X-pattern cells (edge centers: indices 1, 3, 5, 7) */
+/* Faintly show non-X-pattern cells (edge centers: indices 1, 3, 5, 7) */
 .pixel-loader__square--hidden {
-  visibility: hidden;
+  opacity: 0.05 !important;
   animation: none;
 }
 
