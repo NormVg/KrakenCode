@@ -18,9 +18,9 @@ const props = defineProps<{
         {{ content }}
       </div>
       
-      <div class="message-actions">
-        <button class="action-btn" title="Copy"><Copy :size="14" /></button>
-      </div>
+      <button class="copy-btn" title="Copy" @click="navigator.clipboard.writeText(content)">
+        <Copy :size="13" />
+      </button>
     </div>
     
     <!-- Agent Message (Box-less) -->
@@ -54,9 +54,9 @@ const props = defineProps<{
         />
       </div>
       
-      <div class="message-actions agent-actions">
-        <button class="action-btn" title="Copy"><Copy :size="14" /></button>
-      </div>
+      <button class="copy-btn" title="Copy" @click="navigator.clipboard.writeText(content)">
+        <Copy :size="13" />
+      </button>
     </div>
   </div>
 </template>
@@ -77,14 +77,11 @@ const props = defineProps<{
 
 /* User Message */
 .user-bubble {
+  position: relative;
   background-color: var(--bg-dark); /* #0A0D18 */
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  /* Maya-design */
   transition: border-color 0.2s;
 }
 
@@ -99,44 +96,39 @@ const props = defineProps<{
   white-space: pre-wrap;
 }
 
-/* Action Buttons */
-.message-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.agent-actions {
-  margin-top: 16px;
-}
-
-.action-btn {
-  background: transparent;
-  border: none;
+/* Copy Button — top-right overlay, visible on hover */
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
-  opacity: 0.3;
+  opacity: 0;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 5px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
 }
 
-.message:hover .action-btn {
+.message:hover .copy-btn {
   opacity: 0.6;
 }
 
-.action-btn:hover {
+.copy-btn:hover {
   opacity: 1 !important;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
 }
 
 /* Agent Message */
 .agent-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 0 8px;
