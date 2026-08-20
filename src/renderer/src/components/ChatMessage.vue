@@ -53,8 +53,8 @@ const copyToClipboard = () => {
             showModeToggle: true,
           }"
           :show-tooltips="true"
-          :fade="true"
-          :smooth-streaming="true"
+          :fade="props.isStreaming"
+          :smooth-streaming="props.isStreaming"
         />
       </div>
       
