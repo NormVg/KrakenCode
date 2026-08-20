@@ -5,6 +5,8 @@ export interface ToolEvent {
   toolName: string
   toolCallId: string
   status?: 'completed' | 'failed' | 'rejected'
+  input?: string
+  output?: string
 }
 
 export interface StreamChatOptions {

@@ -135,6 +135,9 @@ const inputPreview = computed(() => {
         <div v-if="!tool.input && !tool.output && tool.status === 'running'" class="detail-empty">
           Waiting for result...
         </div>
+        <div v-if="!tool.input && !tool.output && tool.status !== 'running'" class="detail-empty">
+          No data captured for this tool call.
+        </div>
       </div>
     </Transition>
   </div>

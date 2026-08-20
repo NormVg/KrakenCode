@@ -44,6 +44,8 @@ const api = {
         toolName: string
         toolCallId: string
         status?: 'completed' | 'failed' | 'rejected'
+        input?: string
+        output?: string
       }) => void
     ): void => {
       ipcRenderer.on(IPC.AGENT_CHAT_TOOL(id), (_, event) => callback(event))

@@ -163,7 +163,8 @@ const executeMessage = async (text: string) => {
           {
             toolCallId: event.toolCallId,
             toolName: event.toolName,
-            status: 'running' as const
+            status: 'running' as const,
+            input: event.input
           }
         ]
       } else {
@@ -175,7 +176,8 @@ const executeMessage = async (text: string) => {
             c.toolCallId === event.toolCallId
               ? {
                   ...c,
-                  status: event.status === 'failed' ? 'failed' as const : event.status === 'rejected' ? 'rejected' as const : 'completed' as const
+                  status: event.status === 'failed' ? 'failed' as const : event.status === 'rejected' ? 'rejected' as const : 'completed' as const,
+                  output: event.output ?? c.output
                 }
               : c
           )

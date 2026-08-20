@@ -118,7 +118,8 @@ function forwardEvent(
       sender.send(IPC.AGENT_CHAT_TOOL(chatId), {
         phase: 'start',
         toolName: event.toolName,
-        toolCallId: event.toolCallId
+        toolCallId: event.toolCallId,
+        input: event.input
       })
       break
 
@@ -127,7 +128,8 @@ function forwardEvent(
         phase: 'end',
         toolName: event.toolName,
         toolCallId: event.toolCallId,
-        status: event.status
+        status: event.status,
+        output: event.output
       })
       break
 

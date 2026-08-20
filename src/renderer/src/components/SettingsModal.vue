@@ -428,7 +428,7 @@ watch(provider, (p) => {
           <!-- Empty search results -->
           <div v-if="currentFetchState === 'success' && availableModels.length === 0" class="empty-models">
             <p v-if="searchQuery.trim()">No models found matching "{{ searchQuery }}"</p>
-            <p v-else>No models available. Run <code>ollama pull <model></code> to add one.</p>
+            <p v-else>No models available. Run <code>ollama pull &lt;model&gt;</code> to add one.</p>
           </div>
         </template>
 

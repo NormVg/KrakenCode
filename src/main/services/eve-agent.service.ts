@@ -10,8 +10,8 @@ import { Client, type ClientSession, type HandleMessageStreamEvent } from 'eve/c
 export type AgentStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'reasoning'; delta: string }
-  | { type: 'tool-start'; toolName: string; toolCallId: string }
-  | { type: 'tool-end'; toolName: string; toolCallId: string; status: 'completed' | 'failed' | 'rejected' }
+  | { type: 'tool-start'; toolName: string; toolCallId: string; input?: string }
+  | { type: 'tool-end'; toolName: string; toolCallId: string; status: 'completed' | 'failed' | 'rejected'; output?: string }
   | { type: 'step-start' }
   | { type: 'turn-complete' }
   | { type: 'error'; message: string }
@@ -138,7 +138,8 @@ export class EveAgentService {
             onEvent({
               type: 'tool-start',
               toolName: action.toolName,
-              toolCallId: action.callId
+              toolCallId: action.callId,
+              input: JSON.stringify(action.input, null, 2)
             })
           }
         }
@@ -147,11 +148,17 @@ export class EveAgentService {
       case 'action.result': {
         // Only tool-result actions carry a toolName.
         if (event.data.result.kind === 'tool-result') {
+          const output =
+            typeof event.data.result.output === 'string'
+              ? event.data.result.output
+              : JSON.stringify(event.data.result.output, null, 2)
+
           onEvent({
             type: 'tool-end',
             toolName: event.data.result.toolName,
             toolCallId: event.data.result.callId,
-            status: event.data.status
+            status: event.data.status,
+            output
           })
         }
         break
